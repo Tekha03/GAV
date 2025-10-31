@@ -9,16 +9,11 @@ type User struct {
 }
 
 func (user *User) UserConstructor(id uint) *User {
-	profile := NewUserProfile("", "", "")
-	stats := NewUserStats()
-	settings := NewUserSettings()
-	userDogs := NewDogArray()
-
 	return &User{
 		id: 		id,
-		profile: 	 *profile,
-		stats:		*stats,
-		settings: 	*settings,
-		userDogs:	userDogs,
+		profile: 	 *NewUserProfile("", "", ""),
+		stats:		*NewUserStats(),
+		settings: 	*NewUserSettings(),
+		userDogs:	NewDogArray(),
 	}
 }

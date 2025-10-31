@@ -29,7 +29,7 @@ func NewDogArray() []*Dog {
 
 func NewDog() *Dog {
 	return &Dog{
-		dogName: 	getName(),
+		dogName: 	getDogName(),
 		age: 		getAge(),
 		breed:		getBreed(),
 		character: 	getCharacter(),
@@ -37,7 +37,7 @@ func NewDog() *Dog {
 	}
 }
 
-func getName() string {
+func getDogName() string {
 	fmt.Println("Please enter the name of your dog.")
 	var dogName string
 	fmt.Scanln(&dogName)
