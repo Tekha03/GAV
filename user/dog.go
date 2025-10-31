@@ -5,74 +5,74 @@ import (
 )
 
 type Dog struct {
-	dog_name	string
+	dogName		string
 	age			uint
 	breed		string
 	character	string
 	gender		string
 }
 
-func DogArrayConstructor() []*Dog {
+func NewDogArray() []*Dog {
 	var quantity int
 	fmt.Println("How many dogs do you have?")
 	fmt.Scanln(&quantity)
 
-	user_dogs := []*Dog{}
+	userDogs := []*Dog{}
 
 	for i := 0; i < quantity; i++ {
-		dog := DogConstructor()
-		user_dogs = append(user_dogs, dog)
+		dog := NewDog()
+		userDogs = append(userDogs, dog)
 	}
 
-	return user_dogs
+	return userDogs
 }
 
-func DogConstructor() *Dog {
+func NewDog() *Dog {
 	return &Dog{
-		dog_name: 	get_name(),
-		age: 		get_age(),
-		breed:		get_breed(),
-		character: 	get_character(),
-		gender: 	get_gender(),
+		dogName: 	getName(),
+		age: 		getAge(),
+		breed:		getBreed(),
+		character: 	getCharacter(),
+		gender: 	getGender(),
 	}
 }
 
-func get_name() string {
+func getName() string {
 	fmt.Println("Please enter the name of your dog.")
-	var dog_name string
-	fmt.Scanln(&dog_name)
+	var dogName string
+	fmt.Scanln(&dogName)
 
-	return  dog_name
+	return  dogName
 }
 
-func get_age() uint {
+func getAge() uint {
 	fmt.Println("How old is your dog?")
-	var dog_age uint
-	fmt.Scanln(&dog_age)
+	var dogAge uint
+	fmt.Scanln(&dogAge)
 
-	return dog_age
+	return dogAge
 }
 
-func get_breed() string {
+func getBreed() string {
 	fmt.Println("What breed is your dog?")
-	var dog_breed string
-	fmt.Scanln(&dog_breed)
+	var dogBreed string
+	fmt.Scanln(&dogBreed)
 
-	return dog_breed
+	return dogBreed
 }
 
-func get_character() string {
+func getCharacter() string {
 	fmt.Println("What is your dog's personality like?")
-	var dog_character string
-	fmt.Scanln(&dog_character)
+	var dogCharacter string
+	fmt.Scanln(&dogCharacter)
 
-	return dog_character
+	return dogCharacter
 }
 
-func get_gender() string {
+func getGender() string {
 	fmt.Println("What is your dog's gender?")
-	var dog_gender string
-	fmt.Scanln(&dog_gender)
+	var dogGender string
+	fmt.Scanln(&dogGender)
 
-	return dog_gender
+	return dogGender
 }

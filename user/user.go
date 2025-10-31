@@ -5,20 +5,20 @@ type User struct {
 	profile		 UserProfile
 	stats		UserStats
 	settings	UserSettings
-	user_dogs 	[]*Dog
+	userDogs 	[]*Dog
 }
 
 func (user *User) UserConstructor(id uint) *User {
-	profile := UserProfileConstructor("", "", "")
-	stats := UserStatsConstructor()
-	settings := UserSettingsConstructor()
-	user_dogs := DogArrayConstructor()
+	profile := NewUserProfile("", "", "")
+	stats := NewUserStats()
+	settings := NewUserSettings()
+	userDogs := NewDogArray()
 
 	return &User{
 		id: 		id,
 		profile: 	 *profile,
 		stats:		*stats,
 		settings: 	*settings,
-		user_dogs:	user_dogs,
+		userDogs:	userDogs,
 	}
 }

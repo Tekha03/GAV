@@ -5,20 +5,20 @@ type UserProfile struct {
 	surname      string
 	username	 string
 	email		 string
-	birth_date 	 string
-	profile_photo string
+	birthDate 	 string
+	profilePhoto string
 	address		 string
 	bio			 string
 }
 
-func UserProfileConstructor(name string, username string, birth_date string) *UserProfile {
+func NewUserProfile(name string, username string, birthDate string) *UserProfile {
 	return &UserProfile{
 		name: 			name,
 		surname: 		"",
 		username: 		username,
 		email: 			"",
-		birth_date: 	birth_date,
-		profile_photo: 	 "",
+		birthDate: 		birthDate,
+		profilePhoto: 	 "",
 		address: 		"",
 		bio: 			"",
 	}

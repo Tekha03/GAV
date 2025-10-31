@@ -1,4 +1,4 @@
-module mysocial
+module gav
 
 go 1.25.0
 

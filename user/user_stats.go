@@ -4,18 +4,18 @@ type UserStats struct {
 	posts			[]string
 	followers		[]string
 	following		[]string
-	posts_cnt		uint
-	followers_cnt	uint
-	following_cnt	uint
+	postsCnt		uint
+	followersCnt	uint
+	followingCnt	uint
 }
 
-func UserStatsConstructor() *UserStats {
+func NewUserStats() *UserStats {
 	return  &UserStats{
 		posts: 	   		[]string{},
 		followers: 		[]string{},
 		following: 		[]string{},
-		posts_cnt: 	   	0,
-		followers_cnt: 	0,
-		following_cnt: 	0,
+		postsCnt: 	   	0,
+		followersCnt: 	0,
+		followingCnt: 	0,
 	}
 }

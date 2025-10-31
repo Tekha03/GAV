@@ -3,7 +3,7 @@ package main
 import (
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
-	"mysocial/user"
+	"gav/user"
 )
 
 var DB *gorm.DB

@@ -8,26 +8,26 @@ import (
 
 type UserSettings struct {
 	private 		  bool
-	email_notification bool
+	emailNotification  bool
 	password		  string
 	createdAt		  time.Time
 }
 
-func UserSettingsConstructor() *UserSettings {
+func NewUserSettings() *UserSettings {
 	return &UserSettings{
-		private: 			get_privacy(),
-		email_notification:	 get_email_norification(),
-		password: 			get_password(),
-		createdAt: 			get_creation_time(),
+		private: 			getPrivacy(),
+		emailNotification:	 getEmailNotification(),
+		password: 			getPassword(),
+		createdAt: 			getCreationTime(),
 	}
 }
 
-func get_privacy() bool {
+func getPrivacy() bool {
 	var privacy string
 	fmt.Println("Do you want your profile to be private?")
 	fmt.Scanln(&privacy)
 
-	for !correct_input(privacy) {
+	for !correctInput(privacy) {
 		fmt.Println("Please enter yes or no!")
 		fmt.Scanln(&privacy)
 	}
@@ -39,12 +39,12 @@ func get_privacy() bool {
 	}
 }
 
-func get_email_norification() bool {
+func getEmailNotification() bool {
 	var notifications string
 	fmt.Println("Do you want to get notifications by email?")
 	fmt.Scanln(&notifications)
 
-	for !correct_input(notifications) {
+	for !correctInput(notifications) {
 		fmt.Println("Please enter yes or no!")
 		fmt.Scanln(&notifications)
 	}
@@ -56,7 +56,7 @@ func get_email_norification() bool {
 	}
 }
 
-func correct_input(answer string) bool {
+func correctInput(answer string) bool {
 	if strings.ToLower(answer) == "yes" || strings.ToLower(answer) == "no" {
 		return true
 	} else {
@@ -64,29 +64,29 @@ func correct_input(answer string) bool {
 	}
 }
 
-func get_password() string {
+func getPassword() string {
 	var password string
 	fmt.Println("Please enter new password")
 	fmt.Scanln(&password)
 
-	for !is_safe_password(password) {
+	for !isSafePassword(password) {
 		fmt.Println("Your password does not meet security requirements, please enter safe password")
-		safe_password_requirements()
+		safePasswordRequirements()
 		fmt.Scanln(&password)
 	}
 
 	return password
 }
 
-func is_safe_password(password string) bool {
+func isSafePassword(password string) bool {
 	// TODO
 	return  true
 }
 
-func safe_password_requirements() {
+func safePasswordRequirements() {
 	// TODO
 }
 
-func get_creation_time() time.Time {
+func getCreationTime() time.Time {
 	return time.Time{}
 }
