@@ -1,9 +1,9 @@
 package user
 
 type UserStats struct {
-	Posts			[]string
-	Followers		[]string
-	Following		[]string
+	Posts			[]string	`gorm:"type:json"`
+	Followers		[]string	`gorm:"type:json"`
+	Following		[]string	`gorm:"type:json"`
 	PostsCnt		uint
 	FollowersCnt	uint
 	FollowingCnt	uint

@@ -1,11 +1,11 @@
 package user
 
 type User struct {
-	ID			uint
-	Profile		 UserProfile
-	Stats		UserStats
-	Settings	UserSettings
-	UserDogs 	[]*Dog
+	ID			uint			`gorm:"primaryKey:`
+	Profile		 UserProfile	  `gorm:"embedded"`
+	Stats		UserStats		`gorm:"embedded"`
+	Settings	UserSettings	`gorm:"embedded"`
+	UserDogs 	[]*Dog			`gorm:"-"`
 }
 
 func NewUser(id uint, profile *UserProfile, stats *UserStats, settings *UserSettings, dogs []*Dog) *User {

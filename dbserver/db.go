@@ -1,9 +1,10 @@
-package main
+package dbserver
 
 import (
+	"gav/user"
+
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
-	"gav/user"
 )
 
 var DB *gorm.DB
