@@ -1,78 +1,59 @@
 package user
 
-import (
-	"fmt"
-)
-
 type Dog struct {
-	dogName		string
-	age			uint
-	breed		string
-	character	string
-	gender		string
+	DogName		string
+	Age			uint
+	Breed		string
+	Character	string
+	Gender		string
 }
 
-func NewDogArray() []*Dog {
-	var quantity int
-	fmt.Println("How many dogs do you have?")
-	fmt.Scanln(&quantity)
-
-	userDogs := []*Dog{}
-
-	for i := 0; i < quantity; i++ {
-		dog := NewDog()
-		userDogs = append(userDogs, dog)
-	}
-
-	return userDogs
-}
-
-func NewDog() *Dog {
+func NewDog(dogName string, age uint, breed, character, gender string) *Dog {
 	return &Dog{
-		dogName: 	getDogName(),
-		age: 		getAge(),
-		breed:		getBreed(),
-		character: 	getCharacter(),
-		gender: 	getGender(),
+		DogName: 	dogName,
+		Age: 		age,
+		Breed:		breed,
+		Character: 	character,
+		Gender: 	gender,
 	}
 }
 
-func getDogName() string {
-	fmt.Println("Please enter the name of your dog.")
-	var dogName string
-	fmt.Scanln(&dogName)
+// func DogName() string {
+// 	fmt.Println("Please enter the name of your dog.")
+// 	var dogName string
+// 	fmt.Fscanln(Input, &dogName)
 
-	return  dogName
-}
+// 	return  dogName
+// }
 
-func getAge() uint {
-	fmt.Println("How old is your dog?")
-	var dogAge uint
-	fmt.Scanln(&dogAge)
+// func Age() uint {
+// 	fmt.Println("How old is your dog?")
+// 	var dogAge uint
+// 	fmt.Fscanln(Input, &dogAge)
 
-	return dogAge
-}
+// 	return dogAge
+// }
 
-func getBreed() string {
-	fmt.Println("What breed is your dog?")
-	var dogBreed string
-	fmt.Scanln(&dogBreed)
+// func Breed() string {
+// 	fmt.Println("What breed is your dog?")
+// 	var dogBreed string
+// 	fmt.Fscanln(Input, &dogBreed)
 
-	return dogBreed
-}
+// 	return dogBreed
+// }
 
-func getCharacter() string {
-	fmt.Println("What is your dog's personality like?")
-	var dogCharacter string
-	fmt.Scanln(&dogCharacter)
+// func Character() string {
+// 	fmt.Println("What is your dog's personality like?")
+// 	var dogCharacter string
+// 	fmt.Fscanln(Input, &dogCharacter)
 
-	return dogCharacter
-}
+// 	return dogCharacter
+// }
 
-func getGender() string {
-	fmt.Println("What is your dog's gender?")
-	var dogGender string
-	fmt.Scanln(&dogGender)
+// func Gender() string {
+// 	fmt.Println("What is your dog's gender?")
+// 	var dogGender string
+// 	fmt.Fscanln(Input, &dogGender)
 
-	return dogGender
-}
+// 	return dogGender
+// }

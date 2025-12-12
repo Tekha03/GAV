@@ -1,21 +1,21 @@
 package user
 
 type UserStats struct {
-	posts			[]string
-	followers		[]string
-	following		[]string
-	postsCnt		uint
-	followersCnt	uint
-	followingCnt	uint
+	Posts			[]string
+	Followers		[]string
+	Following		[]string
+	PostsCnt		uint
+	FollowersCnt	uint
+	FollowingCnt	uint
 }
 
 func NewUserStats() *UserStats {
 	return  &UserStats{
-		posts: 	   		[]string{},
-		followers: 		[]string{},
-		following: 		[]string{},
-		postsCnt: 	   	0,
-		followersCnt: 	0,
-		followingCnt: 	0,
+		Posts: 	   		[]string{},
+		Followers: 		[]string{},
+		Following: 		[]string{},
+		PostsCnt: 	   	0,
+		FollowersCnt: 	0,
+		FollowingCnt: 	0,
 	}
 }

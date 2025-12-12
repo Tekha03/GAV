@@ -1,19 +1,35 @@
 package user
 
 type User struct {
-	id			uint
-	profile		 UserProfile
-	stats		UserStats
-	settings	UserSettings
-	userDogs 	[]*Dog
+	ID			uint
+	Profile		 UserProfile
+	Stats		UserStats
+	Settings	UserSettings
+	UserDogs 	[]*Dog
 }
 
-func (user *User) UserConstructor(id uint) *User {
+func NewUser(id uint, profile *UserProfile, stats *UserStats, settings *UserSettings, dogs []*Dog) *User {
+	var prof UserProfile
+	var st UserStats
+	var set UserSettings
+
+	if profile != nil {
+		prof = *profile
+	}
+
+	if stats != nil {
+		st = *stats
+	}
+
+	if settings != nil {
+		set = *settings
+	}
+
 	return &User{
-		id: 		id,
-		profile: 	 *NewUserProfile("", "", ""),
-		stats:		*NewUserStats(),
-		settings: 	*NewUserSettings(),
-		userDogs:	NewDogArray(),
+		ID: 		id,
+		Profile: 	 prof,
+		Stats:		st,
+		Settings: 	set,
+		UserDogs:	dogs,
 	}
 }
