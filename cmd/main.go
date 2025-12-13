@@ -12,7 +12,7 @@ func main() {
 	r := gin.Default()
 
 	r.POST("/register", dbserver.RegisterHandler)
-	r.GET("/users/:id", dbserver.GetUserHandler)
+	r.POST("/login", dbserver.LoginHandler)
 
 	r.Run(":8080")
 }
