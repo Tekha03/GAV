@@ -3,106 +3,73 @@ package dbserver
 import (
 	"bytes"
 	"encoding/json"
-	"gav/user"
+	"gav/storage/memory"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
 )
 
-func setupTestDB(t *testing.T) {
-	var err error
-	DB, err = gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
-	if err != nil {
-		t.Fatalf("failed to open in-memory DB: %v", err)
-	}
-
-	if err := DB.AutoMigrate(&user.User{}); err != nil {
-		t.Fatalf("migration failed: %v", err)
-	}
-}
-
-func setupRouter() *gin.Engine {
+func setupTestServer() *gin.Engine {
 	r := gin.Default()
-	r.POST("/register", RegisterHandler)
-	r.GET("users/:id", GetUserHandler)
+
+	userRepo := memory.NewUserRepository()
+	authRepo := NewAuthHandler(userRepo)
+
+	r.POST("/register", authRepo.Register)
+	r.POST("/login", authRepo.Login)
+
 	return r
 }
 
-func TestRegisterHandler(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	setupTestDB(t)
-	router := setupRouter()
+type Credentials struct {
+	Email 	 string	`json:"email"`
+	Password string	`json:"password"`
+}
 
-	input := user.User{
-		ID: 10,
+func TestRegister_Success(t *testing.T) {
+	r := setupTestServer()
+
+	body := Credentials{
+		Email: 		"test@example.com",
+		Password: 	"superPassword",
 	}
-	body, _ := json.Marshal(input)
+	data, _ := json.Marshal(body)
 
-	req := httptest.NewRequest(http.MethodPost, "/register", bytes.NewReader(body))
+	req, _ := http.NewRequest("POST", "/register", bytes.NewReader(data))
 	req.Header.Set("Content-Type", "application/json")
-
+	
 	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
+	r.ServeHTTP(w, req)
 
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", w.Code)
 	}
-
-	var created user.User
-	if err := json.Unmarshal(w.Body.Bytes(), &created); err != nil {
-		t.Fatalf("response JSON unmarshal failed: %v", err)
-	}
-
-	if created.ID != 10 {
-		t.Fatalf("expected user ID 10, got %d", created.ID)
-	}
-
-	var stored user.User
-	if err := DB.First(&stored, 10).Error; err != nil {
-		t.Fatalf("user was not inserted into DB: %v", err)
-	}
-
 }
 
-func TestGetUserHandler(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	setupTestDB(t)
+func TestRegister_DuplicateEmail(t *testing.T) {
+	r := setupTestServer()
 
-	DB.Create(&user.User{ID: 25})
-	router := setupRouter()
-
-	req := httptest.NewRequest(http.MethodGet, "/users/25", nil)
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d", w.Code)
+	body := Credentials{
+		Email: 		"dup@example.com",
+		Password: 	"pass123",
 	}
+	data, _ := json.Marshal(body)
 
-	var returned user.User
-	if err := json.Unmarshal(w.Body.Bytes(), &returned); err != nil {
-		t.Fatalf("bad JSON: %v", err)
-	}
+	// Первый раз – ок
+	req1, _ := http.NewRequest("POST", "/register", bytes.NewReader(data))
+	req1.Header.Set("Content-Type", "application/json")
+	w1 := httptest.NewRecorder()
+	r.ServeHTTP(w1, req1)
 
-	if returned.ID != 25 {
-		t.Fatalf("expectd ID 25, got %d", returned.ID)
-	}
-}
+	// Второй раз – ошибка
+	req2, _ := http.NewRequest("POST", "/register", bytes.NewReader(data))
+	req2.Header.Set("Content-Type", "application/json")
+	w2 := httptest.NewRecorder()
+	r.ServeHTTP(w2, req2)
 
-func TestGetUserNotFound(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	setupTestDB(t)
-	router := setupRouter()
-
-	req := httptest.NewRequest(http.MethodGet, "/users/999", nil)
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-
-	if w.Code != http.StatusNotFound {
-		t.Fatalf("expected 404, got %d", w.Code)
+	if w2.Code == http.StatusOK {
+		t.Fatalf("expected error on duplicate email, got 200 OK")
 	}
 }

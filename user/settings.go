@@ -7,15 +7,17 @@ import (
 type UserSettings struct {
 	Private 		  bool
 	EmailNotification  bool
-	Password		  string
+	Email			  string	`gorm:"uniqueIndex;not null"`
+	PasswordHash	  string	`gorm:"not null"`
 	CreatedAt		  time.Time
 }
 
-func NewUserSettings(private, emailNotification bool, password string, createdAt time.Time) *UserSettings {
+func NewUserSettings(private, emailNotification bool, email, password string, createdAt time.Time) *UserSettings {
 	return &UserSettings{
-		Private: 			private,
+		Private: 		   	private,
 		EmailNotification:	 emailNotification,
-		Password: 			password,
+		Email:				email,
+		PasswordHash: 		password,
 		CreatedAt: 			createdAt,
 	}
 }

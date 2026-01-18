@@ -1,7 +1,7 @@
 package user
 
 type User struct {
-	ID			uint			`gorm:"primaryKey:`
+	ID			uint			`gorm:"primaryKey"`
 	Profile		 UserProfile	  `gorm:"embedded"`
 	Stats		UserStats		`gorm:"embedded"`
 	Settings	UserSettings	`gorm:"embedded"`
