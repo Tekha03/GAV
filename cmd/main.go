@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 
-	"gav/dbserver"
+	"gav/auth"
 	"gav/post"
 	"gav/storage/sqlite"
 	"gav/user"
@@ -26,7 +26,8 @@ func main() {
 
 	userRepo := sqlite.NewUserRepository(db)
 	// postRepo := memory.NewPostRepository()
-	authHandler := dbserver.NewAuthHandler(userRepo)
+	authService := auth.NewAuthService(userRepo)
+	authHandler := auth.NewAuthHandler(authService)
 
 	r := gin.Default()
 	r.POST("/register", authHandler.Register)

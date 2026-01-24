@@ -1,8 +1,9 @@
-package dbserver
+package auth_test
 
 import (
 	"bytes"
 	"encoding/json"
+	"gav/auth"
 	"gav/storage/memory"
 	"net/http"
 	"net/http/httptest"
@@ -13,9 +14,8 @@ import (
 
 func setupTestServer() *gin.Engine {
 	r := gin.Default()
-
-	userRepo := memory.NewUserRepository()
-	authRepo := NewAuthHandler(userRepo)
+	service := auth.NewAuthService(memory.NewUserRepository())
+	authRepo := auth.NewAuthHandler(service)
 
 	r.POST("/register", authRepo.Register)
 	r.POST("/login", authRepo.Login)
@@ -39,7 +39,7 @@ func TestRegister_Success(t *testing.T) {
 
 	req, _ := http.NewRequest("POST", "/register", bytes.NewReader(data))
 	req.Header.Set("Content-Type", "application/json")
-	
+
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
