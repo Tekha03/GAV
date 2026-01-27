@@ -6,6 +6,7 @@ import (
 
 	"gav/internal/auth"
 	"gav/internal/transport/response"
+	"gav/internal/validation"
 )
 
 type AuthHandler struct {
@@ -24,6 +25,11 @@ type credentials struct {
 func (ah *AuthHandler) Register(writer http.ResponseWriter, reader *http.Request) {
 	var req credentials
 	if err := json.NewDecoder(reader.Body).Decode(&req); err != nil {
+		response.Error(writer, http.StatusBadRequest, err)
+		return
+	}
+
+	if err := validation.Validate(&req); err != nil {
 		response.Error(writer, http.StatusBadRequest, err)
 		return
 	}

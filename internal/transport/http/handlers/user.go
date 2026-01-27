@@ -3,7 +3,7 @@ package handlers
 import (
 	"errors"
 	"gav/internal/transport/response"
-	"gav/internal/transport/httpserver/middleware"
+	"gav/internal/transport/http/middleware"
 	"gav/storage"
 	"net/http"
 )

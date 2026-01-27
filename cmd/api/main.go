@@ -4,9 +4,8 @@ import (
 	"log"
 
 	"gav/internal/auth"
-	"gav/internal/post"
+	"gav/migrations"
 	"gav/storage/sqlite"
-	"gav/user"
 
 	"github.com/gin-gonic/gin"
 )
@@ -17,10 +16,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if err := db.AutoMigrate(
-		&user.User{},
-		&post.Post{},
-	); err != nil {
+	if err := migrations.Migrate(db); err != nil {
 		log.Fatal(err)
 	}
 

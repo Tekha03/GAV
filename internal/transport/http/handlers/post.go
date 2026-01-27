@@ -9,8 +9,9 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"gav/internal/post"
-	"gav/internal/transport/httpserver/middleware"
+	"gav/internal/transport/http/middleware"
 	"gav/internal/transport/response"
+	"gav/internal/validation"
 )
 
 type PostHandler struct {
@@ -35,6 +36,11 @@ func (ph *PostHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	var request createPostRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		response.Error(w, http.StatusBadRequest, err)
+		return
+	}
+
+	if err := validation.Validate(&request); err != nil {
 		response.Error(w, http.StatusBadRequest, err)
 		return
 	}

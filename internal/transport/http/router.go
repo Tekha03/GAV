@@ -5,8 +5,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"gav/internal/transport/httpserver/handlers"
-	"gav/internal/transport/httpserver/middleware"
+	"gav/internal/transport/http/handlers"
+	"gav/internal/transport/http/middleware"
 )
 
 func NewHandler(
