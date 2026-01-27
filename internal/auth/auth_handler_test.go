@@ -3,7 +3,7 @@ package auth_test
 import (
 	"bytes"
 	"encoding/json"
-	"gav/auth"
+	"gav/internal/auth"
 	"gav/storage/memory"
 	"net/http"
 	"net/http/httptest"

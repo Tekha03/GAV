@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"gav/post"
+	"gav/internal/post"
 	"gorm.io/gorm"
 )
 

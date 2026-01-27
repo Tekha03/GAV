@@ -5,7 +5,7 @@ import (
 	"errors"
 	"sync"
 
-	"gav/post"
+	"gav/internal/post"
 )
 
 var (

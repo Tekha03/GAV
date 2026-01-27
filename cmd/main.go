@@ -3,8 +3,8 @@ package main
 import (
 	"log"
 
-	"gav/auth"
-	"gav/post"
+	"gav/internal/auth"
+	"gav/internal/post"
 	"gav/storage/sqlite"
 	"gav/user"
 

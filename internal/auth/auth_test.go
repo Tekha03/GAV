@@ -1,7 +1,7 @@
 package auth_test
 
 import (
-	"gav/auth"
+	"gav/internal/auth"
 	"testing"
 )
 

@@ -16,10 +16,10 @@ func NewAuthService(users storage.Repository) *AuthService {
 	return &AuthService{users: users}
 }
 
-func (as *AuthService) Register(ctx context.Context, email, password string) (uint, error) {
+func (as *AuthService) Register(ctx context.Context, email, password string) (string, error) {
 	hashedPassword, err := HashPassword(password)
 	if err != nil {
-		return 0, err
+		return "", err
 	}
 
 	newUser := user.NewUser(
@@ -35,10 +35,15 @@ func (as *AuthService) Register(ctx context.Context, email, password string) (ui
 	)
 
 	if err := as.users.Create(ctx, newUser); err != nil {
-		return 0, ErrEmailAlreadyExists
+		return "", ErrEmailAlreadyExists
 	}
 
-	return newUser.ID, nil
+	token, err := GenerateToken(int(newUser.ID))
+	if err != nil {
+		return "", ErrInvalidCredentials
+	}
+
+	return token, nil
 }
 
 func (as *AuthService) Login(ctx context.Context, email, password string) (string, error) {
