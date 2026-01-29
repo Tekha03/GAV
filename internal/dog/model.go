@@ -9,8 +9,10 @@ type Dog struct {
 	PhotoUrl	string
 
 	Status		Status
-
 	Age			Age
-
 	Gender		Gender
+
+	Lat      *float64
+    Lon      *float64
+    LocationVisible bool
 }
