@@ -5,7 +5,7 @@ import (
 	"errors"
 	"sync"
 
-	"gav/user"
+	"gav/internal/user"
 )
 
 var (
@@ -30,12 +30,12 @@ func (ur *UserRepository) Create(ctx context.Context, u *user.User) error {
 	ur.mu.Lock()
 	defer ur.mu.Unlock()
 
-	if _, exists := ur.byEmail[u.Profile.Email]; exists {
+	if _, exists := ur.byEmail[u.Email]; exists {
 		return ErrUserExists
 	}
 
 	ur.byID[u.ID] = u
-	ur.byEmail[u.Profile.Email] = u
+	ur.byEmail[u.Email] = u
 	return nil
 }
 
@@ -72,7 +72,7 @@ func (ur *UserRepository) Update(ctx context.Context, user *user.User) error {
 	}
 
 	ur.byID[user.ID] = user
-	ur.byEmail[user.Profile.Email] = user
+	ur.byEmail[user.Email] = user
 	return nil
 }
 
@@ -86,6 +86,6 @@ func (ur *UserRepository) Delete(ctx context.Context, id uint) error {
 	}
 
 	delete(ur.byID, id)
-	delete(ur.byEmail, foundUser.Profile.Email)
+	delete(ur.byEmail, foundUser.Email)
 	return nil
 }

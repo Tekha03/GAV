@@ -1,6 +1,8 @@
 package user
 
 type UserService interface {
-    Register(email, password string) (*User, error)
-    Login(email, password string) (*User, error)
+    GetByID(id uint) (*User, error)
+    GetByEmail(email string) (*User, error)
+    Delete(id uint) error
+    Update(id uint, input UpdateuserInput)
 }

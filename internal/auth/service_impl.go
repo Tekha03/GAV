@@ -2,10 +2,8 @@ package auth
 
 import (
 	"context"
-	"time"
-
 	"gav/storage"
-	"gav/user"
+	"gav/internal/user"
 )
 
 type AuthService struct {
@@ -22,17 +20,7 @@ func (as *AuthService) Register(ctx context.Context, email, password string) (st
 		return "", err
 	}
 
-	newUser := user.NewUser(
-		0,
-		nil,
-		nil,
-		&user.UserSettings{
-			Email: email,
-			PasswordHash: hashedPassword,
-			CreatedAt: time.Now(),
-		},
-		nil,
-	)
+	newUser := user.NewUser(email, hashedPassword)
 
 	if err := as.users.Create(ctx, newUser); err != nil {
 		return "", ErrEmailAlreadyExists
@@ -52,7 +40,7 @@ func (as *AuthService) Login(ctx context.Context, email, password string) (strin
 		return "", ErrInvalidCredentials
 	}
 
-	if !CheckPassword(authorizedUser.Settings.PasswordHash, password) {
+	if !CheckPassword(authorizedUser.Password, password) {
 		return "", ErrInvalidCredentials
 	}
 

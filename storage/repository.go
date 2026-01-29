@@ -3,7 +3,7 @@ package storage
 import (
 	"context"
 
-	"gav/user"
+	"gav/internal/user"
 )
 
 type Repository interface {
