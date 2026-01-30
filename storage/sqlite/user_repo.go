@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"gav/user"
+	"gav/internal/user"
 	"gorm.io/gorm"
 )
 
@@ -23,7 +23,7 @@ func NewUserRepository(db *gorm.DB) *UserRepository {
 
 func (ur *UserRepository) Create(ctx context.Context, u *user.User) error {
 	var existing user.User
-	err := ur.db.WithContext(ctx).Where("settings_email = ?", u.Settings.Email).First(&existing).Error
+	err := ur.db.WithContext(ctx).Where("settings_email = ?", u.Email).First(&existing).Error
 
 	if err == nil {
 		return ErrUserExists

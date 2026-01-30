@@ -1,6 +1,6 @@
 package dog
 
-type DogService interface {
+type Service interface {
 	Create(ownerID uint, input CreateDogInput) (*Dog, error)
     Update(ownerID, dogID uint, input UpdateDogInput) error
     Delete(ownerID, dogID uint) error
