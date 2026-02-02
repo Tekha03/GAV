@@ -9,23 +9,25 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/gin-gonic/gin"
+	"github.com/go-chi/chi/v5"
 )
-
-func setupTestServer() *gin.Engine {
-	r := gin.Default()
-	service := auth.NewAuthService(memory.NewUserRepository())
-	authRepo := auth.NewAuthHandler(service)
-
-	r.POST("/register", authRepo.Register)
-	r.POST("/login", authRepo.Login)
-
-	return r
-}
 
 type Credentials struct {
 	Email 	 string	`json:"email"`
 	Password string	`json:"password"`
+}
+
+func setupTestServer() http.Handler {
+	r := chi.NewRouter()
+
+	userRepo := memory.NewUserRepository()
+	service := auth.NewAuthService(userRepo)
+	authRepo := auth.NewAuthHandler(service)
+
+	r.Post("/register", authRepo.Register)
+	r.Post("/login", authRepo.Login)
+
+	return r
 }
 
 func TestRegister_Success(t *testing.T) {

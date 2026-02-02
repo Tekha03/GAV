@@ -1,12 +1,13 @@
 package handlers
 
 import (
+	"encoding/json"
+	"errors"
 	"gav/internal/follow"
+	"gav/internal/transport/http/middleware"
 	"gav/internal/transport/response"
 	"gav/internal/validation"
 	"net/http"
-
-	"github.com/gin-gonic/gin"
 )
 
 type FollowHandler struct {
@@ -17,27 +18,32 @@ func NewFollowHandler(service follow.FollowService) *FollowHandler {
 	return &FollowHandler{service: service}
 }
 
-func (fh *FollowHandler) Follow(ctx *gin.Context) {
-	var request struct {
-		UserID	uint	`json:"user_id" binding:"required"`
+type followRequest struct {
+	UserID uint	`json:"user_id" validate:"required"`
+}
+
+func (fh *FollowHandler) Follow(w http.ResponseWriter, r *http.Request) {
+	authID, ok := middleware.UserID(r.Context())
+	if !ok {
+		response.Error(w, http.StatusUnauthorized, errors.New("unauthorized"))
+		return
 	}
 
-	if err := ctx.ShouldBindJSON(&request); err != nil {
-		response.Error(ctx.Writer, http.StatusBadRequest, err)
+	var request followRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		response.Error(w, http.StatusBadRequest, err)
 		return
 	}
 
 	if err := validation.Validate(&request); err != nil {
-		response.Error(ctx.Writer, http.StatusBadRequest, err)
+		response.Error(w, http.StatusBadRequest, err)
 		return
 	}
 
-	authID := ctx.GetUint("user_id")
-	err := fh.service.Follow(ctx, authID, request.UserID)
-	if err != nil {
-		response.Error(ctx.Writer, http.StatusBadRequest, err)
+	if err := fh.service.Follow(r.Context(), authID, request.UserID); err != nil {
+		response.Error(w, http.StatusBadRequest, err)
 		return
 	}
 
-	ctx.Status(http.StatusNoContent)
+	w.WriteHeader(http.StatusNoContent)
 }

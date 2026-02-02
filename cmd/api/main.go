@@ -2,12 +2,13 @@ package main
 
 import (
 	"log"
+	"net/http"
 
 	"gav/internal/auth"
 	"gav/migrations"
 	"gav/storage/sqlite"
 
-	"github.com/gin-gonic/gin"
+	"github.com/go-chi/chi/v5"
 )
 
 func main() {
@@ -25,11 +26,11 @@ func main() {
 	authService := auth.NewAuthService(userRepo)
 	authHandler := auth.NewAuthHandler(authService)
 
-	r := gin.Default()
-	r.POST("/register", authHandler.Register)
-	r.POST("/login", authHandler.Login)
+	r := chi.NewRouter()
+	r.Post("/register", authHandler.Register)
+	r.Post("/login", authHandler.Login)
 
-	if err := r.Run(":8080"); err != nil {
+	if err := http.ListenAndServe(":8080", r); err != nil {
 		log.Fatal(err)
 	}
 }
