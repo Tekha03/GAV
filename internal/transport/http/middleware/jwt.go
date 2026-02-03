@@ -2,9 +2,10 @@ package middleware
 
 import (
 	"context"
-	"gav/internal/auth"
 	"net/http"
 	"strings"
+
+	"gav/internal/auth"
 )
 
 type ctxKey string

@@ -1,8 +1,6 @@
 package like
 
-import (
-	"context"
-)
+import "context"
 
 type LikeService struct {
 	repo LikeRepository

@@ -9,7 +9,7 @@ import (
 	"gav/internal/transport/http/middleware"
 )
 
-func NewHandler(
+func NewRouter(
 	authH *handlers.AuthHandler,
 	userH *handlers.UserHandler,
 	postH *handlers.PostHandler,

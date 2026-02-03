@@ -2,9 +2,10 @@ package middleware
 
 import (
 	"errors"
+	"net/http"
+
 	"gav/internal/transport/response"
 	"gav/internal/user"
-	"net/http"
 )
 
 func RequireRole(role string) func(http.Handler) http.Handler {

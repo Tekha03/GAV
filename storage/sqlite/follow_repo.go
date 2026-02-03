@@ -2,6 +2,7 @@ package sqlite
 
 import (
 	"gav/internal/follow"
+
 	"gorm.io/gorm"
 )
 

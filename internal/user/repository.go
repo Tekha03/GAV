@@ -1,7 +1,10 @@
 package user
 
-type UserRepository interface {
-    Create(user *User) error
-    GetByEmail(email string) (*User, error)
-    GetByID(id uint) (*User, error)
+import "context"
+
+type Repository interface {
+    Create(ctx context.Context, user *User) error
+    GetByEmail(ctx context.Context, email string) (*User, error)
+    GetByID(ctx context.Context, id uint) (*User, error)
+    Delete(ctx context.Context, id uint) error
 }

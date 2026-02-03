@@ -1,8 +1,9 @@
 package auth_test
 
 import (
-	"gav/internal/auth"
 	"testing"
+
+	"gav/internal/auth"
 )
 
 func TestHashPassword(t *testing.T) {

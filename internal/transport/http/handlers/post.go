@@ -6,19 +6,19 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/go-chi/chi/v5"
-
 	"gav/internal/post"
 	"gav/internal/transport/http/middleware"
 	"gav/internal/transport/response"
 	"gav/internal/validation"
+
+	"github.com/go-chi/chi/v5"
 )
 
 type PostHandler struct {
 	service post.Service
 }
 
-func (ph *PostHandler) NewPostHandler(service post.Service) *PostHandler {
+func NewPostHandler(service post.Service) *PostHandler {
 	return &PostHandler{service: service}
 }
 

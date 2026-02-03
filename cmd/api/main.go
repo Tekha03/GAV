@@ -1,36 +1,21 @@
 package main
 
 import (
+	"context"
 	"log"
-	"net/http"
 
-	"gav/internal/auth"
-	"gav/migrations"
-	"gav/storage/sqlite"
-
-	"github.com/go-chi/chi/v5"
+	"gav/internal/app"
 )
 
 func main() {
-	db, err := sqlite.Open("social.db")
+	ctx := context.Background()
+
+	app, err := app.NewApp(ctx)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	if err := migrations.Migrate(db); err != nil {
-		log.Fatal(err)
-	}
-
-	userRepo := sqlite.NewUserRepository(db)
-	// postRepo := memory.NewPostRepository()
-	authService := auth.NewAuthService(userRepo)
-	authHandler := auth.NewAuthHandler(authService)
-
-	r := chi.NewRouter()
-	r.Post("/register", authHandler.Register)
-	r.Post("/login", authHandler.Login)
-
-	if err := http.ListenAndServe(":8080", r); err != nil {
+	if err := app.Run(); err != nil {
 		log.Fatal(err)
 	}
 }

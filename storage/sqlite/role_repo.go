@@ -2,6 +2,7 @@ package sqlite
 
 import (
 	"gav/internal/role"
+
 	"gorm.io/gorm"
 )
 

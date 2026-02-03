@@ -3,8 +3,9 @@ package memory
 import (
 	"context"
 	"errors"
-	"gav/internal/dog"
 	"sync"
+
+	"gav/internal/dog"
 )
 
 var (
@@ -31,7 +32,7 @@ func (r *DogRepository) Create(ctx context.Context, d *dog.Dog) error {
 	if _, found := r.dogs[d.ID]; found {
 		return ErrDogExists
 	}
-	
+
 	r.dogs[d.ID] = d
 	return nil
 }

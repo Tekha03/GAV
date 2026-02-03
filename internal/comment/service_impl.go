@@ -10,28 +10,32 @@ var (
 	ErrForbiddenDelete = errors.New("forbidden: cannot delete someone else's comment")
 )
 
-type CommentService struct {
-	repo CommentRepository
+type Service struct {
+	repo Repository
 }
 
-func NewCommentService(repo CommentRepository) *CommentService {
-	return &CommentService{repo: repo}
+func NewService(repo Repository) *Service {
+	return &Service{repo: repo}
 }
 
-func (cs *CommentService) Create(ctx context.Context, userID, postID uint, content string) error {
+func (s *Service) Create(ctx context.Context, userID, postID uint, content string) error {
 	comment := &Comment{
 		UserID: userID,
 		PostID: postID,
 		Content: content,
 	}
 
-	return  cs.repo.Create(ctx, comment)
+	return  s.repo.Create(ctx, comment)
 }
 
-func (cs *CommentService) GetByPostID(ctx context.Context, postID uint) ([]Comment, error) {
-	return cs.repo.GetByPostID(ctx, postID)
+func (s *Service) GetByID(ctx context.Context, commentID uint) (*Comment, error) {
+	return s.repo.GetByID(ctx, commentID)
 }
 
-func (cs *CommentService) Delete(ctx context.Context, userID, commentID uint) error {
-	return cs.repo.Delete(ctx, userID, commentID)
+func (s *Service) GetByPostID(ctx context.Context, postID uint) ([]Comment, error) {
+	return s.repo.GetByPostID(ctx, postID)
+}
+
+func (s *Service) Delete(ctx context.Context, userID, commentID uint) error {
+	return s.repo.Delete(ctx, userID, commentID)
 }

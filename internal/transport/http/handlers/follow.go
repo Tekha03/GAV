@@ -3,11 +3,12 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
+	"net/http"
+
 	"gav/internal/follow"
 	"gav/internal/transport/http/middleware"
 	"gav/internal/transport/response"
 	"gav/internal/validation"
-	"net/http"
 )
 
 type FollowHandler struct {

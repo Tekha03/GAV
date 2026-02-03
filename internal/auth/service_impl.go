@@ -2,19 +2,20 @@ package auth
 
 import (
 	"context"
-	"gav/storage"
+
 	"gav/internal/user"
+	"gav/storage"
 )
 
-type AuthService struct {
+type Service struct {
 	users storage.Repository
 }
 
-func NewAuthService(users storage.Repository) *AuthService {
-	return &AuthService{users: users}
+func NewService(users storage.Repository) *Service {
+	return &Service{users: users}
 }
 
-func (as *AuthService) Register(ctx context.Context, email, password string) (string, error) {
+func (as *Service) Register(ctx context.Context, email, password string) (string, error) {
 	hashedPassword, err := HashPassword(password)
 	if err != nil {
 		return "", err
@@ -34,7 +35,7 @@ func (as *AuthService) Register(ctx context.Context, email, password string) (st
 	return token, nil
 }
 
-func (as *AuthService) Login(ctx context.Context, email, password string) (string, error) {
+func (as *Service) Login(ctx context.Context, email, password string) (string, error) {
 	authorizedUser, err := as.users.GetByEmail(ctx, email)
 	if err != nil {
 		return "", ErrInvalidCredentials

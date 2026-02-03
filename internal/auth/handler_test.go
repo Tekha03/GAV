@@ -3,11 +3,12 @@ package auth_test
 import (
 	"bytes"
 	"encoding/json"
-	"gav/internal/auth"
-	"gav/storage/memory"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"gav/internal/auth"
+	"gav/storage/memory"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -21,8 +22,8 @@ func setupTestServer() http.Handler {
 	r := chi.NewRouter()
 
 	userRepo := memory.NewUserRepository()
-	service := auth.NewAuthService(userRepo)
-	authRepo := auth.NewAuthHandler(service)
+	service := auth.NewService(userRepo)
+	authRepo := auth.NewAuthHandler(*service)
 
 	r.Post("/register", authRepo.Register)
 	r.Post("/login", authRepo.Login)
