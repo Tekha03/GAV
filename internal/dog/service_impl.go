@@ -1,14 +1,23 @@
 package dog
 
+import (
+	"context"
+	"errors"
+)
+
+var (
+	ErrDogAccessDenied = errors.New("dog access denied")
+)
+
 type DogService struct {
 	repo 	DogRepository
 }
 
-func NewDogService(repo DogRepository) DogService {
-	return DogService{repo: repo}
+func NewDogService(repo DogRepository) *DogService {
+	return &DogService{repo: repo}
 }
 
-func (s *DogService) Create(ownerID uint, input CreateDogInput) (*Dog, error) {
+func (s *DogService) Create(ctx context.Context, ownerID uint, input CreateDogInput) (*Dog, error) {
 	dog := NewDog(
 		ownerID, 
 		input.Name, 
@@ -19,19 +28,23 @@ func (s *DogService) Create(ownerID uint, input CreateDogInput) (*Dog, error) {
 		input.PhotoUrl,
 	)
 
-	if err := s.repo.Create(dog); err != nil {
+	if err := s.repo.Create(ctx, dog); err != nil {
 		return nil, err
 	}
 
 	return dog, nil
 }
 
-func (s *DogService) Update(ownerID, dogID uint, input UpdateDogInput) error {
+func (s *DogService) Update(ctx context.Context, ownerID, dogID uint, input UpdateDogInput) error {
 
-	dog, err := s.repo.GetByID(dogID)
+	dog, err := s.repo.GetByID(ctx, dogID)
     if err != nil {
         return err
     }
+
+	if dog.OwnerID != ownerID {
+		return ErrDogAccessDenied
+	}
 
 	if input.Name != nil {
 		dog.Name = *input.Name
@@ -57,11 +70,22 @@ func (s *DogService) Update(ownerID, dogID uint, input UpdateDogInput) error {
 		dog.Status = *input.Status
 	}
 
-	return s.repo.Update(dog)
+	return s.repo.Update(ctx, dog)
 }
 
-func (s *DogService) GetPublic(dogID uint) (*Dog, error) {
-	return s.repo.GetByID(dogID)
+func (s *DogService) GetPublic(ctx context.Context, dogID uint) (*Dog, error) {
+	return s.repo.GetByID(ctx, dogID)
 }
 
-func (s *DogService) GetPrivate(dogID uint)
+func (s *DogService) GetPrivate(ctx context.Context, dogID, ownerID uint) (*Dog, error) {
+	dog, err := s.repo.GetByID(ctx, dogID)
+	if err != nil {
+		return nil, err
+	}
+
+	if dog.OwnerID != ownerID {
+		return nil, ErrDogAccessDenied
+	}
+
+	return dog, nil
+}

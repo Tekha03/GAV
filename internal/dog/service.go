@@ -9,7 +9,7 @@ type Service interface {
     SetLocationVisibility(ownerID, dogID uint, visible bool) error
 
     GetPublic(dogID uint) (*Dog, error)
-    GetPrivate(ownerID, dogID uint) (*Dog, error)
+    GetPrivate(ownerID, dogID, dogOwnerID uint) (*Dog, error)
 
 	// later for analytics
 	// GetStatusHistory(ownerID uint, dogID uint) ([]StatusChange, error)

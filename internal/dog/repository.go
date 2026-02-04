@@ -1,9 +1,12 @@
 package dog
 
+import "context"
+
+
 type DogRepository interface {
-	GetByOwnerID(ownerID uint) ([]*Dog, error)
-	GetByID(id uint) (*Dog, error)
-	Create(dog *Dog) error
-	Update(dog *Dog) error
-	Delete(id uint) error
+	Create(ctx context.Context, dog *Dog) error
+	Update(ctx context.Context, dog *Dog) error
+	Delete(ctx context.Context, ID uint) error
+	GetByOwnerID(ctx context.Context, ownerID uint) ([]*Dog, error)
+	GetByID(ctx context.Context, ID uint) (*Dog, error)
 }
