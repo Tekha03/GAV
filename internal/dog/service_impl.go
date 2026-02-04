@@ -26,30 +26,42 @@ func (s *DogService) Create(ownerID uint, input CreateDogInput) (*Dog, error) {
 	return dog, nil
 }
 
-func (d *Dog) Update(ownerID uint, input UpdateDogInput) error {
+func (s *DogService) Update(ownerID, dogID uint, input UpdateDogInput) error {
+
+	dog, err := s.repo.GetByID(dogID)
+    if err != nil {
+        return err
+    }
+
 	if input.Name != nil {
-		d.Name = *input.Name
+		dog.Name = *input.Name
 	}
 
 	if input.Breed != nil {
-		d.Breed = *input.Breed
+		dog.Breed = *input.Breed
 	}
 
 	if input.PhotoUrl != nil {
-		d.PhotoUrl = *input.PhotoUrl
+		dog.PhotoUrl = *input.PhotoUrl
 	}
 
 	if input.Age != nil {
-		d.Age = *input.Age
+		dog.Age = *input.Age
 	}
 
 	if input.Gender != nil {
-		d.Gender = *input.Gender
+		dog.Gender = *input.Gender
 	}
 
 	if input.Status != nil {
-		d.Status = *input.Status
+		dog.Status = *input.Status
 	}
 
-	return nil
+	return s.repo.Update(dog)
 }
+
+func (s *DogService) GetPublic(dogID uint) (*Dog, error) {
+	return s.repo.GetByID(dogID)
+}
+
+func (s *DogService) GetPrivate(dogID uint)
