@@ -78,9 +78,6 @@ func (s *Service) Update(ctx context.Context, profileID uint, input UpdateProfil
 	if input.ProfilePhoto != nil {
 		profile.ProfilePhoto = *input.ProfilePhoto
 	}
-	if input.ProfilePhoto != nil {
-		profile.ProfilePhoto = *input.ProfilePhoto
-	}
 	if input.Bio != nil {
 		profile.Bio = *input.Bio
 	}
