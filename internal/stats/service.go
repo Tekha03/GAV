@@ -1,12 +1,15 @@
 package stats
 
+import "context"
+
 type StatsService interface {
-    Get(userID uint) (*UserStats, error)
+    Get(ctx context.Context, userID uint) (*UserStats, error)
 
-    IncrementPosts(userID uint)
-    IncrementFollowers(userID uint)
-    DecrementFollowers(userID uint)
+    IncrementPosts(ctx context.Context, userID uint) error
+    IncrementFollowers(ctx context.Context, userID uint) error
+    IncrementDogs(ctx context.Context, userID uint) error
 
-    IncrementDogs(userID uint)
-    DecrementDogs(userID uint)
+    DecrementPosts(ctx context.Context, userID uint) error
+    DecrementFollowers(ctx context.Context, userID uint) error
+    DecrementDogs(ctx context.Context, userID uint) error
 }
