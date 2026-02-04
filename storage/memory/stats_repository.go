@@ -59,5 +59,105 @@ func (s *StatsRepository) Delete(ctx context.Context, userID uint) error {
 }
 
 func (s *StatsRepository) IncrementPosts(ctx context.Context, userID uint) error {
-	
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if _, found := s.stats[userID]; !found {
+		return ErrStatNotFound
+	}
+
+	s.stats[userID].PostCount++
+
+	return nil
+}
+
+func (s *StatsRepository) IncrementFollowers(ctx context.Context, userID uint) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if _, found := s.stats[userID]; !found {
+		return ErrStatNotFound
+	}
+
+	s.stats[userID].Followers++
+
+	return nil
+}
+
+func (s *StatsRepository) IncrementFolowings(ctx context.Context, userID uint) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if _, found := s.stats[userID]; !found {
+		return ErrStatNotFound
+	}
+
+	s.stats[userID].Followings++
+
+	return nil
+}
+
+func (s *StatsRepository) IncrementDogs(ctx context.Context, userID uint) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if _, found := s.stats[userID]; !found {
+		return ErrStatNotFound
+	}
+
+	s.stats[userID].DogsCount++
+
+	return nil
+}
+
+func (s *StatsRepository) DecrementDogs(ctx context.Context, userID uint) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if _, found := s.stats[userID]; !found {
+		return ErrStatNotFound
+	}
+
+	s.stats[userID].DogsCount--
+
+	return nil
+}
+
+func (s *StatsRepository) DecrementPosts(ctx context.Context, userID uint) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if _, found := s.stats[userID]; !found {
+		return ErrStatNotFound
+	}
+
+	s.stats[userID].PostCount--
+
+	return nil
+}
+
+func (s *StatsRepository) DecrementFollowers(ctx context.Context, userID uint) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if _, found := s.stats[userID]; !found {
+		return ErrStatNotFound
+	}
+
+	s.stats[userID].Followers--
+
+	return nil
+}
+
+func (s *StatsRepository) DecrementFollowings(ctx context.Context, userID uint) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if _, found := s.stats[userID]; !found {
+		return ErrStatNotFound
+	}
+
+	s.stats[userID].Followings--
+
+	return nil
 }

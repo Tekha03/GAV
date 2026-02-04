@@ -10,8 +10,10 @@ type StatsRepository interface {
     IncrementPosts(ctx context.Context, userID uint) error
     IncrementDogs(ctx context.Context, userID uint) error
     IncrementFollowers(ctx context.Context, userID uint) error
+    IncrementFollowings(ctx context.Context, userID uint) error
 
     DecrementPosts(ctx context.Context, userID uint) error
     DecrementFollowers(ctx context.Context, userID uint) error
     DecrementDogs(ctx context.Context, userID uint) error
+    DecrementFollowings(ctx context.Context, userID uint) error
 }
