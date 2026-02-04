@@ -2,7 +2,9 @@ package stats
 
 import "context"
 
-type Repository interface {
+type StatsRepository interface {
+    Create(ctx context.Context, st *UserStats) error
+    Delete(ctx context.Context, userID uint) error
     GetByUserID(ctx context.Context, userID uint) (*UserStats, error)
 
     IncrementPosts(ctx context.Context, userID uint) error

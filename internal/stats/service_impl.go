@@ -8,10 +8,10 @@ import (
 var ErrStatsNotFound = errors.New("user stats not found")
 
 type Service struct {
-	repo Repository
+	repo StatsRepository
 }
 
-func NewService(repo Repository) *Service {
+func NewService(repo StatsRepository) *Service {
 	return &Service{repo: repo}
 }
 
