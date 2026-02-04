@@ -5,7 +5,7 @@ type UserProfile struct {
     Name         string
     Surname      string
     Username     string `gorm:"unique"`
-    ProfilePhoto string
+    ProfilePhoto  string
     Bio          string
     Address      string
     BirthDate    string

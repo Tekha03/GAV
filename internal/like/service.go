@@ -2,10 +2,7 @@ package like
 
 import "context"
 
-type LikeService struct {
-	repo LikeRepository
-}
-
-func (ls *LikeService) Add(ctx context.Context, userID, postID uint) error {
-	return ls.repo.Add(ctx, userID, postID)
+type LikeService interface {
+	Add(ctx context.Context, like Like) error
+	Remove(ctx context.Context, like Like) error
 }

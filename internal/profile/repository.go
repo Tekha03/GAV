@@ -1,8 +1,10 @@
 package profile
 
-type ProfileRepository interface {
-	Create(profile *UserProfile) error
-	Update(profile *UserProfile) error
-	Delete(profileID uint) error
-	GetByID(profileID uint) (*UserProfile, error)
+import "context"
+
+type Repository interface {
+	Create(ctx context.Context, profile *UserProfile) error
+	GetByID(ctx context.Context, profileID uint) (*UserProfile, error)
+	Update(ctx context.Context, profile *UserProfile) error
+	Delete(ctx context.Context, profileID uint) error
 }

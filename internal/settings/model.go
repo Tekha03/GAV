@@ -2,7 +2,7 @@ package settings
 
 type UserSettings struct {
     UserID         uint
-    PrivateProfile bool
+    ProfilePrivacy  bool
     ShowLocation   bool
     AllowMessages  bool
 }

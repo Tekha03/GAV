@@ -1,7 +1,7 @@
 package settings
 
 type UpdateSettingsInput struct {
-	PrivateProfile *bool
+	ProfilePrivacy  *bool
     ShowLocation   *bool
     AllowMessages  *bool
 }

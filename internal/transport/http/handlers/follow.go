@@ -41,7 +41,8 @@ func (fh *FollowHandler) Follow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := fh.service.Follow(r.Context(), authID, request.UserID); err != nil {
+	newFollow := follow.NewFollow(authID, request.UserID)
+	if err := fh.service.Follow(r.Context(), *newFollow); err != nil {
 		response.Error(w, http.StatusBadRequest, err)
 		return
 	}

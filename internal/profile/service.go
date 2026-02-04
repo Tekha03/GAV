@@ -1,8 +1,10 @@
 package profile
 
+import "context"
+
 type ProfileService interface {
-    Create(userID uint, input CreateProfileInput) (*UserProfile, error)
-    Get(userID uint) (*UserProfile, error)
-    Update(userID uint, input UpdateProfileInput) error
-    Delete(userID uint) error
+    Create(ctx context.Context, userID uint, input CreateProfileInput) (*UserProfile, error)
+    GetByID(ctx context.Context, profileID uint) (*UserProfile, error)
+    Update(ctx context.Context, profileID uint, input UpdateProfileInput) error
+    Delete(ctx context.Context, profileID uint) error
 }
