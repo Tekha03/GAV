@@ -24,11 +24,22 @@ func (s *Service) Get(ctx context.Context, userID uint) (*UserSettings, error) {
 	}
 
 	settings, err := s.repo.GetByUserID(ctx, userID)
-	if err != nil {
-		return nil, ErrInvalidUserID
+	if err == nil {
+		return settings, nil
 	}
 
-	return settings, nil
+	defaultSettings := &UserSettings{
+		UserID:			userID,
+		ProfilePrivacy:	 false,
+		ShowLocation:	true,
+		AllowMessages:	true,
+	}
+
+	if err := s.repo.Create(ctx, defaultSettings); err != nil {
+		return nil, err
+	}
+
+	return defaultSettings, nil
 }
 
 func (s *Service) Update(ctx context.Context, userID uint, input UpdateSettingsInput) error {
