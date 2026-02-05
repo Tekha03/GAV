@@ -15,7 +15,6 @@ var (
 
 type DogRepository struct {
 	mu sync.RWMutex
-	lastId	uint
 	dogs 	map[uint]*dog.Dog
 }
 

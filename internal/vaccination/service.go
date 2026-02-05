@@ -1,8 +1,11 @@
 package vaccination
 
+import "context"
+
 type VaccinationService interface {
-	AddVaccination(ownerID uint, dogID uint, v Vaccination) (*Vaccination, error)
-	UpdateVaccination(ownerID uint, dogID uint, v Vaccination) error
-	DeleteVaccination(ownerID uint, dogID uint, vaccinationID uint) error
-	GetVaccinations(ownerID uint, dogID uint) ([]Vaccination, error)
+	Create(ctx context.Context, ownerID, dogID uint, v CreateVaccinationInput) error
+	// AddVaccination(ctx context.Context, ownerID, dogID uint, v Vaccination) (*Vaccination, error)
+	UpdateVaccination(ctx context.Context, ownerID, dogID uint, v UpdateVaccinationInput) error
+	DeleteVaccination(ctx context.Context, ownerID, dogID uint, vaccinationID uint) error
+	GetVaccinations(ctx context.Context, ownerID, dogID uint) ([]Vaccination, error)
 }
