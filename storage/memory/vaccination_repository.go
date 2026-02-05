@@ -13,8 +13,9 @@ var (
 )
 
 type VaccinationRepository struct {
-	mu 	sync.RWMutex
-	vacs map[uint]*vaccination.Vaccination
+	mu 		sync.RWMutex
+	lastID 	uint
+	vacs 	map[uint]*vaccination.Vaccination
 }
 
 func NewVaccinationRepository() *VaccinationRepository {
@@ -31,7 +32,9 @@ func (r *VaccinationRepository) Create(ctx context.Context, v *vaccination.Vacci
 		return ErrVaccinationExists
 	}
 
+	v.ID = r.lastID
 	r.vacs[v.ID] = v
+	r.lastID++
 	return nil
 }
 

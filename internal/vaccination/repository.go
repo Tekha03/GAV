@@ -3,7 +3,7 @@ package vaccination
 import "context"
 
 type VaccinationRepository interface {
-	Create(ctx context.Context, v *Vaccination) (*Vaccination, error)
+	Create(ctx context.Context, v *Vaccination) error
 	Update(ctx context.Context, v *Vaccination) error
 	// AddVaccination(ctx context.Context, v *Vaccination) error
 	Delete(ctx context.Context, ID uint) error

@@ -14,7 +14,8 @@ var (
 )
 
 type DogRepository struct {
-	mu sync.RWMutex
+	mu 		sync.RWMutex
+	lastID	uint
 	dogs 	map[uint]*dog.Dog
 }
 
@@ -32,7 +33,9 @@ func (r *DogRepository) Create(ctx context.Context, d *dog.Dog) error {
 		return ErrDogExists
 	}
 
+	d.ID = r.lastID
 	r.dogs[d.ID] = d
+	r.lastID++
 	return nil
 }
 
