@@ -35,7 +35,14 @@ func (s *Service) GetByEmail(ctx context.Context, email string) (*User, error) {
 	return s.repo.GetByEmail(ctx, email)
 }
 
-func (s *Service) Update(ctx context.Context, user User) error {
+func (s *Service) Update(ctx context.Context, id uint, input UpdateuserInput) error {
+	user := &User{
+		ID: id,
+		Email: *input.Email,
+		Password: *input.Password,
+		RoleID: *input.RoleID,
+	}
+
 	return s.repo.Update(ctx, user)
 }
 

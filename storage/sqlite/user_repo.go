@@ -14,15 +14,15 @@ var (
 	ErrUserExists = errors.New("user already exists")
 )
 
-type UserRepository struct {
+type Repository struct {
 	db *gorm.DB
 }
 
-func NewUserRepository(db *gorm.DB) *UserRepository {
-	return &UserRepository{db: db}
+func NewUserRepository(db *gorm.DB) *Repository {
+	return &Repository{db: db}
 }
 
-func (ur *UserRepository) Create(ctx context.Context, u *user.User) error {
+func (ur *Repository) Create(ctx context.Context, u *user.User) error {
 	var existing user.User
 	err := ur.db.WithContext(ctx).Where("settings_email = ?", u.Email).First(&existing).Error
 
@@ -37,7 +37,7 @@ func (ur *UserRepository) Create(ctx context.Context, u *user.User) error {
 	return ur.db.WithContext(ctx).Create(u).Error
 }
 
-func (ur *UserRepository) GetByID(ctx context.Context, id uint) (*user.User, error) {
+func (ur *Repository) GetByID(ctx context.Context, id uint) (*user.User, error) {
 	var u user.User
 	if err := ur.db.WithContext(ctx).First(&u, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -50,7 +50,7 @@ func (ur *UserRepository) GetByID(ctx context.Context, id uint) (*user.User, err
 	return &u, nil
 }
 
-func (ur *UserRepository) GetByEmail(ctx context.Context, email string) (*user.User, error) {
+func (ur *Repository) GetByEmail(ctx context.Context, email string) (*user.User, error) {
 	var u user.User
 	if err := ur.db.WithContext(ctx).Where("settings_email = ?", email).First(&u).Error; err != nil {
 		return nil, err
@@ -59,7 +59,7 @@ func (ur *UserRepository) GetByEmail(ctx context.Context, email string) (*user.U
 	return &u, nil
 }
 
-func (ur *UserRepository) Update(ctx context.Context, u *user.User) error {
+func (ur *Repository) Update(ctx context.Context, u *user.User) error {
 	updated := ur.db.WithContext(ctx).Save(u)
 	if updated.Error != nil {
 		return updated.Error
@@ -72,7 +72,7 @@ func (ur *UserRepository) Update(ctx context.Context, u *user.User) error {
 	return nil
 }
 
-func (ur *UserRepository) Delete(ctx context.Context, id uint) error {
+func (ur *Repository) Delete(ctx context.Context, id uint) error {
 	deleted := ur.db.WithContext(ctx).Delete(&user.User{}, "id = ?", id)
 	if deleted.Error != nil {
 		return deleted.Error
