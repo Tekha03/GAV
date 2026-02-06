@@ -5,25 +5,27 @@ import (
 	"net/http"
 
 	"gav/internal/auth"
+	"gav/internal/config"
+
 	// "gav/internal/comment"
 	"gav/internal/post"
-	"gav/internal/user"
 	"gav/internal/transport/http/handlers"
 	"gav/internal/transport/http/middleware"
+	"gav/internal/user"
 
-	gavSqlite 		"gav/storage/sqlite"
-	httptransport 	"gav/internal/transport/http"
+	httptransport "gav/internal/transport/http"
+	gavSqlite "gav/storage/sqlite"
 
-	"gorm.io/gorm"
 	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 )
 
 type App struct {
 	server *http.Server
 }
 
-func NewApp(ctx context.Context) (*App, error) {
-	db, err := gorm.Open(sqlite.Open("social.db"), &gorm.Config{})
+func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
+	db, err := gorm.Open(sqlite.Open(cfg.DB.Path), &gorm.Config{})
 	if err != nil {
 		return nil, err
 	}
@@ -34,7 +36,13 @@ func NewApp(ctx context.Context) (*App, error) {
 	// commentRepo := gavSqlite.NewCommentRepository(db)
 
 	// services
-	authService := auth.NewService(userRepo)
+	authService := auth.NewService(
+		userRepo,
+		auth.JWTConfig{
+			Secret: []byte(cfg.JWT.Secret),
+			TTL: cfg.JWT.TTL,
+		},
+	)
 	userService := user.NewService(userRepo)
 	postService := post.NewService(postRepo)
 	// commentService := comment.NewService(commentRepo)
@@ -49,11 +57,14 @@ func NewApp(ctx context.Context) (*App, error) {
 		authHandler,
 		userHandler,
 		postHandler,
-		middleware.JWTAuth,
+		middleware.JWTAuth(auth.JWTConfig{
+			Secret: []byte(cfg.JWT.Secret),
+			TTL: cfg.JWT.TTL,
+		}),
 	)
 
 	server := &http.Server{
-		Addr:	":8080",
+		Addr:	":" + cfg.HTTP.Port,
 		Handler: router,
 	}
 

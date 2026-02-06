@@ -5,12 +5,18 @@ import (
 	"log"
 
 	"gav/internal/app"
+	"gav/internal/config"
 )
 
 func main() {
 	ctx := context.Background()
 
-	app, err := app.NewApp(ctx)
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	app, err := app.NewApp(ctx, cfg)
 	if err != nil {
 		log.Fatal(err)
 	}

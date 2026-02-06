@@ -9,13 +9,14 @@ import (
 
 type Service struct {
 	users storage.Repository
+	jwtConfig JWTConfig
 }
 
-func NewService(users storage.Repository) *Service {
-	return &Service{users: users}
+func NewService(users storage.Repository, jwtConfig JWTConfig) *Service {
+	return &Service{users: users, jwtConfig: jwtConfig}
 }
 
-func (as *Service) Register(ctx context.Context, email, password string) (string, error) {
+func (s *Service) Register(ctx context.Context, email, password string) (string, error) {
 	hashedPassword, err := HashPassword(password)
 	if err != nil {
 		return "", err
@@ -23,11 +24,11 @@ func (as *Service) Register(ctx context.Context, email, password string) (string
 
 	newUser := user.NewUser(email, hashedPassword)
 
-	if err := as.users.Create(ctx, newUser); err != nil {
+	if err := s.users.Create(ctx, newUser); err != nil {
 		return "", ErrEmailAlreadyExists
 	}
 
-	token, err := GenerateToken(int(newUser.ID))
+	token, err := GenerateToken(int(newUser.ID), s.jwtConfig)
 	if err != nil {
 		return "", ErrInvalidCredentials
 	}
@@ -35,8 +36,8 @@ func (as *Service) Register(ctx context.Context, email, password string) (string
 	return token, nil
 }
 
-func (as *Service) Login(ctx context.Context, email, password string) (string, error) {
-	authorizedUser, err := as.users.GetByEmail(ctx, email)
+func (s *Service) Login(ctx context.Context, email, password string) (string, error) {
+	authorizedUser, err := s.users.GetByEmail(ctx, email)
 	if err != nil {
 		return "", ErrInvalidCredentials
 	}
@@ -45,7 +46,7 @@ func (as *Service) Login(ctx context.Context, email, password string) (string, e
 		return "", ErrInvalidCredentials
 	}
 
-	token, err := GenerateToken(int(authorizedUser.ID))
+	token, err := GenerateToken(int(authorizedUser.ID), s.jwtConfig)
 	if err != nil {
 		return "", err
 	}
