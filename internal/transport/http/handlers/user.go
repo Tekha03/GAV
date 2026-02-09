@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 
+	"gav/internal/transport/http/dto"
 	"gav/internal/transport/http/middleware"
 	"gav/internal/transport/response"
 	"gav/internal/user"
@@ -20,15 +21,16 @@ func NewUserHandler(service user.Service) *UserHandler {
 func (h *UserHandler) Me(writer http.ResponseWriter, reader *http.Request) {
 	userID, ok := middleware.UserID(reader.Context())
 	if !ok {
-		response.Error(writer, http.StatusUnauthorized, errors.New("unauthorized"))
+		response.Error(writer, errors.New("unauthorized"))
 		return
 	}
 
 	user, err := h.service.GetByID(reader.Context(), userID)
 	if err != nil {
-		response.Error(writer, http.StatusNotFound, err)
+		response.Error(writer, err)
 		return
 	}
 
-	response.JSON(writer, http.StatusOK, user)
+	dtoUser := dto.NewUserResponse(user)
+	response.JSON(writer, http.StatusOK, dtoUser)
 }

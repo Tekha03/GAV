@@ -1,7 +1,7 @@
 package dbserver
 
 import (
-	"gav/user"
+	"gav/internal/user"
 	"testing"
 
 	"gorm.io/driver/sqlite"

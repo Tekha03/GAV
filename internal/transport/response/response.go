@@ -3,11 +3,9 @@ package response
 import (
 	"encoding/json"
 	"net/http"
-)
 
-type ErrorResponse struct {
-	Error string `json:"error"`
-}
+	"gav/internal/errors"
+)
 
 func JSON(writer http.ResponseWriter, code int, data any) {
 	writer.Header().Set("Content-Type", "application/json")
@@ -17,6 +15,27 @@ func JSON(writer http.ResponseWriter, code int, data any) {
 	}
 }
 
-func Error(writer http.ResponseWriter, code int, err error) {
-	JSON(writer, code, ErrorResponse{Error: err.Error()})
+func Error(w http.ResponseWriter, err error) {
+	if err == nil {
+		return
+	}
+
+	if e, ok := err.(*errors.Error); ok {
+		if mapped, exists := errorMap[string(e.Code)]; exists {
+			JSON(w, mapped.status, ErrorResponse{
+				Error: ErrorBody{
+					Code: 	 mapped.code,
+					Message: e.Message,
+				},
+			})
+			return
+		}
+	}
+
+	JSON(w, http.StatusInternalServerError, ErrorResponse{
+		Error: ErrorBody{
+			Code: 	 "INTERNAL_ERROR",
+			Message: "internal server error",
+		},
+	})
 }

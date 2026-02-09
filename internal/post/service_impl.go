@@ -3,6 +3,7 @@ package post
 import (
 	"context"
 	"errors"
+	"time"
 )
 
 var (
@@ -21,7 +22,6 @@ func NewService(repo Repository) *Service {
 
 func (s *Service) Create(
 	ctx context.Context,
-	postID uint,
 	userID uint,
 	content string,
 ) (*Post, error) {
@@ -31,9 +31,9 @@ func (s *Service) Create(
 	}
 
 	post := &Post{
-		ID: postID,
-		UserID: userID,
-		Content: content,
+		UserID: 	userID,
+		Content: 	content,
+		CreatedAt: 	time.Now(),
 	}
 
 	if err := s.repo.Create(ctx, post); err != nil {
