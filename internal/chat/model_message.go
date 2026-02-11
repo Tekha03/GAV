@@ -5,27 +5,27 @@ import "time"
 type MessageType string
 
 const (
-	MessageTypeImage MessageType = "image"
-	MessageTypeText  MessageType = "text"
-	MessageTypeFile MessageType = "file"
-	MessageTypeVideo MessageType = "video"
+	MessageTypeImage  MessageType = "image"
+	MessageTypeText   MessageType = "text"
+	MessageTypeFile   MessageType = "file"
+	MessageTypeVideo  MessageType = "video"
 	MessageTypeSystem MessageType = "system"
-	MessageTypeVoice MessageType = "voice"
+	MessageTypeVoice  MessageType = "voice"
 )
 
 type Message struct {
-	ID			uint
-	ChatID		uint
-	SenderID	uint
+	ID       uint
+	ChatID   uint
+	SenderID uint
 
-	Content		string
-	Type		MessageType
+	Content string
+	Type    MessageType
 
-	ReplyToID	*uint
+	ReplyToID *uint
 
-	CreatedAt	time.Time
+	CreatedAt time.Time
 
-	EditedAt	*time.Time
-	DeletedAt	*time.Time
-	ReadAt		*time.Time
+	EditedAt  *time.Time
+	DeletedAt *time.Time
+	ReadAt    *time.Time
 }
