@@ -1,0 +1,6 @@
+/bin/
+/vendor/
+/*.exe
+*.log
+*.tmp
+**/.DS_Store
