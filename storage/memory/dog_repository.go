@@ -10,13 +10,13 @@ import (
 
 var (
 	ErrDogNotFound = errors.New("dog not found")
-	ErrDogExists = errors.New("dog exists in repository")
+	ErrDogExists   = errors.New("dog exists in repository")
 )
 
 type DogRepository struct {
-	mu 		sync.RWMutex
-	lastID	uint
-	dogs 	map[uint]*dog.Dog
+	mu     sync.RWMutex
+	lastID uint
+	dogs   map[uint]*dog.Dog
 }
 
 func NewDogRepository() *DogRepository {
@@ -29,13 +29,10 @@ func (r *DogRepository) Create(ctx context.Context, d *dog.Dog) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	if _, found := r.dogs[d.ID]; found {
-		return ErrDogExists
-	}
-
-	d.ID = r.lastID
-	r.dogs[d.ID] = d
 	r.lastID++
+	d.ID = r.lastID
+
+	r.dogs[d.ID] = d
 	return nil
 }
 
@@ -52,8 +49,8 @@ func (r *DogRepository) Update(ctx context.Context, d *dog.Dog) error {
 }
 
 func (r *DogRepository) GetByID(ctx context.Context, ID uint) (*dog.Dog, error) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
+	r.mu.RLock()
+	defer r.mu.RUnlock()
 
 	if _, found := r.dogs[ID]; !found {
 		return nil, ErrDogNotFound
@@ -64,8 +61,8 @@ func (r *DogRepository) GetByID(ctx context.Context, ID uint) (*dog.Dog, error) 
 }
 
 func (r *DogRepository) GetByOwnerID(ctx context.Context, ownerID uint) ([]*dog.Dog, error) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
+	r.mu.RLock()
+	defer r.mu.RUnlock()
 
 	var dogs []*dog.Dog
 	for _, dog := range r.dogs {

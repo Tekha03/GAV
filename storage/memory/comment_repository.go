@@ -12,15 +12,15 @@ import (
 var ErrCommentNotFound = errors.New("comment not found")
 
 type CommentRepository struct {
-	mu			sync.RWMutex
-	comments	map[uint]comment.Comment
-	nextID		uint
+	mu       sync.RWMutex
+	comments map[uint]comment.Comment
+	nextID   uint
 }
 
 func NewCommentRepository() *CommentRepository {
 	return &CommentRepository{
 		comments: make(map[uint]comment.Comment),
-		nextID: 1,
+		nextID:   1,
 	}
 }
 
@@ -37,8 +37,8 @@ func (cr *CommentRepository) Create(ctx context.Context, comment *comment.Commen
 }
 
 func (cr *CommentRepository) GetByPostID(ctx context.Context, postID uint) ([]comment.Comment, error) {
-	cr.mu.Lock()
-	defer cr.mu.Unlock()
+	cr.mu.RLock()
+	defer cr.mu.RUnlock()
 
 	var result []comment.Comment
 	for _, comment := range cr.comments {

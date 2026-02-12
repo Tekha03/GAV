@@ -10,18 +10,18 @@ import (
 
 var (
 	ErrUserNotFound = errors.New("user not found")
-	ErrUserExists = errors.New("user already exists")
+	ErrUserExists   = errors.New("user already exists")
 )
 
 type UserRepository struct {
-	mu		sync.RWMutex
-	byID	map[uint]*user.User
-	byEmail	map[string]*user.User
+	mu      sync.RWMutex
+	byID    map[uint]*user.User
+	byEmail map[string]*user.User
 }
 
 func NewUserRepository() *UserRepository {
 	return &UserRepository{
-		byID: 	 make(map[uint]*user.User),
+		byID:    make(map[uint]*user.User),
 		byEmail: make(map[string]*user.User),
 	}
 }
@@ -40,8 +40,8 @@ func (ur *UserRepository) Create(ctx context.Context, u *user.User) error {
 }
 
 func (ur *UserRepository) GetByID(ctx context.Context, id uint) (*user.User, error) {
-	ur.mu.Lock()
-	defer ur.mu.Unlock()
+	ur.mu.RLock()
+	defer ur.mu.RUnlock()
 
 	foundUser, isOk := ur.byID[id]
 	if !isOk {
@@ -52,8 +52,8 @@ func (ur *UserRepository) GetByID(ctx context.Context, id uint) (*user.User, err
 }
 
 func (ur *UserRepository) GetByEmail(ctx context.Context, email string) (*user.User, error) {
-	ur.mu.Lock()
-	defer ur.mu.Unlock()
+	ur.mu.RLock()
+	defer ur.mu.RUnlock()
 
 	foundUser, isOk := ur.byEmail[email]
 	if !isOk {

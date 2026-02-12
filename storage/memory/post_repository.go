@@ -10,11 +10,11 @@ import (
 
 var (
 	ErrPostNotFound = errors.New("post not found")
-	ErrPostExists = errors.New("post already exists")
+	ErrPostExists   = errors.New("post already exists")
 )
 
 type PostRepository struct {
-	mu sync.RWMutex
+	mu    sync.RWMutex
 	posts map[uint]*post.Post
 }
 
@@ -37,8 +37,8 @@ func (pr *PostRepository) Create(ctx context.Context, post *post.Post) error {
 }
 
 func (pr *PostRepository) GetByID(ctx context.Context, id uint) (*post.Post, error) {
-	pr.mu.Lock()
-	defer pr.mu.Unlock()
+	pr.mu.RLock()
+	defer pr.mu.RUnlock()
 
 	foundPost, isOk := pr.posts[id]
 	if !isOk {
@@ -49,8 +49,8 @@ func (pr *PostRepository) GetByID(ctx context.Context, id uint) (*post.Post, err
 }
 
 func (pr *PostRepository) ListByUser(ctx context.Context, userID uint) ([]*post.Post, error) {
-	pr.mu.Lock()
-	defer pr.mu.Unlock()
+	pr.mu.RLock()
+	defer pr.mu.RUnlock()
 
 	var result []*post.Post
 	for _, post := range pr.posts {

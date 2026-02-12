@@ -8,13 +8,13 @@ import (
 )
 
 var (
-	ErrStatExist = errors.New("stat exist in repository")
+	ErrStatExist    = errors.New("stat exist in repository")
 	ErrStatNotFound = errors.New("stat not found")
 )
 
 type StatsRepository struct {
-	mu 		sync.RWMutex
-	stats	map[uint]*stats.UserStats	
+	mu    sync.RWMutex
+	stats map[uint]*stats.UserStats
 }
 
 func NewStatsReposirory() *StatsRepository {
@@ -36,8 +36,8 @@ func (s *StatsRepository) Create(ctx context.Context, st *stats.UserStats) error
 }
 
 func (s *StatsRepository) GetByUserID(ctx context.Context, userID uint) (*stats.UserStats, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 
 	if _, found := s.stats[userID]; !found {
 		return nil, ErrStatNotFound
