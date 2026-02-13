@@ -1,6 +1,8 @@
 package like
 
+import "github.com/google/uuid"
+
 type Like struct {
-	UserID	uint	`gorm:"primaryKey"`
-	PostID	uint	`gorm:"primaryKey"`
+	UserID	uuid.UUID	`gorm:"primaryKey"`
+	PostID	uuid.UUID	`gorm:"primaryKey"`
 }

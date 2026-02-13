@@ -1,10 +1,12 @@
 package profile
 
+import "github.com/google/uuid"
+
 type UserProfile struct {
-    UserID       uint   `gorm:"primaryKey"`
+    UserID       uuid.UUID   `gorm:"primaryKey"`
     Name         string
     Surname      string
-    Username     string `gorm:"unique"`
+    Username     string      `gorm:"unique"`
     ProfilePhoto  string
     Bio          string
     Address      string

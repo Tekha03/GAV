@@ -27,7 +27,7 @@ func NewRouter(
 		r.Group(func(r chi.Router) {
 			r.Use(authMW)
 
-			r.Get("auth/me", userH.Me)
+			r.Get("auth/me", userH.GetUser)
 
 			r.Route("/posts", func(r chi.Router) {
 				r.Post("/", postH.Create)

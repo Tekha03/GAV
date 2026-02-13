@@ -3,6 +3,8 @@ package vaccination
 import (
 	"context"
 	"errors"
+
+	"github.com/google/uuid"
 )
 
 var (
@@ -19,7 +21,7 @@ func NewService(repo VaccinationRepository) *VaccinationService {
 	}
 }
 
-func (s *VaccinationService) Create(ctx context.Context, dogID uint, vi *CreateVaccinationInput)(*Vaccination, error ){
+func (s *VaccinationService) Create(ctx context.Context, dogID uuid.UUID, vi *CreateVaccinationInput)(*Vaccination, error ){
 	vaccination := Vaccination{
 		DogID: dogID,
 		Name: vi.Name,
@@ -35,7 +37,7 @@ func (s *VaccinationService) Create(ctx context.Context, dogID uint, vi *CreateV
 	return &vaccination, nil
 }
 
-func (s *VaccinationService) Update(ctx context.Context, ID, dogID uint, input UpdateVaccinationInput) error {
+func (s *VaccinationService) Update(ctx context.Context, ID, dogID uuid.UUID, input UpdateVaccinationInput) error {
 	vac, err := s.repo.GetByID(ctx, ID)
 	if err != nil {
 		return err

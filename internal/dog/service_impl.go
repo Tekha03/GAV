@@ -3,6 +3,8 @@ package dog
 import (
 	"context"
 	"errors"
+
+	"github.com/google/uuid"
 )
 
 var (
@@ -17,14 +19,14 @@ func NewDogService(repo DogRepository) *DogService {
 	return &DogService{repo: repo}
 }
 
-func (s *DogService) Create(ctx context.Context, ownerID uint, input CreateDogInput) (*Dog, error) {
+func (s *DogService) Create(ctx context.Context, ownerID uuid.UUID, input CreateDogInput) (*Dog, error) {
 	dog := NewDog(
-		ownerID, 
-		input.Name, 
-		input.Breed, 
-		input.Gender, 
-		input.Status, 
-		input.Age, 
+		ownerID,
+		input.Name,
+		input.Breed,
+		input.Gender,
+		input.Status,
+		input.Age,
 		input.PhotoUrl,
 	)
 
@@ -35,7 +37,7 @@ func (s *DogService) Create(ctx context.Context, ownerID uint, input CreateDogIn
 	return dog, nil
 }
 
-func (s *DogService) Update(ctx context.Context, ownerID, dogID uint, input UpdateDogInput) error {
+func (s *DogService) Update(ctx context.Context, ownerID, dogID uuid.UUID, input UpdateDogInput) error {
 
 	dog, err := s.repo.GetByID(ctx, dogID)
     if err != nil {
@@ -73,11 +75,11 @@ func (s *DogService) Update(ctx context.Context, ownerID, dogID uint, input Upda
 	return s.repo.Update(ctx, dog)
 }
 
-func (s *DogService) GetPublic(ctx context.Context, dogID uint) (*Dog, error) {
+func (s *DogService) GetPublic(ctx context.Context, dogID uuid.UUID) (*Dog, error) {
 	return s.repo.GetByID(ctx, dogID)
 }
 
-func (s *DogService) GetPrivate(ctx context.Context, dogID, ownerID uint) (*Dog, error) {
+func (s *DogService) GetPrivate(ctx context.Context, dogID, ownerID uuid.UUID) (*Dog, error) {
 	dog, err := s.repo.GetByID(ctx, dogID)
 	if err != nil {
 		return nil, err

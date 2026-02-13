@@ -1,7 +1,9 @@
 package stats
 
+import "github.com/google/uuid"
+
 type UserStats struct {
-	UserID		uint
+	UserID		uuid.UUID
 	PostCount	uint
 	Followers	uint
 	Followings	uint

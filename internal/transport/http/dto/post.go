@@ -3,6 +3,8 @@ package dto
 import (
 	"gav/internal/post"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type PostRequest struct {
@@ -10,8 +12,8 @@ type PostRequest struct {
 }
 
 type PostResponse struct {
-	ID			uint		`json:"id"`
-	AuthorID	uint		`json:"author_id"`
+	ID			uuid.UUID		`json:"id"`
+	AuthorID	uuid.UUID		`json:"author_id"`
 	Content		string		`json:"content"`
 	CreatedAt	time.Time	`json:"created_at"`
 }

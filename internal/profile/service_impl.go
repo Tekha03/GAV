@@ -3,6 +3,8 @@ package profile
 import (
 	"context"
 	"errors"
+
+	"github.com/google/uuid"
 )
 
 var (
@@ -20,8 +22,8 @@ func NewService(repo Repository) *Service {
 	return &Service{repo: repo}
 }
 
-func (s *Service) Create(ctx context.Context, userID uint, input CreateProfileInput) (*UserProfile, error) {
-	if userID == 0 {
+func (s *Service) Create(ctx context.Context, userID uuid.UUID, input CreateProfileInput) (*UserProfile, error) {
+	if userID == uuid.Nil {
 		return nil, ErrInvalidUserID
 	}
 
@@ -43,8 +45,8 @@ func (s *Service) Create(ctx context.Context, userID uint, input CreateProfileIn
 	return profile, nil
 }
 
-func (s *Service) GetByID(ctx context.Context, profileID uint) (*UserProfile, error) {
-	if profileID == 0 {
+func (s *Service) GetByID(ctx context.Context, profileID uuid.UUID) (*UserProfile, error) {
+	if profileID == uuid.Nil {
 		return nil, ErrInvalidProfileID
 	}
 
@@ -56,8 +58,8 @@ func (s *Service) GetByID(ctx context.Context, profileID uint) (*UserProfile, er
 	return profile, nil
 }
 
-func (s *Service) Update(ctx context.Context, profileID uint, input UpdateProfileInput) error {
-	if profileID == 0 {
+func (s *Service) Update(ctx context.Context, profileID uuid.UUID, input UpdateProfileInput) error {
+	if profileID == uuid.Nil {
 		return ErrInvalidProfileID
 	}
 
@@ -91,8 +93,8 @@ func (s *Service) Update(ctx context.Context, profileID uint, input UpdateProfil
 	return s.repo.Update(ctx, profile)
 }
 
-func (s *Service) Delete(ctx context.Context, profileID uint) error {
-	if profileID == 0 {
+func (s *Service) Delete(ctx context.Context, profileID uuid.UUID) error {
+	if profileID == uuid.Nil {
 		return ErrInvalidProfileID
 	}
 

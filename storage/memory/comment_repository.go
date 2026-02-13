@@ -7,20 +7,20 @@ import (
 	"time"
 
 	"gav/internal/comment"
+
+	"github.com/google/uuid"
 )
 
 var ErrCommentNotFound = errors.New("comment not found")
 
 type CommentRepository struct {
 	mu			sync.RWMutex
-	comments	map[uint]comment.Comment
-	nextID		uint
+	comments	map[uuid.UUID]comment.Comment
 }
 
 func NewCommentRepository() *CommentRepository {
 	return &CommentRepository{
-		comments: make(map[uint]comment.Comment),
-		nextID: 1,
+		comments: make(map[uuid.UUID]comment.Comment),
 	}
 }
 
@@ -28,15 +28,14 @@ func (cr *CommentRepository) Create(ctx context.Context, comment *comment.Commen
 	cr.mu.Lock()
 	defer cr.mu.Unlock()
 
-	comment.ID = cr.nextID
+	comment.ID = uuid.New()
 	comment.CreatedAt = time.Now()
-	cr.comments[cr.nextID] = *comment
-	cr.nextID++
+	cr.comments[comment.ID] = *comment
 
 	return nil
 }
 
-func (cr *CommentRepository) GetByPostID(ctx context.Context, postID uint) ([]comment.Comment, error) {
+func (cr *CommentRepository) GetByPostID(ctx context.Context, postID uuid.UUID) ([]comment.Comment, error) {
 	cr.mu.Lock()
 	defer cr.mu.Unlock()
 
@@ -50,7 +49,7 @@ func (cr *CommentRepository) GetByPostID(ctx context.Context, postID uint) ([]co
 	return result, nil
 }
 
-func (cr *CommentRepository) Delete(ctx context.Context, commentID, userID uint) error {
+func (cr *CommentRepository) Delete(ctx context.Context, commentID, userID uuid.UUID) error {
 	cr.mu.Lock()
 	defer cr.mu.Unlock()
 

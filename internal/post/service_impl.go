@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 var (
@@ -22,7 +24,7 @@ func NewService(repo Repository) *Service {
 
 func (s *Service) Create(
 	ctx context.Context,
-	userID uint,
+	userID uuid.UUID,
 	content string,
 ) (*Post, error) {
 
@@ -43,7 +45,7 @@ func (s *Service) Create(
 	return post, nil
 }
 
-func (s *Service) GetByID(ctx context.Context, postID uint) (*Post, error) {
+func (s *Service) GetByID(ctx context.Context, postID uuid.UUID) (*Post, error) {
 	post, err := s.repo.GetByID(ctx, postID)
 	if err != nil {
 		return nil, err
@@ -56,11 +58,11 @@ func (s *Service) GetByID(ctx context.Context, postID uint) (*Post, error) {
 	return post, nil
 }
 
-func (s *Service) ListByUser(ctx context.Context, userID uint) ([]*Post, error) {
+func (s *Service) ListByUser(ctx context.Context, userID uuid.UUID) ([]*Post, error) {
 	return s.repo.ListByUser(ctx, userID)
 }
 
-func (s *Service) Delete(ctx context.Context, userID, postID uint) error {
+func (s *Service) Delete(ctx context.Context, userID, postID uuid.UUID) error {
 	post, err := s.repo.GetByID(ctx, postID)
 	if err != nil {
 		return err

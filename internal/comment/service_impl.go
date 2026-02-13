@@ -3,6 +3,8 @@ package comment
 import (
 	"context"
 	"errors"
+
+	"github.com/google/uuid"
 )
 
 var (
@@ -18,7 +20,7 @@ func NewService(repo Repository) *Service {
 	return &Service{repo: repo}
 }
 
-func (s *Service) Create(ctx context.Context, userID, postID uint, content string) error {
+func (s *Service) Create(ctx context.Context, userID, postID uuid.UUID, content string) error {
 	comment := &Comment{
 		UserID: userID,
 		PostID: postID,
@@ -28,14 +30,14 @@ func (s *Service) Create(ctx context.Context, userID, postID uint, content strin
 	return  s.repo.Create(ctx, comment)
 }
 
-func (s *Service) GetByID(ctx context.Context, commentID uint) (*Comment, error) {
+func (s *Service) GetByID(ctx context.Context, commentID uuid.UUID) (*Comment, error) {
 	return s.repo.GetByID(ctx, commentID)
 }
 
-func (s *Service) GetByPostID(ctx context.Context, postID uint) ([]Comment, error) {
+func (s *Service) GetByPostID(ctx context.Context, postID uuid.UUID) ([]Comment, error) {
 	return s.repo.GetByPostID(ctx, postID)
 }
 
-func (s *Service) Delete(ctx context.Context, userID, commentID uint) error {
+func (s *Service) Delete(ctx context.Context, userID, commentID uuid.UUID) error {
 	return s.repo.Delete(ctx, userID, commentID)
 }

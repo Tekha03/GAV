@@ -1,11 +1,15 @@
 package comment
 
-import "time"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 type Comment struct {
-	ID			uint	`gorm:"primaryKey"`
-	PostID		uint
-	UserID		uint
-	Content		string	`gorm:"not null"`
+	ID			uuid.UUID	`gorm:"primaryKey"`
+	PostID		uuid.UUID
+	UserID		uuid.UUID
+	Content		string		`gorm:"not null"`
 	CreatedAt	time.Time
 }

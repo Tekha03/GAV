@@ -4,9 +4,10 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 )
 
-func GenerateToken(userID int, cfg JWTConfig) (string, error) {
+func GenerateToken(userID uuid.UUID, cfg JWTConfig) (string, error) {
 	claims := jwt.MapClaims{
 		"user_id": userID,
 		"exp":	   time.Now().Add(cfg.TTL).Unix(),
@@ -17,7 +18,7 @@ func GenerateToken(userID int, cfg JWTConfig) (string, error) {
 	return token.SignedString(cfg.Secret)
 }
 
-func ParseToken(tokenString string, cfg JWTConfig) (uint, error) {
+func ParseToken(tokenString string, cfg JWTConfig) (uuid.UUID, error) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, ErrUnexpectedSigningMethod
@@ -27,18 +28,18 @@ func ParseToken(tokenString string, cfg JWTConfig) (uint, error) {
 	})
 
 	if err != nil || !token.Valid {
-		return 0, ErrInvalidToken
+		return uuid.Nil, ErrInvalidToken
 	}
 
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
-		return 0, ErrInvalidClaims
+		return uuid.Nil, ErrInvalidClaims
 	}
 
-	userID, ok := claims["user_id"].(float64)
+	userID, ok := claims["user_id"].(uuid.UUID)
 	if !ok {
-		return 0, ErrUserIdNotFound
+		return uuid.Nil, ErrUserIdNotFound
 	}
 
-	return uint(userID), nil
+	return userID, nil
 }

@@ -28,7 +28,7 @@ func (s *Service) Register(ctx context.Context, email, password string) (string,
 		return "", ErrEmailAlreadyExists
 	}
 
-	token, err := GenerateToken(int(newUser.ID), s.jwtConfig)
+	token, err := GenerateToken(newUser.ID, s.jwtConfig)
 	if err != nil {
 		return "", ErrInvalidCredentials
 	}
@@ -46,7 +46,7 @@ func (s *Service) Login(ctx context.Context, email, password string) (string, er
 		return "", ErrInvalidCredentials
 	}
 
-	token, err := GenerateToken(int(authorizedUser.ID), s.jwtConfig)
+	token, err := GenerateToken(authorizedUser.ID, s.jwtConfig)
 	if err != nil {
 		return "", err
 	}

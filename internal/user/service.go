@@ -1,11 +1,15 @@
 package user
 
-import "context"
+import (
+	"context"
+
+	"github.com/google/uuid"
+)
 
 type UserService interface {
     Create(ctx context.Context, email, passwordHash string) (*User, error)
-    GetByID(ctx context.Context, id uint) (*User, error)
+    GetByID(ctx context.Context, id uuid.UUID) (*User, error)
     GetByEmail(ctx context.Context, email string) (*User, error)
-    Update(ctx context.Context, id uint, input UpdateuserInput)
-    Delete(ctx context.Context, id uint) error
+    Update(ctx context.Context, id uuid.UUID, input UpdateuserInput)
+    Delete(ctx context.Context, id uuid.UUID) error
 }

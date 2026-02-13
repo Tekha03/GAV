@@ -3,6 +3,8 @@ package like
 import (
 	"context"
 	"errors"
+
+	"github.com/google/uuid"
 )
 
 var (
@@ -20,7 +22,7 @@ func NewService(repo Repository) *Service {
 }
 
 func (s *Service) Add(ctx context.Context, like Like) error {
-	if like.UserID == 0 || like.PostID == 0 {
+	if like.UserID == uuid.Nil || like.PostID == uuid.Nil {
 		return ErrInvalidLike
 	}
 
@@ -37,7 +39,7 @@ func (s *Service) Add(ctx context.Context, like Like) error {
 }
 
 func (s *Service) Remove(ctx context.Context, like Like) error {
-	if like.UserID == 0 || like.PostID == 0 {
+	if like.UserID == uuid.Nil || like.PostID == uuid.Nil {
 		return ErrInvalidLike
 	}
 

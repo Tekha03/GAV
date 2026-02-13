@@ -1,10 +1,14 @@
 package post
 
-import "time"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 type Post struct {
-	ID			uint		`json:"id"`
-	UserID 		uint		`json:"user_id"`
+	ID			uuid.UUID		`json:"id"`
+	UserID 		uuid.UUID		`json:"user_id"`
 	Content 	string		`json:"content"`
 	CreatedAt	time.Time	`json:"created_at"`
 }

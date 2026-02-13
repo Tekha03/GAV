@@ -1,15 +1,17 @@
 package dog
 
+import "github.com/google/uuid"
+
 type Service interface {
-	Create(ownerID uint, input CreateDogInput) (*Dog, error)
-    Update(ownerID, dogID uint, input UpdateDogInput) error
-    Delete(ownerID, dogID uint) error
+	Create(ownerID uuid.UUID, input CreateDogInput) (*Dog, error)
+    Update(ownerID, dogID uuid.UUID, input UpdateDogInput) error
+    Delete(ownerID, dogID uuid.UUID) error
 
-    UpdateLocation(ownerID, dogID uint, lat, lon float64) error
-    SetLocationVisibility(ownerID, dogID uint, visible bool) error
+    UpdateLocation(ownerID, dogID uuid.UUID, lat, lon float64) error
+    SetLocationVisibility(ownerID, dogID uuid.UUID, visible bool) error
 
-    GetPublic(dogID uint) (*Dog, error)
-    GetPrivate(ownerID, dogID, dogOwnerID uint) (*Dog, error)
+    GetPublic(dogID uuid.UUID) (*Dog, error)
+    GetPrivate(ownerID, dogID, dogOwnerID uuid.UUID) (*Dog, error)
 
 	// later for analytics
 	// GetStatusHistory(ownerID uint, dogID uint) ([]StatusChange, error)
