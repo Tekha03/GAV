@@ -8,14 +8,14 @@ import (
 )
 
 type PostRequest struct {
-	Content	string	`json:"content"`
+	Content	string	`json:"content" validate:"required,max=5000"`
 }
 
 type PostResponse struct {
 	ID			uuid.UUID		`json:"id"`
 	AuthorID	uuid.UUID		`json:"author_id"`
-	Content		string		`json:"content"`
-	CreatedAt	time.Time	`json:"created_at"`
+	Content		string			`json:"content"`
+	CreatedAt	time.Time		`json:"created_at"`
 }
 
 func NewPostResponse(post *post.Post) PostResponse {

@@ -13,15 +13,15 @@ var (
 	ErrLikeDoesNotExist = errors.New("like does not exist")
 )
 
-type Service struct {
+type service struct {
 	repo Repository
 }
 
-func NewService(repo Repository) *Service {
-	return &Service{repo: repo}
+func NewService(repo Repository) LikeService {
+	return &service{repo: repo}
 }
 
-func (s *Service) Add(ctx context.Context, like Like) error {
+func (s *service) Add(ctx context.Context, like Like) error {
 	if like.UserID == uuid.Nil || like.PostID == uuid.Nil {
 		return ErrInvalidLike
 	}
@@ -38,7 +38,7 @@ func (s *Service) Add(ctx context.Context, like Like) error {
 	return s.repo.Add(ctx, like)
 }
 
-func (s *Service) Remove(ctx context.Context, like Like) error {
+func (s *service) Remove(ctx context.Context, like Like) error {
 	if like.UserID == uuid.Nil || like.PostID == uuid.Nil {
 		return ErrInvalidLike
 	}

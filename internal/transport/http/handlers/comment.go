@@ -3,9 +3,9 @@ package handlers
 import "gav/internal/comment"
 
 type CommentHandler struct {
-	service comment.Service
+	service comment.CommentService
 }
 
-func NewCommentHandler(service comment.Service) *CommentHandler {
+func NewCommentHandler(service comment.CommentService) *CommentHandler {
 	return &CommentHandler{service: service}
 }

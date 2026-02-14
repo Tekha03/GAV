@@ -6,7 +6,6 @@ import (
 	"github.com/google/uuid"
 )
 
-
 type DogRepository interface {
 	Create(ctx context.Context, dog *Dog) error
 	Update(ctx context.Context, dog *Dog) error

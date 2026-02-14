@@ -14,15 +14,15 @@ var (
 	ErrInvalidProfileID	  	= errors.New("invalid profile ID")
 )
 
-type Service struct {
+type service struct {
 	repo Repository
 }
 
-func NewService(repo Repository) *Service {
-	return &Service{repo: repo}
+func NewService(repo Repository) ProfileService {
+	return &service{repo: repo}
 }
 
-func (s *Service) Create(ctx context.Context, userID uuid.UUID, input CreateProfileInput) (*UserProfile, error) {
+func (s *service) Create(ctx context.Context, userID uuid.UUID, input CreateProfileInput) (*UserProfile, error) {
 	if userID == uuid.Nil {
 		return nil, ErrInvalidUserID
 	}
@@ -45,7 +45,7 @@ func (s *Service) Create(ctx context.Context, userID uuid.UUID, input CreateProf
 	return profile, nil
 }
 
-func (s *Service) GetByID(ctx context.Context, profileID uuid.UUID) (*UserProfile, error) {
+func (s *service) GetByID(ctx context.Context, profileID uuid.UUID) (*UserProfile, error) {
 	if profileID == uuid.Nil {
 		return nil, ErrInvalidProfileID
 	}
@@ -58,7 +58,7 @@ func (s *Service) GetByID(ctx context.Context, profileID uuid.UUID) (*UserProfil
 	return profile, nil
 }
 
-func (s *Service) Update(ctx context.Context, profileID uuid.UUID, input UpdateProfileInput) error {
+func (s *service) Update(ctx context.Context, profileID uuid.UUID, input UpdateProfileInput) error {
 	if profileID == uuid.Nil {
 		return ErrInvalidProfileID
 	}
@@ -93,7 +93,7 @@ func (s *Service) Update(ctx context.Context, profileID uuid.UUID, input UpdateP
 	return s.repo.Update(ctx, profile)
 }
 
-func (s *Service) Delete(ctx context.Context, profileID uuid.UUID) error {
+func (s *service) Delete(ctx context.Context, profileID uuid.UUID) error {
 	if profileID == uuid.Nil {
 		return ErrInvalidProfileID
 	}

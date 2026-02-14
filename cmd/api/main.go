@@ -4,11 +4,23 @@ import (
 	"context"
 	"log"
 
+	"gav/dbserver"
 	"gav/internal/app"
 	"gav/internal/config"
 )
 
 func main() {
+	db, err := dbserver.InitDB()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer func () {
+		if err := dbserver.CloseDB(db); err != nil {
+			log.Printf("failed to close db: %v", err)
+		}
+	}()
+
 	ctx := context.Background()
 
 	cfg, err := config.Load()

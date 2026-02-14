@@ -14,15 +14,15 @@ var (
 	ErrEmptyContent = errors.New("empty content")
 )
 
-type Service struct {
+type service struct {
 	repo Repository
 }
 
-func NewService(repo Repository) *Service {
-	return &Service{repo: repo}
+func NewService(repo Repository) PostService {
+	return &service{repo: repo}
 }
 
-func (s *Service) Create(
+func (s *service) Create(
 	ctx context.Context,
 	userID uuid.UUID,
 	content string,
@@ -45,7 +45,7 @@ func (s *Service) Create(
 	return post, nil
 }
 
-func (s *Service) GetByID(ctx context.Context, postID uuid.UUID) (*Post, error) {
+func (s *service) GetByID(ctx context.Context, postID uuid.UUID) (*Post, error) {
 	post, err := s.repo.GetByID(ctx, postID)
 	if err != nil {
 		return nil, err
@@ -58,11 +58,11 @@ func (s *Service) GetByID(ctx context.Context, postID uuid.UUID) (*Post, error) 
 	return post, nil
 }
 
-func (s *Service) ListByUser(ctx context.Context, userID uuid.UUID) ([]*Post, error) {
+func (s *service) ListByUser(ctx context.Context, userID uuid.UUID) ([]*Post, error) {
 	return s.repo.ListByUser(ctx, userID)
 }
 
-func (s *Service) Delete(ctx context.Context, userID, postID uuid.UUID) error {
+func (s *service) Delete(ctx context.Context, userID, postID uuid.UUID) error {
 	post, err := s.repo.GetByID(ctx, postID)
 	if err != nil {
 		return err

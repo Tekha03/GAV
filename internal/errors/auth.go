@@ -10,4 +10,14 @@ var (
 		CodeConflict,
 		"user already exists",
 	)
+
+	ErrMissingToken = New(
+		CodeAuthError,
+		"missing token",
+	)
+
+	ErrInvalidToken = New(
+		CodeAuthError,
+		"invalid token",
+	)
 )

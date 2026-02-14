@@ -11,15 +11,15 @@ var (
 	ErrDogAccessDenied = errors.New("dog access denied")
 )
 
-type DogService struct {
-	repo 	DogRepository
+type service struct {
+	repo DogRepository
 }
 
-func NewDogService(repo DogRepository) *DogService {
-	return &DogService{repo: repo}
+func NewDogService(repo DogRepository) DogService {
+	return &service{repo: repo}
 }
 
-func (s *DogService) Create(ctx context.Context, ownerID uuid.UUID, input CreateDogInput) (*Dog, error) {
+func (s *service) Create(ctx context.Context, ownerID uuid.UUID, input CreateDogInput) (*Dog, error) {
 	dog := NewDog(
 		ownerID,
 		input.Name,
@@ -37,7 +37,7 @@ func (s *DogService) Create(ctx context.Context, ownerID uuid.UUID, input Create
 	return dog, nil
 }
 
-func (s *DogService) Update(ctx context.Context, ownerID, dogID uuid.UUID, input UpdateDogInput) error {
+func (s *service) Update(ctx context.Context, ownerID, dogID uuid.UUID, input UpdateDogInput) error {
 
 	dog, err := s.repo.GetByID(ctx, dogID)
     if err != nil {
@@ -75,11 +75,55 @@ func (s *DogService) Update(ctx context.Context, ownerID, dogID uuid.UUID, input
 	return s.repo.Update(ctx, dog)
 }
 
-func (s *DogService) GetPublic(ctx context.Context, dogID uuid.UUID) (*Dog, error) {
+func (s *service) Delete(ctx context.Context, ownerID, dogID uuid.UUID) error {
+	dog, err := s.repo.GetByID(ctx, dogID)
+	if err != nil {
+		return err
+	}
+
+	if dog.OwnerID != ownerID {
+		return ErrDogAccessDenied
+	}
+
+	return s.repo.Delete(ctx, dogID)
+}
+
+func (s *service) UpdateLocation(ctx context.Context, ownerID, dogID uuid.UUID, lat, lon float64) error {
+	dog, err := s.repo.GetByID(ctx, dogID)
+	if err != nil {
+		return err
+	}
+
+	if dog.OwnerID != ownerID {
+		return ErrDogAccessDenied
+	}
+
+	dog.Lat = &lat
+	dog.Lon = &lon
+
+	return s.repo.Update(ctx, dog)
+}
+
+func (s *service) SetLocationVisibility(ctx context.Context, ownerID, dogID uuid.UUID, visible bool) error {
+	dog, err := s.repo.GetByID(ctx, dogID)
+	if err != nil {
+		return err
+	}
+
+	if dog.OwnerID != ownerID {
+		return ErrDogAccessDenied
+	}
+
+	dog.LocationVisible = visible
+
+	return s.repo.Update(ctx, dog)
+}
+
+func (s *service) GetPublic(ctx context.Context, dogID uuid.UUID) (*Dog, error) {
 	return s.repo.GetByID(ctx, dogID)
 }
 
-func (s *DogService) GetPrivate(ctx context.Context, dogID, ownerID uuid.UUID) (*Dog, error) {
+func (s *service) GetPrivate(ctx context.Context, dogID, ownerID uuid.UUID) (*Dog, error) {
 	dog, err := s.repo.GetByID(ctx, dogID)
 	if err != nil {
 		return nil, err

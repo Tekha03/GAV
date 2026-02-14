@@ -13,10 +13,10 @@ import (
 var ErrUnauthorized = errors.New("unauthorized")
 
 type UserHandler struct {
-	service user.Service
+	service user.UserService
 }
 
-func NewUserHandler(service user.Service) *UserHandler {
+func NewUserHandler(service user.UserService) *UserHandler {
 	return &UserHandler{service: service}
 }
 

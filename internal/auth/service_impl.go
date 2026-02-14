@@ -7,16 +7,16 @@ import (
 	"gav/storage"
 )
 
-type Service struct {
+type service struct {
 	users storage.Repository
 	jwtConfig JWTConfig
 }
 
-func NewService(users storage.Repository, jwtConfig JWTConfig) *Service {
-	return &Service{users: users, jwtConfig: jwtConfig}
+func NewService(users storage.Repository, jwtConfig JWTConfig) AuthService {
+	return &service{users: users, jwtConfig: jwtConfig}
 }
 
-func (s *Service) Register(ctx context.Context, email, password string) (string, error) {
+func (s *service) Register(ctx context.Context, email, password string) (string, error) {
 	hashedPassword, err := HashPassword(password)
 	if err != nil {
 		return "", err
@@ -36,7 +36,7 @@ func (s *Service) Register(ctx context.Context, email, password string) (string,
 	return token, nil
 }
 
-func (s *Service) Login(ctx context.Context, email, password string) (string, error) {
+func (s *service) Login(ctx context.Context, email, password string) (string, error) {
 	authorizedUser, err := s.users.GetByEmail(ctx, email)
 	if err != nil {
 		return "", ErrInvalidCredentials

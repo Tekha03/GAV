@@ -10,15 +10,15 @@ var (
 	ErrAlreadyFollowing = errors.New("already following")
 )
 
-type Service struct {
+type service struct {
 	repo Repository
 }
 
-func NewService(repo Repository) *Service {
-	return &Service{repo: repo}
+func NewService(repo Repository) FollowService {
+	return &service{repo: repo}
 }
 
-func (s *Service) Follow(ctx context.Context, follow Follow) error {
+func (s *service) Follow(ctx context.Context, follow Follow) error {
 	if follow.FollowerID == follow.FollowingID {
 		return ErrCannotFollowYourself
 	}
@@ -35,6 +35,6 @@ func (s *Service) Follow(ctx context.Context, follow Follow) error {
 	return s.repo.Follow(ctx, follow)
 }
 
-func (s *Service) Unfollow(ctx context.Context, follow Follow) error {
+func (s *service) Unfollow(ctx context.Context, follow Follow) error {
 	return s.repo.Unfollow(ctx, follow)
 }

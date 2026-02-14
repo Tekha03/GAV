@@ -6,27 +6,48 @@ import (
 	"strings"
 
 	"gav/internal/auth"
+	"gav/internal/errors"
 
 	"github.com/google/uuid"
 )
 
-type ctxKey string
+type ctxKey struct{}
 
-const userIDKey ctxKey = "userID"
+var userIDKey = ctxKey{}
 
 func JWTAuth(cfg auth.JWTConfig) func(http.Handler) http.Handler {
 	return func (next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			header := r.Header.Get("Authorization")
-			if !strings.HasPrefix(header, "Bearer ") {
-				http.Error(w, "missing token", http.StatusUnauthorized)
+			if r.Method == http.MethodOptions {
+				next.ServeHTTP(w, r)
 				return
 			}
 
-			token := strings.TrimPrefix(header, "Bearer ")
+			header := strings.TrimSpace(r.Header.Get("Authorization"))
+			if header == "" {
+				ctx := context.WithValue(r.Context(), errors.CodeAuthError, errors.ErrMissingToken.Error())
+				next.ServeHTTP(w, r.WithContext(ctx))
+				return
+			}
+
+			parts := strings.Split(header, " ")
+			if len(parts) != 2 || parts[0] != "Bearer" {
+				ctx := context.WithValue(r.Context(), errors.CodeAuthError, errors.ErrInvalidToken.Error())
+				next.ServeHTTP(w, r.WithContext(ctx))
+				return
+			}
+
+			token := strings.TrimSpace(parts[1])
+			if token == "" {
+				ctx := context.WithValue(r.Context(), errors.CodeAuthError, errors.ErrInvalidToken.Error())
+				next.ServeHTTP(w, r.WithContext(ctx))
+				return
+			}
+
 			userID, err := auth.ParseToken(token, cfg)
 			if err != nil {
-				http.Error(w, "invalid token", http.StatusUnauthorized)
+				ctx := context.WithValue(r.Context(), errors.CodeAuthError, err.Error())
+				next.ServeHTTP(w, r.WithContext(ctx))
 				return
 			}
 

@@ -13,10 +13,10 @@ import (
 )
 
 type FollowHandler struct {
-	service follow.Service
+	service follow.FollowService
 }
 
-func NewFollowHandler(service follow.Service) *FollowHandler {
+func NewFollowHandler(service follow.FollowService) *FollowHandler {
 	return &FollowHandler{service: service}
 }
 
