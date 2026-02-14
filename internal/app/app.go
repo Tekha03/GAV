@@ -8,6 +8,7 @@ import (
 
 	"gav/internal/auth"
 	"gav/internal/config"
+	"gav/internal/like"
 	"gav/internal/post"
 	"gav/internal/transport/http/handlers"
 	"gav/internal/transport/http/middleware"
@@ -59,21 +60,25 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 	// repositories
 	userRepo := gavSqlite.NewUserRepository(db)
 	postRepo := gavSqlite.NewPostRepository(db)
+	likeRepo := gavSqlite.NewLikeRepository(db)
 
 	// services
 	authService := auth.NewService(userRepo, jwtConfig)
 	userService := user.NewService(userRepo)
 	postService := post.NewService(postRepo)
+	likeService := like.NewService(likeRepo)
 
 	// handlers
 	authHandler := handlers.NewAuthHandler(authService)
 	userHandler := handlers.NewUserHandler(userService)
 	postHandler := handlers.NewPostHandler(postService)
+	likeHandler := handlers.NewLikeHandler(likeService)
 
 	router := httptransport.NewRouter(
 		authHandler,
 		userHandler,
 		postHandler,
+		likeHandler,
 		middleware.JWTAuth(jwtConfig),
 		logger,
 	)

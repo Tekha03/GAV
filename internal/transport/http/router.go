@@ -14,6 +14,7 @@ func NewRouter(
 	authH *handlers.AuthHandler,
 	userH *handlers.UserHandler,
 	postH *handlers.PostHandler,
+	likeH *handlers.LikeHandler,
 	authMW func(http.Handler) http.Handler,
 	logger *slog.Logger,
 ) http.Handler {
@@ -35,6 +36,11 @@ func NewRouter(
 				r.Post("/", postH.Create)
 				r.Get("/{id}", postH.GetByID)
 				r.Delete("/{id}", postH.Delete)
+			})
+
+			r.Route("/likes", func(r chi.Router) {
+				r.Post("/", likeH.Add)
+				r.Delete("/", likeH.Remove)
 			})
 		})
 	})

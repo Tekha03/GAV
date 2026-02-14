@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"encoding/json"
-	"errors"
 	"net/http"
 
 	"gav/internal/post"
@@ -72,7 +71,7 @@ func (h *PostHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 func (h *PostHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.UserID(r.Context())
 	if !ok {
-		response.Error(w, errors.New("unauthorized"))
+		response.Error(w, ErrUnauthorized)
 		return
 	}
 

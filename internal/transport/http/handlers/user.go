@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"errors"
 	"net/http"
 
 	"gav/internal/transport/http/dto"
@@ -9,8 +8,6 @@ import (
 	"gav/internal/transport/response"
 	"gav/internal/user"
 )
-
-var ErrUnauthorized = errors.New("unauthorized")
 
 type UserHandler struct {
 	service user.UserService
