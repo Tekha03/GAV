@@ -11,17 +11,17 @@ var (
 	ErrVaccAccessDenied = errors.New("vaccination access denied")
 )
 
-type VaccinationService struct {
+type service struct {
 	repo VaccinationRepository
 }
 
-func NewService(repo VaccinationRepository) *VaccinationService {
-	return &VaccinationService{
+func NewVaccinationService(repo VaccinationRepository) *service {
+	return &service{
 		repo: repo,
 	}
 }
 
-func (s *VaccinationService) Create(ctx context.Context, dogID uuid.UUID, vi *CreateVaccinationInput)(*Vaccination, error ){
+func (s *service) Create(ctx context.Context, dogID uuid.UUID, vi *CreateVaccinationInput)(*Vaccination, error ){
 	vaccination := Vaccination{
 		DogID: dogID,
 		Name: vi.Name,
@@ -37,7 +37,7 @@ func (s *VaccinationService) Create(ctx context.Context, dogID uuid.UUID, vi *Cr
 	return &vaccination, nil
 }
 
-func (s *VaccinationService) Update(ctx context.Context, ID, dogID uuid.UUID, input UpdateVaccinationInput) error {
+func (s *service) Update(ctx context.Context, ID, dogID uuid.UUID, input UpdateVaccinationInput) error {
 	vac, err := s.repo.GetByID(ctx, ID)
 	if err != nil {
 		return err
