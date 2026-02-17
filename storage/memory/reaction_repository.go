@@ -1,0 +1,60 @@
+package memory
+
+import (
+	"context"
+	"errors"
+	"gav/internal/chat"
+	"sync"
+
+	"github.com/google/uuid"
+)
+
+var (
+	ErrReactionExists = errors.New("reaction already exists")
+	ErrReactionNotFound = errors.New("reaction not found")
+)
+
+type ReactionRepository struct {
+	mu 			sync.RWMutex
+	reactions 	map[uuid.UUID]map[uuid.UUID]*chat.Reaction
+}
+
+func NewReactionRepository() *ReactionRepository {
+	return &ReactionRepository{reactions: make(map[uuid.UUID]map[uuid.UUID]*chat.Reaction)}
+}
+
+func (rr *ReactionRepository) Add(ctx context.Context, reaction *chat.Reaction) error {
+	rr.mu.Lock()
+	defer rr.mu.Unlock()
+
+	if _, ok := rr.reactions[reaction.MessageID]; !ok {
+		rr.reactions[reaction.MessageID] = make(map[uuid.UUID]*chat.Reaction)
+	}
+
+	if _, exists := rr.reactions[reaction.MessageID][reaction.UserID]; exists {
+		return ErrReactionExists
+	}
+
+	if reaction.ID == uuid.Nil {
+		reaction.ID = uuid.New()
+	}
+
+	rr.reactions[reaction.MessageID][reaction.UserID] = reaction
+	return nil
+}
+
+func (rr *ReactionRepository) Remove(ctx context.Context, messageID, userID uuid.UUID) error {
+	rr.mu.Lock()
+	defer rr.mu.Unlock()
+
+	if _, ok := rr.reactions[messageID]; !ok {
+		return ErrReactionNotFound
+	}
+
+	if _, exists := rr.reactions[messageID][userID]; !exists {
+		return ErrMemberNotFound
+	}
+
+	delete(rr.reactions[messageID], userID)
+	return nil
+}
