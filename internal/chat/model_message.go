@@ -1,6 +1,10 @@
 package chat
 
-import "time"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 type MessageType string
 
@@ -14,8 +18,8 @@ const (
 )
 
 type Message struct {
-	ID       uint
-	ChatID   uint
+	ID       uuid.UUID
+	ChatID   uuid.UUID
 	SenderID uint
 
 	Content string

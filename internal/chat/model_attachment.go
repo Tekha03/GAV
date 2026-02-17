@@ -1,5 +1,7 @@
 package chat
 
+import "github.com/google/uuid"
+
 type AttachmentType string
 
 var (
@@ -10,8 +12,8 @@ var (
 )
 
 type Attachment struct {
-	ID        uint
-	MessageID uint
+	ID        uuid.UUID
+	MessageID uuid.UUID
 	URL       string
 	Type      AttachmentType
 	FileName  string

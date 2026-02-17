@@ -5,6 +5,8 @@ import (
 	"errors"
 	"gav/internal/chat"
 	"sync"
+
+	"github.com/google/uuid"
 )
 
 var (
@@ -14,11 +16,11 @@ var (
 
 type MembersRepository struct {
 	mu 		sync.RWMutex
-	members map[uint]map[uint]*chat.ChatMember
+	members map[uuid.UUID]map[uuid.UUID]*chat.ChatMember
 }
 
 func NewMembersRepository() *MembersRepository {
-	return &MembersRepository{members: make(map[uint]map[uint]*chat.ChatMember)}
+	return &MembersRepository{members: make(map[uuid.UUID]map[uuid.UUID]*chat.ChatMember)}
 }
 
 func (mr *MembersRepository) AddMember(ctx context.Context, member *chat.ChatMember) error {
@@ -26,7 +28,7 @@ func (mr *MembersRepository) AddMember(ctx context.Context, member *chat.ChatMem
 	defer mr.mu.Unlock()
 
 	if _, ok := mr.members[member.ChatID]; !ok {
-		mr.members[member.ChatID] = make(map[uint]*chat.ChatMember)
+		mr.members[member.ChatID] = make(map[uuid.UUID]*chat.ChatMember)
 	}
 
 	if _, exists := mr.members[member.ChatID][member.UserID]; exists {
@@ -37,7 +39,7 @@ func (mr *MembersRepository) AddMember(ctx context.Context, member *chat.ChatMem
 	return nil
 }
 
-func (mr *MembersRepository) RemoveMember(ctx context.Context, memberID, chatID uint) error {
+func (mr *MembersRepository) RemoveMember(ctx context.Context, memberID, chatID uuid.UUID) error {
 	mr.mu.Lock()
 	defer mr.mu.Unlock()
 
@@ -53,7 +55,7 @@ func (mr *MembersRepository) RemoveMember(ctx context.Context, memberID, chatID 
 	return nil
 }
 
-func (mr *MembersRepository) GetMembers(ctx context.Context, chatID uint) ([]*chat.ChatMember, error) {
+func (mr *MembersRepository) GetMembers(ctx context.Context, chatID uuid.UUID) ([]*chat.ChatMember, error) {
 	mr.mu.RLock()
 	defer mr.mu.RUnlock()
 
@@ -71,7 +73,7 @@ func (mr *MembersRepository) GetMembers(ctx context.Context, chatID uint) ([]*ch
 	return result, nil
 }
 
-func (mr *MembersRepository) UpdateRole(ctx context.Context, chatID, userID uint, role *chat.MemberRole) error {
+func (mr *MembersRepository) UpdateRole(ctx context.Context, chatID, userID uuid.UUID, role *chat.MemberRole) error {
 	mr.mu.Lock()
 	defer mr.mu.Unlock()
 
@@ -87,7 +89,7 @@ func (mr *MembersRepository) UpdateRole(ctx context.Context, chatID, userID uint
 	return nil
 }
 
-func (mr *MembersRepository) SetMuted(ctx context.Context, chatID, userID uint, muted bool) error {
+func (mr *MembersRepository) SetMuted(ctx context.Context, chatID, userID uuid.UUID, muted bool) error {
 	mr.mu.Lock()
 	defer mr.mu.Unlock()
 

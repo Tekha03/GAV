@@ -5,34 +5,41 @@ import (
 	"errors"
 	"gav/internal/chat"
 	"sync"
+
+	"github.com/google/uuid"
 )
 
 var (
 	ErrAttachmentNotFound = errors.New("attachment not found")
+	ErrAttachmentExist = errors.New("attachment exist")
 )
 
 type AttachmentRepository struct {
 	mu 			sync.RWMutex
-	lastID		uint
-	attachments map[uint]*chat.Attachment
+	attachments map[uuid.UUID]*chat.Attachment
 }
 
 func NewAttachmentrepository() *AttachmentRepository {
-	return &AttachmentRepository{attachments: map[uint]*chat.Attachment{}}
+	return &AttachmentRepository{attachments: map[uuid.UUID]*chat.Attachment{}}
 }
 
 func (ar *AttachmentRepository) Create(ctx context.Context, attachment *chat.Attachment) error {
 	ar.mu.Lock()
 	defer ar.mu.Unlock()
 
-	ar.lastID++
-	attachment.ID = ar.lastID
+	if attachment.ID != uuid.Nil {
+		if _, found := ar.attachments[attachment.ID]; found {
+			return ErrAttachmentExist
+		}
+	} else {
+		attachment.ID = uuid.New()
+	}
 
 	ar.attachments[attachment.ID] = attachment
 	return nil
 }
 
-func (ar *AttachmentRepository) GetByID(ctx context.Context, id uint) (*chat.Attachment, error) {
+func (ar *AttachmentRepository) GetByID(ctx context.Context, id uuid.UUID) (*chat.Attachment, error) {
 	ar.mu.RLock()
 	defer ar.mu.RUnlock()
 
@@ -44,7 +51,7 @@ func (ar *AttachmentRepository) GetByID(ctx context.Context, id uint) (*chat.Att
 	return attachment, nil
 }
 
-func (ar *AttachmentRepository) GetByMessage(ctx context.Context, messageID uint) ([]*chat.Attachment, error) {
+func (ar *AttachmentRepository) GetByMessage(ctx context.Context, messageID uuid.UUID) ([]*chat.Attachment, error) {
 	ar.mu.RLock()
 	defer ar.mu.RUnlock()
 
@@ -58,7 +65,7 @@ func (ar *AttachmentRepository) GetByMessage(ctx context.Context, messageID uint
 	return result, nil
 }
 
-func (ar *AttachmentRepository) Delete(ctx context.Context, id uint) error {
+func (ar *AttachmentRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	ar.mu.Lock()
 	defer ar.mu.Unlock()
 
@@ -70,7 +77,7 @@ func (ar *AttachmentRepository) Delete(ctx context.Context, id uint) error {
 	return nil
 }
 
-func (ar *AttachmentRepository) DeleteByMessage(ctx context.Context, messageID uint) error {
+func (ar *AttachmentRepository) DeleteByMessage(ctx context.Context, messageID uuid.UUID) error {
 	ar.mu.Lock()
 	defer ar.mu.Unlock()
 

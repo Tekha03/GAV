@@ -1,8 +1,10 @@
 package chat
 
+import "github.com/google/uuid"
+
 type Reaction struct {
-	ID        uint
-	MessageID uint
-	UserID    uint
+	ID        uuid.UUID
+	MessageID uuid.UUID
+	UserID    uuid.UUID
 	Emoji     string
 }

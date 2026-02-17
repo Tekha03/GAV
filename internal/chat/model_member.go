@@ -1,6 +1,10 @@
 package chat
 
-import "time"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 type MemberRole string
 
@@ -10,8 +14,8 @@ const (
 )
 
 type ChatMember struct {
-	UserID   uint
-	ChatID   uint
+	UserID   uuid.UUID
+	ChatID   uuid.UUID
 	Role     MemberRole
 	JoinedAt time.Time
 	LeftAt   *time.Time

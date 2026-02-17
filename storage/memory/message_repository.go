@@ -1,12 +1,15 @@
 package memory
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"gav/internal/chat"
 	"sort"
 	"sync"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 var (
@@ -15,27 +18,31 @@ var (
 
 type MessageRepository struct {
 	mu       sync.RWMutex
-	lastID   uint
-	messages map[uint]*chat.Message
+	messages map[uuid.UUID]*chat.Message
 }
 
 func NewMessageRepository() *MessageRepository {
-	return &MessageRepository{messages: map[uint]*chat.Message{}}
+	return &MessageRepository{messages: map[uuid.UUID]*chat.Message{}}
 }
 
 func (mr *MessageRepository) Create(ctx context.Context, msg *chat.Message) error {
 	mr.mu.Lock()
 	defer mr.mu.Unlock()
 
-	mr.lastID++
-	msg.ID = mr.lastID
+	if msg.ID != uuid.Nil {
+		if _, found := mr.messages[msg.ID]; found {
+			return ErrAttachmentExist
+		}
+	} else {
+		msg.ID = uuid.New()
+	}
 	msg.CreatedAt = time.Now()
 
 	mr.messages[msg.ID] = msg
 	return nil
 }
 
-func (mr *MessageRepository) UpdateText(ctx context.Context, msgID uint, newText string) error {
+func (mr *MessageRepository) UpdateText(ctx context.Context, msgID uuid.UUID, newText string) error {
 	mr.mu.Lock()
 	defer mr.mu.Unlock()
 
@@ -50,7 +57,7 @@ func (mr *MessageRepository) UpdateText(ctx context.Context, msgID uint, newText
 	return nil
 }
 
-func (mr *MessageRepository) Delete(ctx context.Context, msgID uint) error {
+func (mr *MessageRepository) Delete(ctx context.Context, msgID uuid.UUID) error {
 	mr.mu.Lock()
 	defer mr.mu.Unlock()
 
@@ -64,7 +71,7 @@ func (mr *MessageRepository) Delete(ctx context.Context, msgID uint) error {
 	return nil
 }
 
-func (mr *MessageRepository) GetByID(ctx context.Context, msgID uint) (*chat.Message, error) {
+func (mr *MessageRepository) GetByID(ctx context.Context, msgID uuid.UUID) (*chat.Message, error) {
 	mr.mu.RLock()
 	defer mr.mu.RUnlock()
 
@@ -76,7 +83,7 @@ func (mr *MessageRepository) GetByID(ctx context.Context, msgID uint) (*chat.Mes
 	return msg, nil
 }
 
-func (mr *MessageRepository) GetByChatID(ctx context.Context, chatID uint, limit int, cursorID *uint) ([]*chat.Message, error) {
+func (mr *MessageRepository) GetByChatID(ctx context.Context, chatID uuid.UUID, limit int, cursorID *uuid.UUID) ([]*chat.Message, error) {
 	mr.mu.RLock()
 	defer mr.mu.RUnlock()
 
@@ -86,7 +93,7 @@ func (mr *MessageRepository) GetByChatID(ctx context.Context, chatID uint, limit
 			continue
 		}
 
-		if cursorID != nil && msg.ID >= *cursorID {
+		if cursorID != nil && bytes.Compare(msg.ID[:], cursorID[:]) >= 0 {
 			continue
 		}
 
@@ -94,7 +101,7 @@ func (mr *MessageRepository) GetByChatID(ctx context.Context, chatID uint, limit
 	}
 
 	sort.Slice(result, func(i, j int) bool {
-		return result[i].ID > result[j].ID
+		return bytes.Compare(result[i].ID[:], result[j].ID[:]) > 0
 	})
 
 	if len(result) > limit {

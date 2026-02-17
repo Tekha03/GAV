@@ -1,9 +1,13 @@
 package chat
 
-import "time"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 type Chat struct {
-	ID        uint
+	ID        uuid.UUID
 	IsGroup   bool
 	Title     string
 	CreatedAt time.Time
