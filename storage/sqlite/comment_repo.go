@@ -5,6 +5,7 @@ import (
 
 	"gav/internal/comment"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -20,14 +21,14 @@ func (cr *CommentRepository) Create(ctx context.Context, comment *comment.Commen
 	return cr.db.WithContext(ctx).Create(comment).Error
 }
 
-func (cr *CommentRepository) GetByPostID(ctx context.Context, postID uint) ([]comment.Comment, error) {
+func (cr *CommentRepository) GetByPostID(ctx context.Context, postID uuid.UUID) ([]comment.Comment, error) {
 	var comments []comment.Comment
 	err := cr.db.WithContext(ctx).Where("post_id = ?", postID).Order("created_at asc").Find(&comments).Error
 
 	return comments, err
 }
 
-func (cr *CommentRepository) Delete(ctx context.Context, commentID, userID uint) error {
+func (cr *CommentRepository) Delete(ctx context.Context, commentID, userID uuid.UUID) error {
 	deleted := cr.db.WithContext(ctx).Where("id = ? AND user_id = ?", commentID, userID).Delete(&comment.Comment{})
 
 	if deleted.RowsAffected == 0 {

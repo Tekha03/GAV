@@ -9,6 +9,7 @@ const (
 	CodeConflict		 Code = "CONFLICT"
 	CodeValidation		Code = "VALIDATION_ERROR"
 	CodeInternal		Code = "INTERNAL_ERROR"
+	CodeAuthError		Code = "AUTH_ERROR"
 )
 
 type Error struct {

@@ -39,3 +39,10 @@ func Error(w http.ResponseWriter, err error) {
 		},
 	})
 }
+
+func InternalError(w http.ResponseWriter) {
+	w.WriteHeader(http.StatusInternalServerError)
+	_ = json.NewEncoder(w).Encode(map[string]string{
+		"error": "internal server error",
+	})
+}

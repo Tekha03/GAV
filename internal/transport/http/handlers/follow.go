@@ -6,21 +6,18 @@ import (
 	"net/http"
 
 	"gav/internal/follow"
+	"gav/internal/transport/http/dto"
 	"gav/internal/transport/http/middleware"
 	"gav/internal/transport/response"
 	"gav/internal/validation"
 )
 
 type FollowHandler struct {
-	service follow.Service
+	service follow.FollowService
 }
 
-func NewFollowHandler(service follow.Service) *FollowHandler {
+func NewFollowHandler(service follow.FollowService) *FollowHandler {
 	return &FollowHandler{service: service}
-}
-
-type followRequest struct {
-	UserID uint	`json:"user_id" validate:"required"`
 }
 
 func (fh *FollowHandler) Follow(w http.ResponseWriter, r *http.Request) {
@@ -30,7 +27,7 @@ func (fh *FollowHandler) Follow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var request followRequest
+	var request dto.FollowRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		response.Error(w, err)
 		return

@@ -3,6 +3,8 @@ package settings
 import (
 	"context"
 	"errors"
+
+	"github.com/google/uuid"
 )
 
 var (
@@ -10,16 +12,16 @@ var (
 	ErrInvalidUserID	= errors.New("invalid user ID")
 )
 
-type Service struct {
+type service struct {
 	repo Repository
 }
 
-func NewService(repo Repository) *Service {
-	return &Service{repo: repo}
+func NewService(repo Repository) SettingsService {
+	return &service{repo: repo}
 }
 
-func (s *Service) Get(ctx context.Context, userID uint) (*UserSettings, error) {
-	if userID == 0 {
+func (s *service) Get(ctx context.Context, userID uuid.UUID) (*UserSettings, error) {
+	if userID == uuid.Nil {
 		return nil, ErrInvalidUserID
 	}
 
@@ -42,8 +44,8 @@ func (s *Service) Get(ctx context.Context, userID uint) (*UserSettings, error) {
 	return defaultSettings, nil
 }
 
-func (s *Service) Update(ctx context.Context, userID uint, input UpdateSettingsInput) error {
-	if userID == 0 {
+func (s *service) Update(ctx context.Context, userID uuid.UUID, input UpdateSettingsInput) error {
+	if userID == uuid.Nil {
 		return ErrInvalidUserID
 	}
 

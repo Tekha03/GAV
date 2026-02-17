@@ -1,9 +1,13 @@
 package dto
 
-import "gav/internal/user"
+import (
+	"gav/internal/user"
+
+	"github.com/google/uuid"
+)
 
 type UserResponse struct {
-	ID		uint	`json:"id"`
+	ID		uuid.UUID	`json:"id"`
 	Email	string	`json:"email"`
 }
 

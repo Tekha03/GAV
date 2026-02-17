@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"log"
+	"log/slog"
 	"net/http"
 	"time"
 )
@@ -16,23 +16,43 @@ func (w *responseWriter) WriteHeader(code int) {
 	w.ResponseWriter.WriteHeader(code)
 }
 
-func Logging(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		start := time.Now()
+func Logging(logger *slog.Logger) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			start := time.Now()
 
-		wrapped := &responseWriter{
-			ResponseWriter: w,
-			status: http.StatusOK,
-		}
+			wrapped := &responseWriter{
+				ResponseWriter: w,
+				status: 		http.StatusOK,
+			}
 
-		next.ServeHTTP(wrapped, r)
+			next.ServeHTTP(wrapped, r)
 
-		log.Printf(
-			"%s %s %d %s",
-			r.Method,
-			r.URL.Path,
-			wrapped.status,
-			time.Since(start),
-		)
-	})
+			duration := time.Since(start)
+			logRequest(logger, r, wrapped.status, duration)
+		})
+	}
+}
+
+func logRequest(
+	logger *slog.Logger,
+	r *http.Request,
+	status int,
+	duration time.Duration,
+) {
+	attrs := []any{
+		slog.String("method", r.Method),
+		slog.String("path", r.URL.Path),
+		slog.Int("status", status),
+		slog.Duration("duration", duration),
+	}
+
+	switch {
+	case status >= 500:
+		logger.Error("http request", attrs...)
+	case status >= 400:
+		logger.Warn("http request", attrs...)
+	default:
+		logger.Info("http request", attrs...)
+	}
 }

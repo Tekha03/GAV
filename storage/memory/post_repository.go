@@ -6,6 +6,8 @@ import (
 	"sync"
 
 	"gav/internal/post"
+
+	"github.com/google/uuid"
 )
 
 var (
@@ -14,13 +16,13 @@ var (
 )
 
 type PostRepository struct {
-	mu    sync.RWMutex
-	posts map[uint]*post.Post
+	mu sync.RWMutex
+	posts map[uuid.UUID]*post.Post
 }
 
 func NewPostRepository() *PostRepository {
 	return &PostRepository{
-		posts: make(map[uint]*post.Post),
+		posts: make(map[uuid.UUID]*post.Post),
 	}
 }
 
@@ -36,9 +38,9 @@ func (pr *PostRepository) Create(ctx context.Context, post *post.Post) error {
 	return nil
 }
 
-func (pr *PostRepository) GetByID(ctx context.Context, id uint) (*post.Post, error) {
-	pr.mu.RLock()
-	defer pr.mu.RUnlock()
+func (pr *PostRepository) GetByID(ctx context.Context, id uuid.UUID) (*post.Post, error) {
+	pr.mu.Lock()
+	defer pr.mu.Unlock()
 
 	foundPost, isOk := pr.posts[id]
 	if !isOk {
@@ -48,9 +50,9 @@ func (pr *PostRepository) GetByID(ctx context.Context, id uint) (*post.Post, err
 	return foundPost, nil
 }
 
-func (pr *PostRepository) ListByUser(ctx context.Context, userID uint) ([]*post.Post, error) {
-	pr.mu.RLock()
-	defer pr.mu.RUnlock()
+func (pr *PostRepository) ListByUser(ctx context.Context, userID uuid.UUID) ([]*post.Post, error) {
+	pr.mu.Lock()
+	defer pr.mu.Unlock()
 
 	var result []*post.Post
 	for _, post := range pr.posts {
@@ -62,7 +64,7 @@ func (pr *PostRepository) ListByUser(ctx context.Context, userID uint) ([]*post.
 	return result, nil
 }
 
-func (pr *PostRepository) Delete(ctx context.Context, id uint) error {
+func (pr *PostRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	pr.mu.Lock()
 	defer pr.mu.Unlock()
 

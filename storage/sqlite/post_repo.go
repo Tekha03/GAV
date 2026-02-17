@@ -6,6 +6,7 @@ import (
 
 	"gav/internal/post"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -25,7 +26,7 @@ func (pr *PostRepository) Create(ctx context.Context, post *post.Post) error {
 	return pr.db.WithContext(ctx).Create(post).Error
 }
 
-func (pr *PostRepository) GetByID(ctx context.Context, id uint) (*post.Post, error) {
+func (pr *PostRepository) GetByID(ctx context.Context, id uuid.UUID) (*post.Post, error) {
 	var post *post.Post
 
 	if err := pr.db.WithContext(ctx).First(&post, "id = ?", id).Error; err != nil {
@@ -39,7 +40,7 @@ func (pr *PostRepository) GetByID(ctx context.Context, id uint) (*post.Post, err
 	return post, nil
 }
 
-func (pr *PostRepository) ListByUser(ctx context.Context, userID uint) ([]*post.Post, error) {
+func (pr *PostRepository) ListByUser(ctx context.Context, userID uuid.UUID) ([]*post.Post, error) {
 	var posts []*post.Post
 
 	if err := pr.db.WithContext(ctx).Where("user id = ?", userID).Find(&posts).Error; err != nil {
@@ -49,7 +50,7 @@ func (pr *PostRepository) ListByUser(ctx context.Context, userID uint) ([]*post.
 	return posts, nil
 }
 
-func (pr *PostRepository) Delete(ctx context.Context, id uint) error {
+func (pr *PostRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	deleted := pr.db.WithContext(ctx).Delete(&post.Post{}, "id = ?", id)
 
 	if deleted.Error != nil {

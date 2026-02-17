@@ -6,6 +6,8 @@ import (
 	"sync"
 
 	"gav/internal/dog"
+
+	"github.com/google/uuid"
 )
 
 var (
@@ -14,14 +16,14 @@ var (
 )
 
 type DogRepository struct {
-	mu     sync.RWMutex
-	lastID uint
-	dogs   map[uint]*dog.Dog
+	mu 		sync.RWMutex
+	dogs 	map[uuid.UUID]*dog.Dog
+
 }
 
 func NewDogRepository() *DogRepository {
 	return &DogRepository{
-		dogs: make(map[uint]*dog.Dog),
+		dogs: make(map[uuid.UUID]*dog.Dog),
 	}
 }
 
@@ -29,8 +31,17 @@ func (r *DogRepository) Create(ctx context.Context, d *dog.Dog) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	r.lastID++
-	d.ID = r.lastID
+	if d.ID != uuid.Nil {
+		if _, found := r.dogs[d.ID]; found {
+			return ErrDogExists
+		}
+	} else {
+		d.ID = uuid.New()
+	}
+
+	if _, found := r.dogs[d.ID]; found {
+		return ErrDogExists
+	}
 
 	r.dogs[d.ID] = d
 	return nil
@@ -48,9 +59,9 @@ func (r *DogRepository) Update(ctx context.Context, d *dog.Dog) error {
 	return nil
 }
 
-func (r *DogRepository) GetByID(ctx context.Context, ID uint) (*dog.Dog, error) {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
+func (r *DogRepository) GetByID(ctx context.Context, ID uuid.UUID) (*dog.Dog, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
 
 	if _, found := r.dogs[ID]; !found {
 		return nil, ErrDogNotFound
@@ -60,9 +71,9 @@ func (r *DogRepository) GetByID(ctx context.Context, ID uint) (*dog.Dog, error) 
 	return d, nil
 }
 
-func (r *DogRepository) GetByOwnerID(ctx context.Context, ownerID uint) ([]*dog.Dog, error) {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
+func (r *DogRepository) GetByOwnerID(ctx context.Context, ownerID uuid.UUID) ([]*dog.Dog, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
 
 	var dogs []*dog.Dog
 	for _, dog := range r.dogs {
@@ -74,7 +85,7 @@ func (r *DogRepository) GetByOwnerID(ctx context.Context, ownerID uint) ([]*dog.
 	return dogs, nil
 }
 
-func (r *DogRepository) Delete(ctx context.Context, ID uint) error {
+func (r *DogRepository) Delete(ctx context.Context, ID uuid.UUID) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 

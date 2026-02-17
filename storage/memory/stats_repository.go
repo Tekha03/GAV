@@ -5,6 +5,8 @@ import (
 	"errors"
 	"gav/internal/stats"
 	"sync"
+
+	"github.com/google/uuid"
 )
 
 var (
@@ -13,13 +15,13 @@ var (
 )
 
 type StatsRepository struct {
-	mu    sync.RWMutex
-	stats map[uint]*stats.UserStats
+	mu 		sync.RWMutex
+	stats	map[uuid.UUID]*stats.UserStats
 }
 
 func NewStatsReposirory() *StatsRepository {
 	return &StatsRepository{
-		stats: make(map[uint]*stats.UserStats),
+		stats: make(map[uuid.UUID]*stats.UserStats),
 	}
 }
 
@@ -35,9 +37,10 @@ func (s *StatsRepository) Create(ctx context.Context, st *stats.UserStats) error
 	return nil
 }
 
-func (s *StatsRepository) GetByUserID(ctx context.Context, userID uint) (*stats.UserStats, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+
+func (s *StatsRepository) GetByUserID(ctx context.Context, userID uuid.UUID) (*stats.UserStats, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
 	if _, found := s.stats[userID]; !found {
 		return nil, ErrStatNotFound
@@ -46,7 +49,7 @@ func (s *StatsRepository) GetByUserID(ctx context.Context, userID uint) (*stats.
 	return s.stats[userID], nil
 }
 
-func (s *StatsRepository) Delete(ctx context.Context, userID uint) error {
+func (s *StatsRepository) Delete(ctx context.Context, userID uuid.UUID) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -58,7 +61,7 @@ func (s *StatsRepository) Delete(ctx context.Context, userID uint) error {
 	return nil
 }
 
-func (s *StatsRepository) IncrementPosts(ctx context.Context, userID uint) error {
+func (s *StatsRepository) IncrementPosts(ctx context.Context, userID uuid.UUID) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -71,7 +74,7 @@ func (s *StatsRepository) IncrementPosts(ctx context.Context, userID uint) error
 	return nil
 }
 
-func (s *StatsRepository) IncrementFollowers(ctx context.Context, userID uint) error {
+func (s *StatsRepository) IncrementFollowers(ctx context.Context, userID uuid.UUID) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -84,7 +87,7 @@ func (s *StatsRepository) IncrementFollowers(ctx context.Context, userID uint) e
 	return nil
 }
 
-func (s *StatsRepository) IncrementFolowings(ctx context.Context, userID uint) error {
+func (s *StatsRepository) IncrementFolowings(ctx context.Context, userID uuid.UUID) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -97,7 +100,7 @@ func (s *StatsRepository) IncrementFolowings(ctx context.Context, userID uint) e
 	return nil
 }
 
-func (s *StatsRepository) IncrementDogs(ctx context.Context, userID uint) error {
+func (s *StatsRepository) IncrementDogs(ctx context.Context, userID uuid.UUID) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -110,7 +113,7 @@ func (s *StatsRepository) IncrementDogs(ctx context.Context, userID uint) error 
 	return nil
 }
 
-func (s *StatsRepository) DecrementDogs(ctx context.Context, userID uint) error {
+func (s *StatsRepository) DecrementDogs(ctx context.Context, userID uuid.UUID) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -123,7 +126,7 @@ func (s *StatsRepository) DecrementDogs(ctx context.Context, userID uint) error 
 	return nil
 }
 
-func (s *StatsRepository) DecrementPosts(ctx context.Context, userID uint) error {
+func (s *StatsRepository) DecrementPosts(ctx context.Context, userID uuid.UUID) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -136,7 +139,7 @@ func (s *StatsRepository) DecrementPosts(ctx context.Context, userID uint) error
 	return nil
 }
 
-func (s *StatsRepository) DecrementFollowers(ctx context.Context, userID uint) error {
+func (s *StatsRepository) DecrementFollowers(ctx context.Context, userID uuid.UUID) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -149,7 +152,7 @@ func (s *StatsRepository) DecrementFollowers(ctx context.Context, userID uint) e
 	return nil
 }
 
-func (s *StatsRepository) DecrementFollowings(ctx context.Context, userID uint) error {
+func (s *StatsRepository) DecrementFollowings(ctx context.Context, userID uuid.UUID) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 

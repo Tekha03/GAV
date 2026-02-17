@@ -1,6 +1,7 @@
 package http
 
 import (
+	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -13,12 +14,14 @@ func NewRouter(
 	authH *handlers.AuthHandler,
 	userH *handlers.UserHandler,
 	postH *handlers.PostHandler,
+	likeH *handlers.LikeHandler,
 	authMW func(http.Handler) http.Handler,
+	logger *slog.Logger,
 ) http.Handler {
 	r := chi.NewRouter()
 
-	r.Use(middleware.Logging)
-	r.Use(middleware.Recover)
+	r.Use(middleware.Logging(logger))
+	r.Use(middleware.Recover(logger))
 
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Post("auth/register", authH.Register)
@@ -27,12 +30,17 @@ func NewRouter(
 		r.Group(func(r chi.Router) {
 			r.Use(authMW)
 
-			r.Get("auth/me", userH.Me)
+			r.Get("auth/me", userH.GetByID)
 
 			r.Route("/posts", func(r chi.Router) {
 				r.Post("/", postH.Create)
 				r.Get("/{id}", postH.GetByID)
 				r.Delete("/{id}", postH.Delete)
+			})
+
+			r.Route("/likes", func(r chi.Router) {
+				r.Post("/", likeH.Add)
+				r.Delete("/", likeH.Remove)
 			})
 		})
 	})

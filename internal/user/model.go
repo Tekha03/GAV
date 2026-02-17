@@ -1,12 +1,16 @@
 package user
 
-import "time"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 type User struct {
-	ID			uint	`gorm:"primaryKey"`
+	ID			uuid.UUID	`gorm:"primaryKey"`
 	Email		string	`gorm:"unique;not null"`
 	Password	string	`gorm:"not null"`
-	RoleID		uint
+	RoleID		uuid.UUID
 	CreatedAt	time.Time
 	UpdatedAt	time.Time
 }

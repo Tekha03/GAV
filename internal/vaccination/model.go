@@ -1,11 +1,15 @@
 package vaccination
 
-import "time"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 
 type Vaccination struct {
-	ID        uint 
-	DogID     uint   
+	ID        uuid.UUID
+	DogID     uuid.UUID
 	Name      string
 	DoneAt    time.Time
 	NextDueAt *time.Time

@@ -3,6 +3,7 @@ package sqlite
 import (
 	"gav/internal/follow"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -14,7 +15,7 @@ func NewFollowRepository(db *gorm.DB) *FollowRepository {
 	return &FollowRepository{db: db}
 }
 
-func (fr *FollowRepository) Follow(followerID, followingID uint) error {
+func (fr *FollowRepository) Follow(followerID, followingID uuid.UUID) error {
 	return fr.db.Create(&follow.Follow{
 		FollowerID: followerID,
 		FollowingID: followingID,

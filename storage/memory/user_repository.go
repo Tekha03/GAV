@@ -6,6 +6,8 @@ import (
 	"sync"
 
 	"gav/internal/user"
+
+	"github.com/google/uuid"
 )
 
 var (
@@ -14,14 +16,14 @@ var (
 )
 
 type UserRepository struct {
-	mu      sync.RWMutex
-	byID    map[uint]*user.User
-	byEmail map[string]*user.User
+	mu		sync.RWMutex
+	byID	map[uuid.UUID]*user.User
+	byEmail	map[string]*user.User
 }
 
 func NewUserRepository() *UserRepository {
 	return &UserRepository{
-		byID:    make(map[uint]*user.User),
+		byID: 	 make(map[uuid.UUID]*user.User),
 		byEmail: make(map[string]*user.User),
 	}
 }
@@ -39,9 +41,9 @@ func (ur *UserRepository) Create(ctx context.Context, u *user.User) error {
 	return nil
 }
 
-func (ur *UserRepository) GetByID(ctx context.Context, id uint) (*user.User, error) {
-	ur.mu.RLock()
-	defer ur.mu.RUnlock()
+func (ur *UserRepository) GetByID(ctx context.Context, id uuid.UUID) (*user.User, error) {
+	ur.mu.Lock()
+	defer ur.mu.Unlock()
 
 	foundUser, isOk := ur.byID[id]
 	if !isOk {
@@ -76,7 +78,7 @@ func (ur *UserRepository) Update(ctx context.Context, user *user.User) error {
 	return nil
 }
 
-func (ur *UserRepository) Delete(ctx context.Context, id uint) error {
+func (ur *UserRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	ur.mu.Lock()
 	defer ur.mu.Unlock()
 

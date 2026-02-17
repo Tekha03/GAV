@@ -1,8 +1,10 @@
 package dog
 
+import "github.com/google/uuid"
+
 type Dog struct {
-	ID 			uint
-	OwnerID		uint
+	ID 			uuid.UUID
+	OwnerID		uuid.UUID
 
 	Name		string
 	Breed		string
@@ -18,7 +20,7 @@ type Dog struct {
 }
 
 func NewDog(
-    ownerID uint,
+    ownerID uuid.UUID,
     name string,
     breed string,
     gender Gender,

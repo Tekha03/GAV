@@ -5,6 +5,8 @@ import (
 	"errors"
 	"gav/internal/vaccination"
 	"sync"
+
+	"github.com/google/uuid"
 )
 
 var (
@@ -13,14 +15,13 @@ var (
 )
 
 type VaccinationRepository struct {
-	mu     sync.RWMutex
-	lastID uint
-	vacs   map[uint]*vaccination.Vaccination
+	mu 		sync.RWMutex
+	vacs 	map[uuid.UUID]*vaccination.Vaccination
 }
 
 func NewVaccinationRepository() *VaccinationRepository {
 	return &VaccinationRepository{
-		vacs: make(map[uint]*vaccination.Vaccination),
+		vacs: make(map[uuid.UUID]*vaccination.Vaccination),
 	}
 }
 
@@ -28,8 +29,17 @@ func (r *VaccinationRepository) Create(ctx context.Context, v *vaccination.Vacci
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	r.lastID++
-	v.ID = r.lastID
+	if v.ID != uuid.Nil {
+		if _, found := r.vacs[v.ID]; found {
+			return ErrVaccinationExists
+		}
+	} else {
+		v.ID = uuid.New()
+	}
+
+	if _, found := r.vacs[v.ID]; found {
+		return ErrVaccinationExists
+	}
 
 	r.vacs[v.ID] = v
 	return nil
@@ -47,7 +57,7 @@ func (r *VaccinationRepository) Update(ctx context.Context, v *vaccination.Vacci
 	return nil
 }
 
-func (r *VaccinationRepository) Delete(ctx context.Context, ID uint) error {
+func (r *VaccinationRepository) Delete(ctx context.Context, ID uuid.UUID) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -59,9 +69,9 @@ func (r *VaccinationRepository) Delete(ctx context.Context, ID uint) error {
 	return nil
 }
 
-func (r *VaccinationRepository) GetByID(ctx context.Context, ID uint) (*vaccination.Vaccination, error) {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
+func (r *VaccinationRepository) GetByID(ctx context.Context, ID uuid.UUID) (*vaccination.Vaccination, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
 
 	vac, found := r.vacs[ID]
 	if !found {
@@ -71,9 +81,9 @@ func (r *VaccinationRepository) GetByID(ctx context.Context, ID uint) (*vaccinat
 	return vac, nil
 }
 
-func (r *VaccinationRepository) GetByDogID(ctx context.Context, dogID uint) ([]*vaccination.Vaccination, error) {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
+func (r *VaccinationRepository) GetByDogID(ctx context.Context, dogID uuid.UUID) ([]*vaccination.Vaccination, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
 
 	var resultVacs []*vaccination.Vaccination
 	for _, vac := range r.vacs {
