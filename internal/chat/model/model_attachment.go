@@ -1,4 +1,4 @@
-package chat
+package model
 
 import "github.com/google/uuid"
 
@@ -18,5 +18,4 @@ type Attachment struct {
 	Type      AttachmentType
 	FileName  string
 	FileSize  string
-	MimeSize  string
 }
