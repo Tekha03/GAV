@@ -3,7 +3,7 @@ package memory
 import (
 	"context"
 	"errors"
-	"gav/internal/chat"
+	"gav/internal/chat/model"
 	"sync"
 
 	"github.com/google/uuid"
@@ -16,14 +16,14 @@ var (
 
 type AttachmentRepository struct {
 	mu 			sync.RWMutex
-	attachments map[uuid.UUID]*chat.Attachment
+	attachments map[uuid.UUID]*model.Attachment
 }
 
 func NewAttachmentrepository() *AttachmentRepository {
-	return &AttachmentRepository{attachments: map[uuid.UUID]*chat.Attachment{}}
+	return &AttachmentRepository{attachments: map[uuid.UUID]*model.Attachment{}}
 }
 
-func (ar *AttachmentRepository) Create(ctx context.Context, attachment *chat.Attachment) error {
+func (ar *AttachmentRepository) Create(ctx context.Context, attachment *model.Attachment) error {
 	ar.mu.Lock()
 	defer ar.mu.Unlock()
 
@@ -39,7 +39,7 @@ func (ar *AttachmentRepository) Create(ctx context.Context, attachment *chat.Att
 	return nil
 }
 
-func (ar *AttachmentRepository) GetByID(ctx context.Context, id uuid.UUID) (*chat.Attachment, error) {
+func (ar *AttachmentRepository) GetByID(ctx context.Context, id uuid.UUID) (*model.Attachment, error) {
 	ar.mu.RLock()
 	defer ar.mu.RUnlock()
 
@@ -51,11 +51,11 @@ func (ar *AttachmentRepository) GetByID(ctx context.Context, id uuid.UUID) (*cha
 	return attachment, nil
 }
 
-func (ar *AttachmentRepository) GetByMessage(ctx context.Context, messageID uuid.UUID) ([]*chat.Attachment, error) {
+func (ar *AttachmentRepository) GetByMessage(ctx context.Context, messageID uuid.UUID) ([]*model.Attachment, error) {
 	ar.mu.RLock()
 	defer ar.mu.RUnlock()
 
-	var result []*chat.Attachment
+	var result []*model.Attachment
 	for _, attachment := range ar.attachments {
 		if attachment.MessageID == messageID {
 			result = append(result, attachment)

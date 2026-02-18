@@ -3,7 +3,7 @@ package memory
 import (
 	"context"
 	"errors"
-	"gav/internal/chat"
+	"gav/internal/chat/model"
 	"sync"
 
 	"github.com/google/uuid"
@@ -16,19 +16,19 @@ var (
 
 type ReactionRepository struct {
 	mu 			sync.RWMutex
-	reactions 	map[uuid.UUID]map[uuid.UUID]*chat.Reaction
+	reactions 	map[uuid.UUID]map[uuid.UUID]*model.Reaction
 }
 
 func NewReactionRepository() *ReactionRepository {
-	return &ReactionRepository{reactions: make(map[uuid.UUID]map[uuid.UUID]*chat.Reaction)}
+	return &ReactionRepository{reactions: make(map[uuid.UUID]map[uuid.UUID]*model.Reaction)}
 }
 
-func (rr *ReactionRepository) Add(ctx context.Context, reaction *chat.Reaction) error {
+func (rr *ReactionRepository) Add(ctx context.Context, reaction *model.Reaction) error {
 	rr.mu.Lock()
 	defer rr.mu.Unlock()
 
 	if _, ok := rr.reactions[reaction.MessageID]; !ok {
-		rr.reactions[reaction.MessageID] = make(map[uuid.UUID]*chat.Reaction)
+		rr.reactions[reaction.MessageID] = make(map[uuid.UUID]*model.Reaction)
 	}
 
 	if _, exists := rr.reactions[reaction.MessageID][reaction.UserID]; exists {

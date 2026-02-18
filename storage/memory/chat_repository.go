@@ -3,7 +3,7 @@ package memory
 import (
 	"context"
 	"errors"
-	"gav/internal/chat"
+	"gav/internal/chat/model"
 	"sync"
 
 	"github.com/google/uuid"
@@ -12,20 +12,22 @@ import (
 var (
 	ErrChatExists = errors.New("chat already exists")
 	ErrChatNotFound = errors.New("chat not found")
+	ErrNotGroup = errors.New("operation allowed only for group chats")
+	ErrEmptyTitle = errors.New("title can not be empty")
 )
 
 type ChatRepository struct {
 	mu 		sync.RWMutex
-	chats 	map[uuid.UUID]*chat.Chat
+	chats 	map[uuid.UUID]*model.Chat
 }
 
 func NewChatrepository() *ChatRepository {
 	return &ChatRepository{chats: 
-		make(map[uuid.UUID]*chat.Chat),
+		make(map[uuid.UUID]*model.Chat),
 	}
 }
 
-func (cr *ChatRepository) Create(ctx context.Context, chat *chat.Chat) error {
+func (cr *ChatRepository) Create(ctx context.Context, chat *model.Chat) error {
 	cr.mu.Lock()
 	defer cr.mu.Unlock()
 
@@ -49,9 +51,17 @@ func (cr *ChatRepository) UpdateTitle(ctx context.Context, chatID uuid.UUID, tit
 	cr.mu.Lock()
 	defer cr.mu.Unlock()
 
+	if len(title) == 0 {
+		return ErrEmptyTitle
+	}
+
 	chat, found := cr.chats[chatID]
 	if !found {
 		return ErrChatNotFound
+	}
+
+	if !chat.IsGroup {
+		return ErrNotGroup
 	}
 
 	chat.Title = title
@@ -67,7 +77,28 @@ func (cr *ChatRepository) UpdatePhoto(ctx context.Context, chatID uuid.UUID, pho
 		return ErrChatNotFound
 	}
 
+	if !chat.IsGroup {
+		return ErrNotGroup
+	}
+
 	chat.PhotoURL = photoURL
+	return nil
+}
+
+func (cr *ChatRepository) DeletePhoto(ctx context.Context, chatID uuid.UUID) error {
+	cr.mu.Lock()
+	defer cr.mu.Unlock()
+
+	chat, found := cr.chats[chatID]
+	if !found {
+		return ErrChatNotFound
+	}
+
+	if !chat.IsGroup {
+		return ErrNotGroup
+	}
+
+	chat.PhotoURL = ""
 	return nil
 }
 
@@ -83,7 +114,7 @@ func (cr *ChatRepository) Delete(ctx context.Context, chatID uuid.UUID) error {
 	return nil
 }
 
-func (cr *ChatRepository) GetByID(ctx context.Context, chatID uuid.UUID) (*chat.Chat, error) {
+func (cr *ChatRepository) GetByID(ctx context.Context, chatID uuid.UUID) (*model.Chat, error) {
 	cr.mu.RLock()
 	defer cr.mu.RUnlock()
 

@@ -3,7 +3,7 @@ package memory
 import (
 	"context"
 	"errors"
-	"gav/internal/chat"
+	"gav/internal/chat/model"
 	"sync"
 
 	"github.com/google/uuid"
@@ -16,19 +16,19 @@ var (
 
 type MembersRepository struct {
 	mu 		sync.RWMutex
-	members map[uuid.UUID]map[uuid.UUID]*chat.ChatMember
+	members map[uuid.UUID]map[uuid.UUID]*model.ChatMember
 }
 
 func NewMembersRepository() *MembersRepository {
-	return &MembersRepository{members: make(map[uuid.UUID]map[uuid.UUID]*chat.ChatMember)}
+	return &MembersRepository{members: make(map[uuid.UUID]map[uuid.UUID]*model.ChatMember)}
 }
 
-func (mr *MembersRepository) AddMember(ctx context.Context, member *chat.ChatMember) error {
+func (mr *MembersRepository) AddMember(ctx context.Context, member *model.ChatMember) error {
 	mr.mu.Lock()
 	defer mr.mu.Unlock()
 
 	if _, ok := mr.members[member.ChatID]; !ok {
-		mr.members[member.ChatID] = make(map[uuid.UUID]*chat.ChatMember)
+		mr.members[member.ChatID] = make(map[uuid.UUID]*model.ChatMember)
 	}
 
 	if _, exists := mr.members[member.ChatID][member.UserID]; exists {
@@ -55,16 +55,16 @@ func (mr *MembersRepository) RemoveMember(ctx context.Context, memberID, chatID 
 	return nil
 }
 
-func (mr *MembersRepository) GetMembers(ctx context.Context, chatID uuid.UUID) ([]*chat.ChatMember, error) {
+func (mr *MembersRepository) GetMembers(ctx context.Context, chatID uuid.UUID) ([]*model.ChatMember, error) {
 	mr.mu.RLock()
 	defer mr.mu.RUnlock()
 
 	membersMap, ok := mr.members[chatID]
 	if !ok {
-		return []*chat.ChatMember{}, nil
+		return []*model.ChatMember{}, nil
 	}
 
-	result := make([]*chat.ChatMember, 0, len(membersMap))
+	result := make([]*model.ChatMember, 0, len(membersMap))
 
 	for _, member := range membersMap {
 		result = append(result, member)
@@ -73,7 +73,7 @@ func (mr *MembersRepository) GetMembers(ctx context.Context, chatID uuid.UUID) (
 	return result, nil
 }
 
-func (mr *MembersRepository) UpdateRole(ctx context.Context, chatID, userID uuid.UUID, role *chat.MemberRole) error {
+func (mr *MembersRepository) UpdateRole(ctx context.Context, chatID, userID uuid.UUID, role *model.MemberRole) error {
 	mr.mu.Lock()
 	defer mr.mu.Unlock()
 
@@ -103,4 +103,20 @@ func (mr *MembersRepository) SetMuted(ctx context.Context, chatID, userID uuid.U
 
 	mr.members[chatID][userID].Muted = muted
 	return nil
+}
+
+func (mr *MembersRepository) GetUserChats(ctx context.Context, userId uuid.UUID) ([]*uuid.UUID, error) {
+	mr.mu.RLock()
+	defer mr.mu.RUnlock()
+
+	var result []*uuid.UUID
+	for chatID, chats := range mr.members {
+		for id := range chats {
+			if id == userId {
+				result = append(result, &chatID)
+			}
+		}
+	}
+
+	return result, nil
 }
