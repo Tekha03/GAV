@@ -7,13 +7,7 @@ import (
 
 	"gav/internal/auth"
 	"gav/internal/errors"
-
-	"github.com/google/uuid"
 )
-
-type ctxKey struct{}
-
-var userIDKey = ctxKey{}
 
 func JWTAuth(cfg auth.JWTConfig) func(http.Handler) http.Handler {
 	return func (next http.Handler) http.Handler {
@@ -55,9 +49,4 @@ func JWTAuth(cfg auth.JWTConfig) func(http.Handler) http.Handler {
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
-}
-
-func UserID(ctx context.Context) (uuid.UUID, bool) {
-	id, ok := ctx.Value(userIDKey).(uuid.UUID)
-	return id, ok
 }

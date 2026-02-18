@@ -34,8 +34,8 @@ func (s *service) GetByID(ctx context.Context, commentID uuid.UUID) (*Comment, e
 	return s.repo.GetByID(ctx, commentID)
 }
 
-func (s *service) GetByPostID(ctx context.Context, postID uuid.UUID) ([]Comment, error) {
-	return s.repo.GetByPostID(ctx, postID)
+func (s *service) ListByPostID(ctx context.Context, postID uuid.UUID) ([]Comment, error) {
+	return s.repo.ListByPostID(ctx, postID)
 }
 
 func (s *service) Delete(ctx context.Context, userID, commentID uuid.UUID) error {

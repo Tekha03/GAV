@@ -4,27 +4,33 @@ import (
 	"context"
 
 	"gav/internal/user"
-	"gav/storage"
+
+	"github.com/google/uuid"
 )
 
 type service struct {
-	users storage.Repository
-	jwtConfig JWTConfig
+	userService user.UserService
+	jwtConfig 	 JWTConfig
+	hasher		PasswordHasher
 }
 
-func NewService(users storage.Repository, jwtConfig JWTConfig) AuthService {
-	return &service{users: users, jwtConfig: jwtConfig}
+func NewService(userService user.UserService, jwtConfig JWTConfig, hasher PasswordHasher) AuthService {
+	return &service{userService: userService, jwtConfig: jwtConfig, hasher: hasher}
 }
 
 func (s *service) Register(ctx context.Context, email, password string) (string, error) {
-	hashedPassword, err := HashPassword(password)
+	_, err := s.userService.GetByEmail(ctx, email)
+	if err == nil {
+		return "", ErrUserAlreadyExists
+	}
+
+	hashedPassword, err := s.hasher.HashPassword(password)
 	if err != nil {
 		return "", err
 	}
 
-	newUser := user.NewUser(email, hashedPassword)
-
-	if err := s.users.Create(ctx, newUser); err != nil {
+	newUser, err := s.userService.Create(ctx, email, hashedPassword)
+	if err != nil {
 		return "", ErrEmailAlreadyExists
 	}
 
@@ -37,12 +43,12 @@ func (s *service) Register(ctx context.Context, email, password string) (string,
 }
 
 func (s *service) Login(ctx context.Context, email, password string) (string, error) {
-	authorizedUser, err := s.users.GetByEmail(ctx, email)
+	authorizedUser, err := s.userService.GetByEmail(ctx, email)
 	if err != nil {
 		return "", ErrInvalidCredentials
 	}
 
-	if !CheckPassword(authorizedUser.Password, password) {
+	if !s.hasher.CheckPassword(authorizedUser.Password, password) {
 		return "", ErrInvalidCredentials
 	}
 
@@ -52,4 +58,18 @@ func (s *service) Login(ctx context.Context, email, password string) (string, er
 	}
 
 	return token, nil
+}
+
+func (s *service) Me(ctx context.Context, userID uuid.UUID) (*UserInfo, error) {
+	user, err := s.userService.GetByID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	userInfo := UserInfo{ID: userID, Email: user.Email}
+	return &userInfo, nil
+}
+
+func (s *service) Logout(ctx context.Context, token string) error {
+	return nil
 }

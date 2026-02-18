@@ -5,10 +5,10 @@ import (
 	"net/http"
 
 	"gav/internal/post"
-	"gav/internal/transport/http/dto"
-	"gav/internal/transport/http/middleware"
-	"gav/internal/transport/response"
 	"gav/internal/validation"
+	"gav/transport/http/dto"
+	"gav/transport/http/middleware"
+	"gav/transport/response"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -66,6 +66,21 @@ func (h *PostHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 
 	dtoPost := dto.NewPostResponse(post)
 	response.JSON(w, http.StatusOK, dtoPost)
+}
+
+func (h *PostHandler) ListByUser(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.UserID(r.Context())
+	if !ok {
+		response.Error(w, ErrUnauthorized)
+		return
+	}
+
+	list, err := h.service.ListByUser(r.Context(), userID)
+	if err != nil {
+		response.Error(w, err)
+	}
+
+	response.JSON(w, http.StatusOK, list)
 }
 
 func (h *PostHandler) Delete(w http.ResponseWriter, r *http.Request) {

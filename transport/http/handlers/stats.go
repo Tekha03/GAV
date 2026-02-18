@@ -5,8 +5,8 @@ import (
 	"net/http"
 
 	"gav/internal/stats"
-	"gav/internal/transport/http/middleware"
-	"gav/internal/transport/response"
+	"gav/transport/http/middleware"
+	"gav/transport/response"
 )
 
 type StatsHandler struct {

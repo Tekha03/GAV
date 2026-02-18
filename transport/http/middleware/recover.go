@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"runtime/debug"
 
-	"gav/internal/transport/response"
+	"gav/transport/response"
 )
 
 func Recover(logger *slog.Logger) func(http.Handler) http.Handler {

@@ -1,6 +1,7 @@
 package sqlite
 
 import (
+	"context"
 	"gav/internal/follow"
 
 	"github.com/google/uuid"
@@ -15,9 +16,48 @@ func NewFollowRepository(db *gorm.DB) *FollowRepository {
 	return &FollowRepository{db: db}
 }
 
-func (fr *FollowRepository) Follow(followerID, followingID uuid.UUID) error {
-	return fr.db.Create(&follow.Follow{
-		FollowerID: followerID,
-		FollowingID: followingID,
-	}).Error
+func (r *FollowRepository) Follow(ctx context.Context, follow follow.Follow) error {
+	return r.db.WithContext(ctx).Create(&follow).Error
+}
+
+func (r *FollowRepository) Unfollow(ctx context.Context, unfollow follow.Follow) error {
+	return r.db.WithContext(ctx).
+	Where("follower_id = ? AND following_id = ?", unfollow.FollowerID, unfollow.FollowingID).
+	Delete(&follow.Follow{}).Error
+}
+
+func (r *FollowRepository) FollowerExists(ctx context.Context, followCheck follow.Follow) (bool, error) {
+	var count int64
+
+	err := r.db.WithContext(ctx).Model(&follow.Follow{}).
+	Where("follower_id = ? AND following_id = ?", followCheck.FollowerID, followCheck.FollowingID).
+	Count(&count).Error
+
+	if err != nil {
+		return false, err
+	}
+
+	return count > 0, err
+}
+
+func (r *FollowRepository) GetFollowers(ctx context.Context, userID uuid.UUID) ([]follow.Follow, error) {
+	var followers []follow.Follow
+
+	err := r.db.WithContext(ctx).Where("following_id = ?", userID).Find(&followers).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return followers, nil
+}
+
+func (r *FollowRepository) GetFollowing(ctx context.Context, userID uuid.UUID) ([]follow.Follow, error) {
+	var following []follow.Follow
+
+	err := r.db.WithContext(ctx).Where("follower_id = ?", userID).Find(&following).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return following, err
 }

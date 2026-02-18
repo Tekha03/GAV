@@ -5,9 +5,9 @@ import (
 	"net/http"
 
 	"gav/internal/dog"
-	"gav/internal/transport/http/middleware"
-	"gav/internal/transport/response"
 	"gav/internal/validation"
+	"gav/transport/http/middleware"
+	"gav/transport/response"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"

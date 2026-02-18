@@ -35,7 +35,7 @@ func (cr *CommentRepository) Create(ctx context.Context, comment *comment.Commen
 	return nil
 }
 
-func (cr *CommentRepository) GetByPostID(ctx context.Context, postID uuid.UUID) ([]comment.Comment, error) {
+func (cr *CommentRepository) ListyPostID(ctx context.Context, postID uuid.UUID) ([]comment.Comment, error) {
 	cr.mu.Lock()
 	defer cr.mu.Unlock()
 

@@ -5,10 +5,10 @@ import (
 	"net/http"
 
 	"gav/internal/comment"
-	"gav/internal/transport/http/dto"
-	"gav/internal/transport/http/middleware"
-	"gav/internal/transport/response"
 	"gav/internal/validation"
+	"gav/transport/http/dto"
+	"gav/transport/http/middleware"
+	"gav/transport/response"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -66,7 +66,7 @@ func (h *CommentHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusOK, comment)
 }
 
-func (h *CommentHandler) GetByPostID(w http.ResponseWriter, r *http.Request) {
+func (h *CommentHandler) ListByPostID(w http.ResponseWriter, r *http.Request) {
 	postIDStr := chi.URLParam(r, "postID")
 	postID, err := uuid.Parse(postIDStr)
 	if err != nil {
@@ -74,7 +74,7 @@ func (h *CommentHandler) GetByPostID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	comments, err := h.service.GetByPostID(r.Context(), postID)
+	comments, err := h.service.ListByPostID(r.Context(), postID)
 	if err != nil {
 		response.Error(w, err)
 		return

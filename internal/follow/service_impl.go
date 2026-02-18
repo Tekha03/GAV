@@ -3,11 +3,14 @@ package follow
 import (
 	"context"
 	"errors"
+
+	"github.com/google/uuid"
 )
 
 var (
 	ErrCannotFollowYourself = errors.New("you cannot follow yourself.")
 	ErrAlreadyFollowing = errors.New("already following")
+	ErrInvalidUserID = errors.New("invalid user id")
 )
 
 type service struct {
@@ -37,4 +40,30 @@ func (s *service) Follow(ctx context.Context, follow Follow) error {
 
 func (s *service) Unfollow(ctx context.Context, follow Follow) error {
 	return s.repo.Unfollow(ctx, follow)
+}
+
+func (s *service) GetFollowers(ctx context.Context, userID uuid.UUID) ([]Follow, error) {
+	if userID == uuid.Nil {
+		return nil, ErrInvalidUserID
+	}
+
+	followers, err := s.repo.GetFollowers(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	return followers, nil
+}
+
+func (s *service) GetFollowing(ctx context.Context, userID uuid.UUID) ([]Follow, error) {
+	if userID == uuid.Nil {
+		return nil, ErrInvalidUserID
+	}
+
+	following, err := s.repo.GetFollowing(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	return following, nil
 }

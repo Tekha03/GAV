@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"gav/internal/transport/response"
 	"gav/internal/vaccination"
 	"gav/internal/validation"
+	"gav/transport/response"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -45,10 +45,10 @@ func (h *VaccinationHandler) Create(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusCreated, nil)
 }
 
-func (h *VaccinationHandler) GetByDogID(w http.ResponseWriter, r *http.Request) {
-	dogID, _ := uuid.Parse(chi.URLParam(r, "id"))
+func (h *VaccinationHandler) ListByDogID(w http.ResponseWriter, r *http.Request) {
+	dogID, _ := uuid.Parse(chi.URLParam(r, "dogID"))
 
-	vaccination, err := h.service.GetByDogID(r.Context(), dogID)
+	vaccination, err := h.service.ListByDogID(r.Context(), dogID)
 	if err != nil {
 		response.Error(w, err)
 		return

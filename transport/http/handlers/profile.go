@@ -5,9 +5,9 @@ import (
 	"net/http"
 
 	"gav/internal/profile"
-	"gav/internal/transport/http/middleware"
-	"gav/internal/transport/response"
 	"gav/internal/validation"
+	"gav/transport/http/middleware"
+	"gav/transport/response"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -56,6 +56,24 @@ func (h *ProfileHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	profile, err := h.service.GetByID(r.Context(), profileID)
+	if err != nil {
+		response.Error(w, err)
+		return
+	}
+
+	response.JSON(w, http.StatusOK, profile)
+}
+
+func (h *ProfileHandler) GetByUserID(w http.ResponseWriter, r *http.Request) {
+	param := chi.URLParam(r, "userID")
+
+	userID, err := uuid.Parse(param)
+	if err != nil {
+		response.Error(w, ErrInvalidInput)
+		return
+	}
+
+	profile, err := h.service.GetByUserID(r.Context(), userID)
 	if err != nil {
 		response.Error(w, err)
 		return

@@ -5,9 +5,9 @@ import (
 	"net/http"
 
 	"gav/internal/settings"
-	"gav/internal/transport/http/middleware"
-	"gav/internal/transport/response"
 	"gav/internal/validation"
+	"gav/transport/http/middleware"
+	"gav/transport/response"
 )
 
 type SettingsHandler struct {

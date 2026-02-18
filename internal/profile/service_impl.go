@@ -58,6 +58,15 @@ func (s *service) GetByID(ctx context.Context, profileID uuid.UUID) (*UserProfil
 	return profile, nil
 }
 
+func (s *service) GetByUserID(ctx context.Context, userID uuid.UUID) (*UserProfile, error) {
+	profile, err := s.repo.GetByUserID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	return profile, nil
+}
+
 func (s *service) Update(ctx context.Context, profileID uuid.UUID, input UpdateProfileInput) error {
 	if profileID == uuid.Nil {
 		return ErrInvalidProfileID

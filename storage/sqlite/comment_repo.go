@@ -21,7 +21,7 @@ func (cr *CommentRepository) Create(ctx context.Context, comment *comment.Commen
 	return cr.db.WithContext(ctx).Create(comment).Error
 }
 
-func (cr *CommentRepository) GetByPostID(ctx context.Context, postID uuid.UUID) ([]comment.Comment, error) {
+func (cr *CommentRepository) ListByPostID(ctx context.Context, postID uuid.UUID) ([]comment.Comment, error) {
 	var comments []comment.Comment
 	err := cr.db.WithContext(ctx).Where("post_id = ?", postID).Order("created_at asc").Find(&comments).Error
 
