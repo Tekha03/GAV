@@ -14,8 +14,8 @@ type Dog struct {
 	Age			Age
 	Gender		Gender
 
-	Lat      *float64
-    Lon      *float64
+	Lat         *float64
+    Lon         *float64
     LocationVisible bool
 }
 

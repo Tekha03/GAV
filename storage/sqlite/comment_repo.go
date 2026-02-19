@@ -2,6 +2,7 @@ package sqlite
 
 import (
 	"context"
+	"errors"
 
 	"gav/internal/comment"
 
@@ -9,27 +10,44 @@ import (
 	"gorm.io/gorm"
 )
 
+var ErrCommentNotFound	= errors.New("comment not found")
+
 type CommentRepository struct {
-	db *gorm.DB
+	*BaseRepository
 }
 
-func NewCommentRepository(db *gorm.DB) *CommentRepository {
-	return &CommentRepository{db: db}
+func NewCommentRepository(db *gorm.DB) comment.Repository {
+	return &CommentRepository{BaseRepository: NewBaseRepository(db)}
 }
 
-func (cr *CommentRepository) Create(ctx context.Context, comment *comment.Comment) error {
-	return cr.db.WithContext(ctx).Create(comment).Error
+func (r *CommentRepository) Create(ctx context.Context, comment *comment.Comment) error {
+	return r.DB(ctx).Create(comment).Error
 }
 
-func (cr *CommentRepository) ListByPostID(ctx context.Context, postID uuid.UUID) ([]comment.Comment, error) {
+func (r *CommentRepository) GetByID(ctx context.Context, commentID uuid.UUID) (*comment.Comment, error) {
+	var comment comment.Comment
+
+	err := r.DB(ctx).First(&comment, "id = ?", commentID).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrCommentNotFound
+		}
+
+		return nil, err
+	}
+
+	return &comment, nil
+}
+
+func (r *CommentRepository) ListByPostID(ctx context.Context, postID uuid.UUID) ([]comment.Comment, error) {
 	var comments []comment.Comment
-	err := cr.db.WithContext(ctx).Where("post_id = ?", postID).Order("created_at asc").Find(&comments).Error
+	err := r.DB(ctx).Where("post_id = ?", postID).Order("created_at asc").Find(&comments).Error
 
 	return comments, err
 }
 
-func (cr *CommentRepository) Delete(ctx context.Context, commentID, userID uuid.UUID) error {
-	deleted := cr.db.WithContext(ctx).Where("id = ? AND user_id = ?", commentID, userID).Delete(&comment.Comment{})
+func (r *CommentRepository) Delete(ctx context.Context, commentID, userID uuid.UUID) error {
+	deleted := r.DB(ctx).Where("id = ? AND user_id = ?", commentID, userID).Delete(&comment.Comment{})
 
 	if deleted.RowsAffected == 0 {
 		return comment.ErrCommentNotFound

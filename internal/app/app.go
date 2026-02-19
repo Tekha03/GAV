@@ -10,12 +10,13 @@ import (
 	"gav/internal/config"
 	"gav/internal/like"
 	"gav/internal/post"
-	"gav/internal/transport/http/handlers"
-	"gav/internal/transport/http/middleware"
+	"gav/internal/profile"
 	"gav/internal/user"
+	"gav/transport/http/handlers"
+	"gav/transport/http/middleware"
 
-	httptransport "gav/internal/transport/http"
 	gavSqlite "gav/storage/sqlite"
+	httptransport "gav/transport/http"
 
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -59,24 +60,28 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 
 	// repositories
 	userRepo := gavSqlite.NewUserRepository(db)
+	profileRepo := gavSqlite.NewProfileRepository(db)
 	postRepo := gavSqlite.NewPostRepository(db)
 	likeRepo := gavSqlite.NewLikeRepository(db)
 
 	// services
 	authService := auth.NewService(userRepo, jwtConfig)
 	userService := user.NewService(userRepo)
+	profileService := profile.NewService(profileRepo)
 	postService := post.NewService(postRepo)
 	likeService := like.NewService(likeRepo)
 
 	// handlers
 	authHandler := handlers.NewAuthHandler(authService)
 	userHandler := handlers.NewUserHandler(userService)
+	profileHandler := handlers.NewProfileHandler(profileService)
 	postHandler := handlers.NewPostHandler(postService)
 	likeHandler := handlers.NewLikeHandler(likeService)
 
 	router := httptransport.NewRouter(
 		authHandler,
 		userHandler,
+		profileHandler,
 		postHandler,
 		likeHandler,
 		middleware.JWTAuth(jwtConfig),

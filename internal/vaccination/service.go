@@ -7,9 +7,9 @@ import (
 )
 
 type VaccinationService interface {
-	Create(ctx context.Context, dogID uuid.UUID, v CreateVaccinationInput) error
+	Create(ctx context.Context, dogID uuid.UUID, input CreateVaccinationInput) (*Vaccination, error)
 	// AddVaccination(ctx context.Context, ownerID, dogID uuid.UUID, v Vaccination) (*Vaccination, error)
-	Update(ctx context.Context, ID, dogID uuid.UUID, v UpdateVaccinationInput) error
-	Delete(ctx context.Context, ID, dogID uuid.UUID, vaccinationID uuid.UUID) error
 	ListByDogID(ctx context.Context, dogID uuid.UUID) ([]Vaccination, error)
+	Update(ctx context.Context, vaccinationID, dogID uuid.UUID, input UpdateVaccinationInput) error
+	Delete(ctx context.Context, vaccinationID uuid.UUID) error
 }

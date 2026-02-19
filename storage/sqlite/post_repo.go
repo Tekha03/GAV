@@ -15,21 +15,21 @@ var (
 )
 
 type PostRepository struct {
-	db *gorm.DB
+	*BaseRepository
 }
 
-func NewPostRepository(db *gorm.DB) *PostRepository {
-	return &PostRepository{db: db}
+func NewPostRepository(db *gorm.DB) post.Repository {
+	return &PostRepository{BaseRepository: NewBaseRepository(db)}
 }
 
 func (pr *PostRepository) Create(ctx context.Context, post *post.Post) error {
-	return pr.db.WithContext(ctx).Create(post).Error
+	return pr.DB(ctx).Create(post).Error
 }
 
 func (pr *PostRepository) GetByID(ctx context.Context, id uuid.UUID) (*post.Post, error) {
 	var post *post.Post
 
-	if err := pr.db.WithContext(ctx).First(&post, "id = ?", id).Error; err != nil {
+	if err := pr.DB(ctx).First(&post, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, ErrPostNotFound
 		}
@@ -43,7 +43,7 @@ func (pr *PostRepository) GetByID(ctx context.Context, id uuid.UUID) (*post.Post
 func (pr *PostRepository) ListByUser(ctx context.Context, userID uuid.UUID) ([]*post.Post, error) {
 	var posts []*post.Post
 
-	if err := pr.db.WithContext(ctx).Where("user id = ?", userID).Find(&posts).Error; err != nil {
+	if err := pr.DB(ctx).Where("user id = ?", userID).Find(&posts).Error; err != nil {
 		return nil, err
 	}
 
@@ -51,7 +51,7 @@ func (pr *PostRepository) ListByUser(ctx context.Context, userID uuid.UUID) ([]*
 }
 
 func (pr *PostRepository) Delete(ctx context.Context, id uuid.UUID) error {
-	deleted := pr.db.WithContext(ctx).Delete(&post.Post{}, "id = ?", id)
+	deleted := pr.DB(ctx).Delete(&post.Post{}, "id = ?", id)
 
 	if deleted.Error != nil {
 		return deleted.Error

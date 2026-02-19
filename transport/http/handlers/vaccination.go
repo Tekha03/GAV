@@ -37,16 +37,20 @@ func (h *VaccinationHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.service.Create(r.Context(), dogID, input); err != nil {
+	vaccination, err :=  h.service.Create(r.Context(), dogID, input);
+	if err != nil {
 		response.Error(w, err)
 		return
 	}
 
-	response.JSON(w, http.StatusCreated, nil)
+	response.JSON(w, http.StatusCreated, vaccination)
 }
 
 func (h *VaccinationHandler) ListByDogID(w http.ResponseWriter, r *http.Request) {
-	dogID, _ := uuid.Parse(chi.URLParam(r, "dogID"))
+	dogID, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		response.Error(w, ErrInvalidInput)
+	}
 
 	vaccination, err := h.service.ListByDogID(r.Context(), dogID)
 	if err != nil {
@@ -55,4 +59,50 @@ func (h *VaccinationHandler) ListByDogID(w http.ResponseWriter, r *http.Request)
 	}
 
 	response.JSON(w, http.StatusOK, vaccination)
+}
+
+func (h *VaccinationHandler) Update(w http.ResponseWriter, r *http.Request) {
+	dogID, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		response.Error(w, ErrInvalidInput)
+	}
+
+	vaccinationID, err := uuid.Parse(chi.URLParam(r, "vaccinationID"))
+	if err != nil {
+		response.Error(w, ErrInvalidInput)
+		return
+	}
+
+	var input vaccination.UpdateVaccinationInput
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		response.Error(w, ErrInvalidInput)
+		return
+	}
+
+	if err := validation.Validate(&input); err != nil {
+		response.Error(w, err)
+		return
+	}
+
+	if err := h.service.Update(r.Context(), vaccinationID, dogID, input); err != nil {
+		response.Error(w, err)
+		return
+	}
+
+	response.JSON(w, http.StatusOK, nil)
+}
+
+func (h *VaccinationHandler) Delete(w http.ResponseWriter, r *http.Request) {
+	vaccinationID, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		response.Error(w, ErrInvalidInput)
+		return
+	}
+
+	if err := h.service.Delete(r.Context(), vaccinationID); err != nil {
+		response.Error(w, err)
+		return
+	}
+
+	response.JSON(w, http.StatusNoContent, nil)
 }

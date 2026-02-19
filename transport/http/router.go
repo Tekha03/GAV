@@ -102,13 +102,15 @@ func NewRouter(
 			// ---- Dogs ----
 			r.Route("/dogs", func(r chi.Router) {
 				r.Post("/", h.Dog.Create)
-				r.Get("/{id}", h.Dog.GetByID)
+				r.Get("/{id}", h.Dog.GetPrivate)
+				r.Get("/{id}", h.Dog.GetPublic)
 				r.Put("/{id}", h.Dog.Update)
 				r.Delete("/{id}", h.Dog.Delete)
 
 				r.Route("/{id}/vaccinations", func(r chi.Router) {
 					r.Post("/", h.Vaccination.Create)
-					r.Get("/{dogID}", h.Vaccination.ListByDogID)
+					r.Get("/", h.Vaccination.ListByDogID)
+					r.Put("/{vaccinationID}", h.Vaccination.Update)
 				})
 			})
 
@@ -121,6 +123,7 @@ func NewRouter(
 			r.Route("/stats", func(r chi.Router) {
 				r.Get("/user/{userID}", h.Stats.UserStats)
 				r.Get("/post/{postID}", h.Stats.PostStats)
+				r.Get("/profile/{userID}", h.Stats.ProfileStats)
 			})
 
 			// ---- Settings ----

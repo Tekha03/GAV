@@ -9,11 +9,11 @@ import (
 )
 
 type LikeRepository struct {
-	db *gorm.DB
+	*BaseRepository
 }
 
-func NewLikeRepository(db *gorm.DB) *LikeRepository {
-	return &LikeRepository{db: db}
+func NewLikeRepository(db *gorm.DB) like.Repository {
+	return &LikeRepository{BaseRepository: NewBaseRepository(db)}
 }
 
 func (lr *LikeRepository) Add(ctx context.Context, like like.Like) error {
@@ -26,11 +26,11 @@ func (lr *LikeRepository) Add(ctx context.Context, like like.Like) error {
 		return nil
 	}
 
-	return lr.db.WithContext(ctx).Create(&like).Error
+	return lr.DB(ctx).Create(&like).Error
 }
 
 func (lr *LikeRepository) Remove(ctx context.Context, likeToRemove like.Like) error {
-	result := lr.db.WithContext(ctx).Where(
+	result := lr.DB(ctx).Where(
 		"user_id = ? AND post_id = ?", likeToRemove.UserID, likeToRemove.PostID,
 	).Delete(&like.Like{})
 
@@ -39,7 +39,7 @@ func (lr *LikeRepository) Remove(ctx context.Context, likeToRemove like.Like) er
 
 func (lr *LikeRepository) LikeExists(ctx context.Context, likeToCheck like.Like) (bool, error) {
 	var count int64
-	err := lr.db.WithContext(ctx).Model(&like.Like{}).Where(
+	err := lr.DB(ctx).Model(&like.Like{}).Where(
 		"user_id = ? AND post_id = ?", likeToCheck.UserID, likeToCheck.PostID,
 	).Count(&count).Error
 
