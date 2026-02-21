@@ -3,3 +3,4 @@
 /*.exe
 *.log
 *.tmp
+**/.DS_Store
