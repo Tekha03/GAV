@@ -12,10 +12,10 @@ var (
 )
 
 type service struct {
-	repo DogRepository
+	repo Repository
 }
 
-func NewDogService(repo DogRepository) DogService {
+func NewService(repo Repository) DogService {
 	return &service{repo: repo}
 }
 

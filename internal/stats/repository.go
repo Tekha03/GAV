@@ -6,7 +6,7 @@ import (
 	"github.com/google/uuid"
 )
 
-type StatsRepository interface {
+type Repository interface {
     CreateUserStats(ctx context.Context, stats *UserStats) error
     DeleteUserStats(ctx context.Context, userID uuid.UUID) error
     GetUserStats(ctx context.Context, userID uuid.UUID) (*UserStats, error)

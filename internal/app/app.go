@@ -7,11 +7,17 @@ import (
 	"os"
 
 	"gav/internal/auth"
+	"gav/internal/comment"
 	"gav/internal/config"
+	"gav/internal/dog"
+	"gav/internal/follow"
 	"gav/internal/like"
 	"gav/internal/post"
 	"gav/internal/profile"
+	"gav/internal/settings"
+	"gav/internal/stats"
 	"gav/internal/user"
+	"gav/internal/vaccination"
 	"gav/transport/http/handlers"
 	"gav/transport/http/middleware"
 
@@ -62,28 +68,47 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 	userRepo := gavSqlite.NewUserRepository(db)
 	profileRepo := gavSqlite.NewProfileRepository(db)
 	postRepo := gavSqlite.NewPostRepository(db)
+	commentRepo := gavSqlite.NewCommentRepository(db)
 	likeRepo := gavSqlite.NewLikeRepository(db)
+	followRepo := gavSqlite.NewFollowRepository(db)
+	dogRepo := gavSqlite.NewDogRepository(db)
+	vaccinationRepo := gavSqlite.NewVaccinationRepository(db)
+	statsRepo := gavSqlite.NewStatsRepository(db)
+	settingsRepo := gavSqlite.NewSettingsRepository(db)
 
 	// services
-	authService := auth.NewService(userRepo, jwtConfig)
 	userService := user.NewService(userRepo)
+
+	hasher := &auth.PasswordHasher{}
+	authService := auth.NewService(userService, jwtConfig, hasher)
+
 	profileService := profile.NewService(profileRepo)
 	postService := post.NewService(postRepo)
+	commentService := comment.NewService(commentRepo)
 	likeService := like.NewService(likeRepo)
+	followService := follow.NewService(followRepo)
+	dogService := dog.NewService(dogRepo)
+	vaccinationService := vaccination.NewService(vaccinationRepo)
+	statsService := stats.NewService(statsRepo)
+	settingsService := settings.NewService(settingsRepo)
 
 	// handlers
-	authHandler := handlers.NewAuthHandler(authService)
-	userHandler := handlers.NewUserHandler(userService)
-	profileHandler := handlers.NewProfileHandler(profileService)
-	postHandler := handlers.NewPostHandler(postService)
-	likeHandler := handlers.NewLikeHandler(likeService)
+	handlers := httptransport.Handlers{
+		Auth: handlers.NewAuthHandler(authService),
+		User: handlers.NewUserHandler(userService),
+		Profile: handlers.NewProfileHandler(profileService),
+		Post: handlers.NewPostHandler(postService),
+		Comment: handlers.NewCommentHandler(commentService),
+		Like: handlers.NewLikeHandler(likeService),
+		Follow: handlers.NewFollowHandler(followService),
+		Dog: handlers.NewDogHandler(dogService),
+		Vaccination: handlers.NewVaccinationHandler(vaccinationService),
+		Stats: handlers.NewStatsHandler(statsService),
+		Settings: handlers.NewSettingsHandler(settingsService),
+	}
 
 	router := httptransport.NewRouter(
-		authHandler,
-		userHandler,
-		profileHandler,
-		postHandler,
-		likeHandler,
+		handlers,
 		middleware.JWTAuth(jwtConfig),
 		logger,
 	)

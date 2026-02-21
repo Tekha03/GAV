@@ -2,7 +2,6 @@ package auth
 
 import (
 	"context"
-
 	"gav/internal/user"
 
 	"github.com/google/uuid"
@@ -11,10 +10,10 @@ import (
 type service struct {
 	userService user.UserService
 	jwtConfig 	 JWTConfig
-	hasher		PasswordHasher
+	hasher		*PasswordHasher
 }
 
-func NewService(userService user.UserService, jwtConfig JWTConfig, hasher PasswordHasher) AuthService {
+func NewService(userService user.UserService, jwtConfig JWTConfig, hasher *PasswordHasher) AuthService {
 	return &service{userService: userService, jwtConfig: jwtConfig, hasher: hasher}
 }
 

@@ -13,7 +13,7 @@ import (
 type Handlers struct {
 	Auth         *handlers.AuthHandler
 	User         *handlers.UserHandler
-	Profile      *handlers.ProfileHandler
+	Profile       *handlers.ProfileHandler
 	Post         *handlers.PostHandler
 	Comment      *handlers.CommentHandler
 	Like         *handlers.LikeHandler

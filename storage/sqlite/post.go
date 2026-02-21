@@ -10,10 +10,6 @@ import (
 	"gorm.io/gorm"
 )
 
-var (
-	ErrPostNotFound = errors.New("post not found")
-)
-
 type PostRepository struct {
 	*BaseRepository
 }

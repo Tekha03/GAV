@@ -17,7 +17,7 @@ type DogHandler struct {
 	service dog.DogService
 }
 
-func NewDog(service dog.DogService) *DogHandler {
+func NewDogHandler(service dog.DogService) *DogHandler {
 	return &DogHandler{service: service}
 }
 

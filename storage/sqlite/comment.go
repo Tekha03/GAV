@@ -10,8 +10,6 @@ import (
 	"gorm.io/gorm"
 )
 
-var ErrCommentNotFound	= errors.New("comment not found")
-
 type CommentRepository struct {
 	*BaseRepository
 }

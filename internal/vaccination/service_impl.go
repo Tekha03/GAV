@@ -13,10 +13,10 @@ var (
 )
 
 type service struct {
-	repo VaccinationRepository
+	repo Repository
 }
 
-func NewVaccinationService(repo VaccinationRepository) VaccinationService {
+func NewService(repo Repository) VaccinationService {
 	return &service{repo: repo,}
 }
 
@@ -36,7 +36,7 @@ func (s *service) Create(ctx context.Context, dogID uuid.UUID, input CreateVacci
 	return &vaccination, nil
 }
 
-func (s *service) ListByDogID(ctx context.Context, dogID uuid.UUID) ([]Vaccination, error) {
+func (s *service) ListByDogID(ctx context.Context, dogID uuid.UUID) ([]*Vaccination, error) {
 	if dogID == uuid.Nil {
 		return nil, ErrDogIDEmpty
 	}

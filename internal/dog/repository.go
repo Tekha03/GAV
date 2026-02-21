@@ -6,7 +6,7 @@ import (
 	"github.com/google/uuid"
 )
 
-type DogRepository interface {
+type Repository interface {
 	Create(ctx context.Context, dog *Dog) error
 	Update(ctx context.Context, dog *Dog) error
 	Delete(ctx context.Context, ID uuid.UUID) error
