@@ -16,8 +16,12 @@ type service struct {
 	repo Repository
 }
 
-func NewService(repo Repository) CommentService {
-	return &service{repo: repo}
+func NewService(repo Repository) (CommentService, error) {
+	if repo == nil {
+		return nil, ErrRepoEmpty
+	}
+
+	return &service{repo: repo}, nil
 }
 
 func (s *service) Create(ctx context.Context, userID, postID uuid.UUID, content string) error {

@@ -15,14 +15,21 @@ type service struct {
 	repo Repository
 }
 
-func NewService(repo Repository) UserService {
-	return &service{repo: repo}
+func NewService(repo Repository) (UserService, error) {
+	if repo == nil {
+		return nil, ErrRepoNil
+	}
+
+	return &service{repo: repo}, nil
 }
 
 func (s *service) Create(ctx context.Context, email, passwordHash string) (*User, error) {
-	user := NewUser(email, passwordHash)
+	user, err := NewUser(email, passwordHash)
+	if err != nil {
+		return nil, err
+	}
 
-	if err := s.repo.Create(ctx, user); err != nil {
+	if err = s.repo.Create(ctx, user); err != nil {
 		return nil, err
 	}
 

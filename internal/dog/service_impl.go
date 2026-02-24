@@ -15,12 +15,16 @@ type service struct {
 	repo Repository
 }
 
-func NewService(repo Repository) DogService {
-	return &service{repo: repo}
+func NewService(repo Repository) (DogService, error) {
+	if repo == nil {
+		return nil, ErrRepoNil
+	}
+
+	return &service{repo: repo}, nil
 }
 
 func (s *service) Create(ctx context.Context, ownerID uuid.UUID, input CreateDogInput) (*Dog, error) {
-	dog := NewDog(
+	dog, err := NewDog(
 		ownerID,
 		input.Name,
 		input.Breed,
@@ -29,8 +33,11 @@ func (s *service) Create(ctx context.Context, ownerID uuid.UUID, input CreateDog
 		input.Age,
 		input.PhotoUrl,
 	)
+	if err != nil {
+		return nil, err
+	}
 
-	if err := s.repo.Create(ctx, dog); err != nil {
+	if err = s.repo.Create(ctx, dog); err != nil {
 		return nil, err
 	}
 

@@ -7,6 +7,13 @@ type Follow struct {
 	FollowingID	uuid.UUID	`gorm:"primaryKey"`
 }
 
-func NewFollow(followerID, followingID uuid.UUID) *Follow {
-	return &Follow{FollowerID: followerID, FollowingID: followingID}
+func NewFollow(followerID, followingID uuid.UUID) (*Follow, error) {
+	if followerID == uuid.Nil {
+		return nil, ErrFollowerIDNil
+	}
+	if followingID == uuid.Nil {
+		return nil, ErrFollowingIDNil
+	}
+
+	return &Follow{FollowerID: followerID, FollowingID: followingID}, nil
 }

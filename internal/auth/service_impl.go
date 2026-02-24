@@ -13,8 +13,18 @@ type service struct {
 	hasher		*PasswordHasher
 }
 
-func NewService(userService user.UserService, jwtConfig JWTConfig, hasher *PasswordHasher) AuthService {
-	return &service{userService: userService, jwtConfig: jwtConfig, hasher: hasher}
+func NewService(userService user.UserService, jwtConfig JWTConfig, hasher *PasswordHasher) (AuthService, error) {
+	if userService == nil {
+		return nil, ErrUserServiceNil
+	}
+	if jwtConfig.Secret == nil {
+		return nil, ErrJWTSecretNil
+	}
+	if hasher == nil {
+		return nil, ErrHasherNil
+	}
+
+	return &service{userService: userService, jwtConfig: jwtConfig, hasher: hasher}, nil
 }
 
 func (s *service) Register(ctx context.Context, email, password string) (string, error) {

@@ -17,8 +17,12 @@ type service struct {
 	repo Repository
 }
 
-func NewService(repo Repository) FollowService {
-	return &service{repo: repo}
+func NewService(repo Repository) (FollowService, error) {
+	if repo == nil {
+		return nil, ErrRepoNil
+	}
+
+	return &service{repo: repo}, nil
 }
 
 func (s *service) Follow(ctx context.Context, follow Follow) error {

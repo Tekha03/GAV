@@ -40,7 +40,12 @@ func (h *FollowHandler) Follow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	newFollow := follow.NewFollow(followerID, following.UserID)
+	newFollow, err := follow.NewFollow(followerID, following.UserID)
+	if err != nil {
+		response.Error(w, err)
+		return
+	}
+
 	if err := h.service.Follow(r.Context(), *newFollow); err != nil {
 		response.Error(w, err)
 		return
@@ -62,7 +67,12 @@ func (h *FollowHandler) Unfollow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	unfollow := follow.NewFollow(followerID, followingID)
+	unfollow, err := follow.NewFollow(followerID, followingID)
+	if err != nil {
+		response.Error(w, err)
+		return
+	}
+	
 	if err := h.service.Unfollow(r.Context(), *unfollow); err != nil {
 		response.Error(w, err)
 		return

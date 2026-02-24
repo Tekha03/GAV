@@ -2,24 +2,21 @@ package post
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	"github.com/google/uuid"
-)
-
-var (
-	ErrPostNotFound = errors.New("post not found")
-	ErrForbidden	= errors.New("forbidden")
-	ErrEmptyContent = errors.New("empty content")
 )
 
 type service struct {
 	repo Repository
 }
 
-func NewService(repo Repository) PostService {
-	return &service{repo: repo}
+func NewService(repo Repository) (PostService, error) {
+	if repo == nil {
+		return nil, ErrRepoNil
+	}
+
+	return &service{repo: repo}, nil
 }
 
 func (s *service) Create(

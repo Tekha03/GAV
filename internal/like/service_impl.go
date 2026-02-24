@@ -17,8 +17,12 @@ type service struct {
 	repo Repository
 }
 
-func NewService(repo Repository) LikeService {
-	return &service{repo: repo}
+func NewService(repo Repository) (LikeService, error) {
+	if repo == nil {
+		return nil, ErrRepoNil
+	}
+
+	return &service{repo: repo}, nil
 }
 
 func (s *service) Add(ctx context.Context, like Like) error {

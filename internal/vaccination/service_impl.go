@@ -2,22 +2,20 @@ package vaccination
 
 import (
 	"context"
-	"errors"
 
 	"github.com/google/uuid"
-)
-
-var (
-	ErrVaccAccessDenied = errors.New("vaccination access denied")
-	ErrDogIDEmpty		= errors.New("dogID cannot be empty")
 )
 
 type service struct {
 	repo Repository
 }
 
-func NewService(repo Repository) VaccinationService {
-	return &service{repo: repo,}
+func NewService(repo Repository) (VaccinationService, error) {
+	if repo == nil {
+		return nil, ErrRepoNil
+	}
+
+	return &service{repo: repo,}, nil
 }
 
 func (s *service) Create(ctx context.Context, dogID uuid.UUID, input CreateVaccinationInput) (*Vaccination, error) {

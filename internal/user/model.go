@@ -15,10 +15,17 @@ type User struct {
 	UpdatedAt	time.Time
 }
 
-func NewUser(email, passwordHash string) *User {
+func NewUser(email, passwordHash string) (*User, error) {
+	if email == "" {
+		return nil, ErrEmailEmpty
+	}
+	if passwordHash == "" {
+		return nil, ErrPasswordHashEmpty
+	}
+
     return &User{
         Email: email,
         Password: passwordHash,
         CreatedAt: time.Now(),
-    }
+    }, nil
 }

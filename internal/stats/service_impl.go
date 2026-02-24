@@ -2,19 +2,20 @@ package stats
 
 import (
 	"context"
-	"errors"
 
 	"github.com/google/uuid"
 )
-
-var ErrStatsNotFound = errors.New("user stats not found")
 
 type service struct {
 	repo Repository
 }
 
-func NewService(repo Repository) StatsService {
-	return &service{repo: repo}
+func NewService(repo Repository) (StatsService, error) {
+	if repo == nil {
+		return nil, ErrRepoNil
+	}
+
+	return &service{repo: repo}, nil
 }
 
 func (s *service) UserStats(ctx context.Context, userID uuid.UUID) (*UserStats, error) {

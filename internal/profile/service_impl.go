@@ -2,24 +2,20 @@ package profile
 
 import (
 	"context"
-	"errors"
 
 	"github.com/google/uuid"
-)
-
-var (
-	ErrProfileAlreadyExists = errors.New("profile already exists")
-	ErrProfileNotFound		= errors.New("profile not found")
-	ErrInvalidUserID	   = errors.New("invalid user ID")
-	ErrInvalidProfileID	  	= errors.New("invalid profile ID")
 )
 
 type service struct {
 	repo Repository
 }
 
-func NewService(repo Repository) ProfileService {
-	return &service{repo: repo}
+func NewService(repo Repository) (ProfileService, error) {
+	if repo == nil {
+		return nil, ErrRepoNil
+	}
+
+	return &service{repo: repo}, nil
 }
 
 func (s *service) Create(ctx context.Context, userID uuid.UUID, input CreateProfileInput) (*UserProfile, error) {

@@ -35,6 +35,16 @@ type App struct {
 }
 
 func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
+	if cfg == nil {
+		return nil, ErrConfigNil
+	}
+	if cfg.DB.Path == "" {
+		return nil, ErrDBPathEmpty
+	}
+	if cfg.JWT.Secret == "" {
+		return nil, ErrJWTSecretEmpty
+	}
+
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	logger.Info("initializing application")
 
@@ -77,20 +87,61 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 	settingsRepo := gavSqlite.NewSettingsRepository(db)
 
 	// services
-	userService := user.NewService(userRepo)
+	userService, err := user.NewService(userRepo)
+	if err != nil {
+		return nil, err
+	}
 
 	hasher := &auth.PasswordHasher{}
-	authService := auth.NewService(userService, jwtConfig, hasher)
+	authService, err := auth.NewService(userService, jwtConfig, hasher)
+	if err != nil {
+		return nil, err
+	}
 
-	profileService := profile.NewService(profileRepo)
-	postService := post.NewService(postRepo)
-	commentService := comment.NewService(commentRepo)
-	likeService := like.NewService(likeRepo)
-	followService := follow.NewService(followRepo)
-	dogService := dog.NewService(dogRepo)
-	vaccinationService := vaccination.NewService(vaccinationRepo)
-	statsService := stats.NewService(statsRepo)
-	settingsService := settings.NewService(settingsRepo)
+	profileService, err := profile.NewService(profileRepo)
+	if err != nil {
+		return nil, err
+	}
+
+	postService, err := post.NewService(postRepo)
+	if err != nil {
+		return nil, err
+	}
+
+	commentService, err := comment.NewService(commentRepo)
+	if err != nil {
+		return nil, err
+	}
+
+	likeService, err := like.NewService(likeRepo)
+	if err != nil {
+		return nil, err
+	}
+
+	followService, err := follow.NewService(followRepo)
+	if err != nil {
+		return nil, err
+	}
+
+	dogService, err := dog.NewService(dogRepo)
+	if err != nil {
+		return nil, err
+	}
+
+	vaccinationService, err := vaccination.NewService(vaccinationRepo)
+	if err != nil {
+		return nil, err
+	}
+
+	statsService, err := stats.NewService(statsRepo)
+	if err != nil {
+		return nil, err
+	}
+
+	settingsService, err := settings.NewService(settingsRepo)
+	if err != nil {
+		return nil, err
+	}
 
 	// handlers
 	handlers := httptransport.Handlers{
