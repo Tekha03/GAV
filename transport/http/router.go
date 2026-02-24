@@ -15,6 +15,7 @@ type Handlers struct {
 	User         *handlers.UserHandler
 	Profile       *handlers.ProfileHandler
 	Post         *handlers.PostHandler
+	Feed		 *handlers.FeedHandler
 	Comment      *handlers.CommentHandler
 	Like         *handlers.LikeHandler
 	Follow       *handlers.FollowHandler
@@ -85,6 +86,9 @@ func NewRouter(
 					r.Delete("/", h.Like.Remove)
 				})
 			})
+
+			// ---- Feed ----
+			r.Get("/feed", h.Feed.GetFeed)
 
 			// ---- Comments ----
 			r.Route("/comments", func(r chi.Router) {

@@ -62,6 +62,23 @@ func (s *service) ListByUser(ctx context.Context, userID uuid.UUID) ([]*Post, er
 	return s.repo.ListByUser(ctx, userID)
 }
 
+func (s *service) GetFeed(ctx context.Context, userID uuid.UUID, before time.Time, limit int) ([]*Post, time.Time, error) {
+	posts, err := s.repo.ListFeed(ctx, userID, before, limit)
+	if err != nil {
+		return nil, time.Time{}, err
+	}
+
+	var nextCursor time.Time
+	hasMore := len(posts) > limit
+
+	if hasMore {
+		nextCursor = posts[limit].CreatedAt
+		posts = posts[:limit]
+	}
+
+	return posts, nextCursor, nil
+}
+
 func (s *service) Delete(ctx context.Context, userID, postID uuid.UUID) error {
 	post, err := s.repo.GetByID(ctx, postID)
 	if err != nil {

@@ -98,6 +98,7 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 		User: handlers.NewUserHandler(userService),
 		Profile: handlers.NewProfileHandler(profileService),
 		Post: handlers.NewPostHandler(postService),
+		Feed: handlers.NewFeedHandler(postService),
 		Comment: handlers.NewCommentHandler(commentService),
 		Like: handlers.NewLikeHandler(likeService),
 		Follow: handlers.NewFollowHandler(followService),
