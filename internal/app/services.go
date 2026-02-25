@@ -4,6 +4,7 @@ import (
 	"gav/internal/auth"
 	"gav/internal/comment"
 	"gav/internal/dog"
+	"gav/internal/feed"
 	"gav/internal/follow"
 	"gav/internal/like"
 	"gav/internal/post"
@@ -19,6 +20,7 @@ type Services struct {
 	Auth		auth.AuthService
 	Profile		 profile.ProfileService
 	Post		post.PostService
+	Feed		feed.FeedService
 	Comment 	comment.CommentService
 	Like 		like.LikeService
 	Follow 		follow.FollowService
@@ -36,6 +38,7 @@ func initServices(repos *Repositories, jwtConfig auth.JWTConfig) (*Services, err
 	s.Auth, 		err = auth.NewService(s.User, jwtConfig, &auth.PasswordHasher{});		if err != nil { return nil, err }
 	s.Profile, 	 	 err = profile.NewService(repos.Profile);	  		   if err != nil { return nil, err }
 	s.Post, 		err = post.NewService(repos.Post);					if err != nil { return nil, err }
+	s.Feed,			err = feed.NewService(repos.Post);					if err != nil { return nil, err }
 	s.Comment, 		err = comment.NewService(repos.Comment); 			if err != nil { return nil, err }
 	s.Like, 		err = like.NewService(repos.Like);					if err != nil { return nil, err }
 	s.Follow, 		err = follow.NewService(repos.Follow);				if err != nil { return nil, err }

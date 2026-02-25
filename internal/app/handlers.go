@@ -27,7 +27,7 @@ func initHandlers(services *Services) (*Handlers, error) {
 	h.User, 		err = handlers.NewUserHandler(services.User);				if err != nil { return nil, err }
 	h.Profile,	 	 err = handlers.NewProfileHandler(services.Profile); 		   if err != nil { return nil, err }
 	h.Post, 		err = handlers.NewPostHandler(services.Post);	   			if err != nil { return nil, err }
-	h.Feed, 		err = handlers.NewFeedHandler(services.Post);				if err != nil { return nil, err }
+	h.Feed, 		err = handlers.NewFeedHandler(services.Feed);				if err != nil { return nil, err }
 	h.Comment, 		err = handlers.NewCommentHandler(services.Comment);			if err != nil { return nil, err }
 	h.Like, 		err = handlers.NewLikeHandler(services.Like);				if err != nil { return nil, err }
 	h.Follow, 		err	= handlers.NewFollowHandler(services.Follow);			if err != nil { return nil, err }

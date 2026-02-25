@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"gav/internal/post"
+	"gav/internal/feed"
 	"gav/transport/http/dto"
 	"gav/transport/http/middleware"
 	"gav/transport/response"
@@ -12,10 +12,10 @@ import (
 const LIMIT_OF_POSTS = 20
 
 type FeedHandler struct {
-	service post.PostService
+	service feed.FeedService
 }
 
-func NewFeedHandler(service post.PostService) (*FeedHandler, error) {
+func NewFeedHandler(service feed.FeedService) (*FeedHandler, error) {
 	if service == nil {
 		return nil, ErrFeedNil
 	}
@@ -27,15 +27,21 @@ func (h *FeedHandler) GetFeed(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.UserID(r.Context())
 	if !ok {
 		response.Error(w, ErrUnauthorized)
+		return
 	}
 
-	cursorStr := r.URL.Query().Get("cursor")
+	cursor := r.URL.Query().Get("cursor")
+	limitStr := r.URL.Query().Get("limit")
+
 	limit := LIMIT_OF_POSTS
+	if limitStr != "" {
+		//
+	}
 
 	var before time.Time
-	if cursorStr != "" {
+	if cursor != "" {
 		var err error
-		before, err = time.Parse(time.RFC3339Nano, cursorStr)
+		before, err = time.Parse(time.RFC3339Nano, cursor)
 		if err != nil {
 			response.Error(w, err)
 			return

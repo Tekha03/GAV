@@ -2,15 +2,8 @@ package follow
 
 import (
 	"context"
-	"errors"
 
 	"github.com/google/uuid"
-)
-
-var (
-	ErrCannotFollowYourself = errors.New("you cannot follow yourself.")
-	ErrAlreadyFollowing = errors.New("already following")
-	ErrInvalidUserID = errors.New("invalid user id")
 )
 
 type service struct {
