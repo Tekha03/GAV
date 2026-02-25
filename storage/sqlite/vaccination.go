@@ -14,8 +14,13 @@ type VaccinationRepository struct {
 	*BaseRepository
 }
 
-func NewVaccinationRepository(db *gorm.DB) vaccination.Repository {
-	return &VaccinationRepository{BaseRepository: NewBaseRepository(db)}
+func NewVaccinationRepository(db *gorm.DB) (vaccination.Repository, error) {
+	repo, err := NewBaseRepository(db)
+	if err != nil {
+		return nil, err
+	}
+
+	return &VaccinationRepository{BaseRepository: repo}, nil
 }
 
 func (r *VaccinationRepository) Create(ctx context.Context, v *vaccination.Vaccination) error {

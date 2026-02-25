@@ -15,8 +15,12 @@ type StatsHandler struct {
 	service stats.StatsService
 }
 
-func NewStatsHandler(service stats.StatsService) *StatsHandler {
-	return &StatsHandler{service: service}
+func NewStatsHandler(service stats.StatsService) (*StatsHandler, error) {
+	if service == nil {
+		return nil, ErrStatsNil
+	}
+
+	return &StatsHandler{service: service}, nil
 }
 
 func (h *StatsHandler) UserStats(w http.ResponseWriter, r *http.Request) {

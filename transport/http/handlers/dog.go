@@ -17,8 +17,12 @@ type DogHandler struct {
 	service dog.DogService
 }
 
-func NewDogHandler(service dog.DogService) *DogHandler {
-	return &DogHandler{service: service}
+func NewDogHandler(service dog.DogService) (*DogHandler, error) {
+	if service == nil {
+		return nil, ErrDogNil
+	}
+
+	return &DogHandler{service: service}, nil
 }
 
 func (h *DogHandler) Create(w http.ResponseWriter, r *http.Request) {

@@ -18,8 +18,12 @@ type PostHandler struct {
 	service post.PostService
 }
 
-func NewPostHandler(service post.PostService) *PostHandler {
-	return &PostHandler{service: service}
+func NewPostHandler(service post.PostService) (*PostHandler, error) {
+	if service == nil {
+		return nil, ErrPostNil
+	}
+
+	return &PostHandler{service: service}, nil
 }
 
 func (h *PostHandler) Create(w http.ResponseWriter, r *http.Request) {
@@ -46,7 +50,13 @@ func (h *PostHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response.JSON(w, http.StatusCreated, dto.NewPostResponse(post))
+	response.JSON(w, http.StatusCreated, dto.PostResponse{
+		ID: post.ID,
+		AuthorID:
+		post.UserID,
+		Content: post.Content,
+		CreatedAt: post.CreatedAt,
+	})
 }
 
 func (h *PostHandler) GetByID(w http.ResponseWriter, r *http.Request) {
@@ -64,8 +74,13 @@ func (h *PostHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	dtoPost := dto.NewPostResponse(post)
-	response.JSON(w, http.StatusOK, dtoPost)
+	response.JSON(w, http.StatusOK, dto.PostResponse{
+		ID: post.ID,
+		AuthorID:
+		post.UserID,
+		Content: post.Content,
+		CreatedAt: post.CreatedAt,
+	})
 }
 
 func (h *PostHandler) ListByUser(w http.ResponseWriter, r *http.Request) {

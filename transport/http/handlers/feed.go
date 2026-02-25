@@ -15,8 +15,12 @@ type FeedHandler struct {
 	service post.PostService
 }
 
-func NewFeedHandler(service post.PostService) *FeedHandler {
-	return &FeedHandler{service: service}
+func NewFeedHandler(service post.PostService) (*FeedHandler, error) {
+	if service == nil {
+		return nil, ErrFeedNil
+	}
+
+	return &FeedHandler{service: service}, nil
 }
 
 func (h *FeedHandler) GetFeed(w http.ResponseWriter, r *http.Request) {
@@ -51,7 +55,13 @@ func (h *FeedHandler) GetFeed(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for i, post := range posts {
-		resp.Posts[i] = dto.NewPostResponse(post)
+		resp.Posts[i] = dto.PostResponse{
+			ID: post.ID,
+			AuthorID:
+			post.UserID,
+			Content: post.Content,
+			CreatedAt: post.CreatedAt,
+		}
 	}
 
 	if resp.HasMore {

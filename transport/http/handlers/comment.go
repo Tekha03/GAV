@@ -18,8 +18,12 @@ type CommentHandler struct {
 	service comment.CommentService
 }
 
-func NewCommentHandler(service comment.CommentService) *CommentHandler {
-	return &CommentHandler{service: service}
+func NewCommentHandler(service comment.CommentService) (*CommentHandler, error) {
+	if service == nil {
+		return nil, ErrCommentNil
+	}
+
+	return &CommentHandler{service: service}, nil
 }
 
 func (h *CommentHandler) Create(w http.ResponseWriter, r *http.Request) {

@@ -2,16 +2,10 @@ package memory
 
 import (
 	"context"
-	"errors"
 	"gav/internal/vaccination"
 	"sync"
 
 	"github.com/google/uuid"
-)
-
-var (
-	ErrVaccinationExists = errors.New("vaccination already exists")
-	ErrVaccinationNotFound = errors.New("vaccination not found")
 )
 
 type VaccinationRepository struct {
@@ -26,6 +20,10 @@ func NewVaccinationRepository() *VaccinationRepository {
 }
 
 func (r *VaccinationRepository) Create(ctx context.Context, v *vaccination.Vaccination) error {
+	if v == nil {
+		return ErrVaccinationNil
+	}
+
 	r.mu.Lock()
 	defer r.mu.Unlock()
 

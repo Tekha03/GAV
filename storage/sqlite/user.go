@@ -14,8 +14,13 @@ type UserRepository struct {
 	*BaseRepository
 }
 
-func NewUserRepository(db *gorm.DB) user.Repository {
-	return &UserRepository{BaseRepository: NewBaseRepository(db)}
+func NewUserRepository(db *gorm.DB) (user.Repository, error) {
+	repo, err := NewBaseRepository(db)
+	if err != nil {
+		return nil, err
+	}
+
+	return &UserRepository{BaseRepository: repo}, nil
 }
 
 func (r *UserRepository) Create(ctx context.Context, u *user.User) error {

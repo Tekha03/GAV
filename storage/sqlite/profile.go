@@ -14,8 +14,13 @@ type ProfileRepository struct {
 	*BaseRepository
 }
 
-func NewProfileRepository(db *gorm.DB) profile.Repository {
-	return &ProfileRepository{BaseRepository: NewBaseRepository(db)}
+func NewProfileRepository(db *gorm.DB) (profile.Repository, error) {
+	repo, err := NewBaseRepository(db)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ProfileRepository{BaseRepository: repo}, nil
 }
 
 func (r *ProfileRepository) Create(ctx context.Context, userProfile *profile.UserProfile) error {

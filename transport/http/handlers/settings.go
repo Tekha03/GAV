@@ -14,8 +14,12 @@ type SettingsHandler struct {
 	service settings.SettingsService
 }
 
-func NewSettingsHandler(service settings.SettingsService) *SettingsHandler {
-	return &SettingsHandler{service: service}
+func NewSettingsHandler(service settings.SettingsService) (*SettingsHandler, error) {
+	if service == nil {
+		return nil, ErrSettingsNil
+	}
+
+	return &SettingsHandler{service: service}, nil
 }
 
 func (h *SettingsHandler) Get(w http.ResponseWriter, r *http.Request) {

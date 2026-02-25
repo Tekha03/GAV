@@ -14,8 +14,13 @@ type CommentRepository struct {
 	*BaseRepository
 }
 
-func NewCommentRepository(db *gorm.DB) comment.Repository {
-	return &CommentRepository{BaseRepository: NewBaseRepository(db)}
+func NewCommentRepository(db *gorm.DB) (comment.Repository, error) {
+	repo, err := NewBaseRepository(db)
+	if err != nil {
+		return nil, err
+	}
+
+	return &CommentRepository{BaseRepository: repo}, nil
 }
 
 func (r *CommentRepository) Create(ctx context.Context, comment *comment.Comment) error {

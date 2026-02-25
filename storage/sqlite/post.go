@@ -15,8 +15,13 @@ type PostRepository struct {
 	*BaseRepository
 }
 
-func NewPostRepository(db *gorm.DB) post.Repository {
-	return &PostRepository{BaseRepository: NewBaseRepository(db)}
+func NewPostRepository(db *gorm.DB) (post.Repository, error) {
+	repo, err := NewBaseRepository(db)
+	if err != nil {
+		return nil, err
+	}
+
+	return &PostRepository{BaseRepository: repo}, nil
 }
 
 func (r *PostRepository) Create(ctx context.Context, post *post.Post) error {

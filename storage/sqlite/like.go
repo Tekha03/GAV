@@ -12,8 +12,13 @@ type LikeRepository struct {
 	*BaseRepository
 }
 
-func NewLikeRepository(db *gorm.DB) like.Repository {
-	return &LikeRepository{BaseRepository: NewBaseRepository(db)}
+func NewLikeRepository(db *gorm.DB) (like.Repository, error) {
+	repo, err := NewBaseRepository(db)
+	if err != nil {
+		return nil, err
+	}
+
+	return &LikeRepository{BaseRepository: repo}, nil
 }
 
 func (lr *LikeRepository) Add(ctx context.Context, like like.Like) error {

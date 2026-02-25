@@ -18,8 +18,12 @@ type FollowHandler struct {
 	service follow.FollowService
 }
 
-func NewFollowHandler(service follow.FollowService) *FollowHandler {
-	return &FollowHandler{service: service}
+func NewFollowHandler(service follow.FollowService) (*FollowHandler, error) {
+	if service == nil {
+		return nil, ErrFollowNil
+	}
+
+	return &FollowHandler{service: service}, nil
 }
 
 func (h *FollowHandler) Follow(w http.ResponseWriter, r *http.Request) {
@@ -51,7 +55,7 @@ func (h *FollowHandler) Follow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(http.StatusNoContent)
+	response.JSON(w, http.StatusNoContent, nil)
 }
 
 func (h *FollowHandler) Unfollow(w http.ResponseWriter, r *http.Request) {
@@ -72,7 +76,7 @@ func (h *FollowHandler) Unfollow(w http.ResponseWriter, r *http.Request) {
 		response.Error(w, err)
 		return
 	}
-	
+
 	if err := h.service.Unfollow(r.Context(), *unfollow); err != nil {
 		response.Error(w, err)
 		return

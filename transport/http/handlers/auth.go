@@ -15,8 +15,12 @@ type AuthHandler struct {
 	service auth.AuthService
 }
 
-func NewAuthHandler(service auth.AuthService) *AuthHandler {
-	return &AuthHandler{service: service}
+func NewAuthHandler(service auth.AuthService) (*AuthHandler, error) {
+	if service == nil {
+		return nil, ErrAuthNil
+	}
+
+	return &AuthHandler{service: service}, nil
 }
 
 type credentials struct {
@@ -42,8 +46,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	dtoAuth := dto.AuthResponse{Token: token}
-	response.JSON(w, http.StatusCreated, dtoAuth)
+	response.JSON(w, http.StatusCreated, dto.AuthResponse{Token: token})
 }
 
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
@@ -64,8 +67,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	dtoAuth := dto.AuthResponse{Token: token}
-	response.JSON(w, http.StatusOK, dtoAuth)
+	response.JSON(w, http.StatusOK, dto.AuthResponse{Token: token})
 }
 
 func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {

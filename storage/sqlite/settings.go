@@ -14,8 +14,13 @@ type SettingsRepository struct {
 	*BaseRepository
 }
 
-func NewSettingsRepository(db *gorm.DB) settings.Repository {
-	return &SettingsRepository{NewBaseRepository(db)}
+func NewSettingsRepository(db *gorm.DB) (settings.Repository, error) {
+	repo, err := NewBaseRepository(db)
+	if err != nil {
+		return nil, err
+	}
+
+	return &SettingsRepository{BaseRepository: repo}, nil
 }
 
 func (r *SettingsRepository) Create(ctx context.Context, settins *settings.UserSettings) error {

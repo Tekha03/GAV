@@ -15,8 +15,13 @@ type DogRepository struct {
 	*BaseRepository
 }
 
-func NewDogRepository(db *gorm.DB) dog.Repository {
-	return &DogRepository{BaseRepository: NewBaseRepository(db)}
+func NewDogRepository(db *gorm.DB) (dog.Repository, error) {
+	repo, err := NewBaseRepository(db)
+	if err != nil {
+		return nil, err
+	}
+
+	return &DogRepository{BaseRepository: repo}, nil
 }
 
 func (r *DogRepository) Create(ctx context.Context, d *dog.Dog) error {

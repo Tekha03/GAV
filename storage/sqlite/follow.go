@@ -12,8 +12,13 @@ type FollowRepository struct {
 	*BaseRepository
 }
 
-func NewFollowRepository(db *gorm.DB) follow.Repository {
-	return &FollowRepository{BaseRepository: NewBaseRepository(db)}
+func NewFollowRepository(db *gorm.DB) (follow.Repository, error) {
+	repo, err := NewBaseRepository(db)
+	if err != nil {
+		return nil, err
+	}
+
+	return &FollowRepository{BaseRepository: repo}, nil
 }
 
 func (r *FollowRepository) Follow(ctx context.Context, follow follow.Follow) error {

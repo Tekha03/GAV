@@ -10,8 +10,12 @@ type BaseRepository struct {
 	db *gorm.DB
 }
 
-func NewBaseRepository(db *gorm.DB) *BaseRepository {
-	return &BaseRepository{db: db}
+func NewBaseRepository(db *gorm.DB) (*BaseRepository, error) {
+	if db == nil {
+		return nil, ErrDBNil
+	}
+
+	return &BaseRepository{db: db}, nil
 }
 
 func (r *BaseRepository) DB(ctx context.Context) *gorm.DB {

@@ -17,8 +17,12 @@ type UserHandler struct {
 	service 	user.UserService
 }
 
-func NewUserHandler(service user.UserService) *UserHandler {
-	return &UserHandler{service: service}
+func NewUserHandler(service user.UserService) (*UserHandler, error) {
+	if service == nil {
+		return nil, ErrUserNil
+	}
+
+	return &UserHandler{service: service}, nil
 }
 
 func (h *UserHandler) GetByID(w http.ResponseWriter, r *http.Request) {
@@ -36,7 +40,7 @@ func (h *UserHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response.JSON(w, http.StatusOK, dto.NewUserResponse(user))
+	response.JSON(w, http.StatusOK, dto.UserResponse{ID: userID, Email: user.Email})
 }
 
 func (h *UserHandler) Update(w http.ResponseWriter, r *http.Request) {

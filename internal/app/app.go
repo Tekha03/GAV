@@ -7,22 +7,9 @@ import (
 	"os"
 
 	"gav/internal/auth"
-	"gav/internal/comment"
 	"gav/internal/config"
-	"gav/internal/dog"
-	"gav/internal/follow"
-	"gav/internal/like"
-	"gav/internal/post"
-	"gav/internal/profile"
-	"gav/internal/settings"
-	"gav/internal/stats"
-	"gav/internal/user"
-	"gav/internal/vaccination"
-	"gav/transport/http/handlers"
-	"gav/transport/http/middleware"
-
-	gavSqlite "gav/storage/sqlite"
 	httptransport "gav/transport/http"
+	"gav/transport/http/middleware"
 
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -75,92 +62,38 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 	logger.Info("jwt cofidured", "ttl", cfg.JWT.TTL.String())
 
 	// repositories
-	userRepo := gavSqlite.NewUserRepository(db)
-	profileRepo := gavSqlite.NewProfileRepository(db)
-	postRepo := gavSqlite.NewPostRepository(db)
-	commentRepo := gavSqlite.NewCommentRepository(db)
-	likeRepo := gavSqlite.NewLikeRepository(db)
-	followRepo := gavSqlite.NewFollowRepository(db)
-	dogRepo := gavSqlite.NewDogRepository(db)
-	vaccinationRepo := gavSqlite.NewVaccinationRepository(db)
-	statsRepo := gavSqlite.NewStatsRepository(db)
-	settingsRepo := gavSqlite.NewSettingsRepository(db)
+	repos, err := initRepositories(db);
+	if err != nil {
+		return nil, err
+	}
 
 	// services
-	userService, err := user.NewService(userRepo)
-	if err != nil {
-		return nil, err
-	}
-
-	hasher := &auth.PasswordHasher{}
-	authService, err := auth.NewService(userService, jwtConfig, hasher)
-	if err != nil {
-		return nil, err
-	}
-
-	profileService, err := profile.NewService(profileRepo)
-	if err != nil {
-		return nil, err
-	}
-
-	postService, err := post.NewService(postRepo)
-	if err != nil {
-		return nil, err
-	}
-
-	commentService, err := comment.NewService(commentRepo)
-	if err != nil {
-		return nil, err
-	}
-
-	likeService, err := like.NewService(likeRepo)
-	if err != nil {
-		return nil, err
-	}
-
-	followService, err := follow.NewService(followRepo)
-	if err != nil {
-		return nil, err
-	}
-
-	dogService, err := dog.NewService(dogRepo)
-	if err != nil {
-		return nil, err
-	}
-
-	vaccinationService, err := vaccination.NewService(vaccinationRepo)
-	if err != nil {
-		return nil, err
-	}
-
-	statsService, err := stats.NewService(statsRepo)
-	if err != nil {
-		return nil, err
-	}
-
-	settingsService, err := settings.NewService(settingsRepo)
+	services, err := initServices(repos, jwtConfig)
 	if err != nil {
 		return nil, err
 	}
 
 	// handlers
-	handlers := httptransport.Handlers{
-		Auth: handlers.NewAuthHandler(authService),
-		User: handlers.NewUserHandler(userService),
-		Profile: handlers.NewProfileHandler(profileService),
-		Post: handlers.NewPostHandler(postService),
-		Feed: handlers.NewFeedHandler(postService),
-		Comment: handlers.NewCommentHandler(commentService),
-		Like: handlers.NewLikeHandler(likeService),
-		Follow: handlers.NewFollowHandler(followService),
-		Dog: handlers.NewDogHandler(dogService),
-		Vaccination: handlers.NewVaccinationHandler(vaccinationService),
-		Stats: handlers.NewStatsHandler(statsService),
-		Settings: handlers.NewSettingsHandler(settingsService),
+	handlers, err := initHandlers(services)
+	if err != nil {
+		return nil, err
 	}
 
 	router := httptransport.NewRouter(
-		handlers,
+		httptransport.Handlers{
+			Auth:			handlers.Auth,
+			User: 			handlers.User,
+			Profile: 	 	 handlers.Profile,
+			Post: 			handlers.Post,
+			Feed:			handlers.Feed,
+			Comment: 		handlers.Comment,
+			Like: 			handlers.Like,
+			Follow: 		handlers.Follow,
+			Dog: 			handlers.Dog,
+			Vaccination:	handlers.Vaccination,
+			Stats: 			handlers.Stats,
+			Settings: 		handlers.Settings,
+		},
 		middleware.JWTAuth(jwtConfig),
 		logger,
 	)

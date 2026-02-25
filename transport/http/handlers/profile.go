@@ -17,8 +17,12 @@ type ProfileHandler struct {
 	service profile.ProfileService
 }
 
-func NewProfileHandler(service profile.ProfileService) *ProfileHandler {
-	return &ProfileHandler{service: service}
+func NewProfileHandler(service profile.ProfileService) (*ProfileHandler, error) {
+	if service == nil {
+		return nil, ErrProfileNil
+	}
+
+	return &ProfileHandler{service: service}, nil
 }
 
 func (h *ProfileHandler) Create(w http.ResponseWriter, r *http.Request) {

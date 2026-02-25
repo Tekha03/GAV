@@ -27,6 +27,10 @@ func NewDogRepository() *DogRepository {
 }
 
 func (r *DogRepository) Create(ctx context.Context, d *dog.Dog) error {
+	if d == nil {
+		return ErrDogNil
+	}
+
 	r.mu.Lock()
 	defer r.mu.Unlock()
 

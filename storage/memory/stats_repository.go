@@ -2,16 +2,10 @@ package memory
 
 import (
 	"context"
-	"errors"
 	"gav/internal/stats"
 	"sync"
 
 	"github.com/google/uuid"
-)
-
-var (
-	ErrStatExist = errors.New("stat exist in repository")
-	ErrStatNotFound = errors.New("stat not found")
 )
 
 type StatsRepository struct {
@@ -26,6 +20,10 @@ func NewStatsReposirory() *StatsRepository {
 }
 
 func (s *StatsRepository) Create(ctx context.Context, st *stats.UserStats) error {
+	if st == nil {
+		return ErrStatsNil
+	}
+
 	s.mu.Lock()
 	defer s.mu.Unlock()
 

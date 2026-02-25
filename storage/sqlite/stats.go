@@ -14,8 +14,13 @@ type StatsRepository struct {
 	*BaseRepository
 }
 
-func NewStatsRepository(db *gorm.DB) stats.Repository {
-	return &StatsRepository{BaseRepository: NewBaseRepository(db)}
+func NewStatsRepository(db *gorm.DB) (stats.Repository, error) {
+	repo, err := NewBaseRepository(db)
+	if err != nil {
+		return nil, err
+	}
+
+	return &StatsRepository{BaseRepository: repo}, nil
 }
 
 func (r *StatsRepository) CreateUserStats(ctx context.Context, userStats *stats.UserStats) error {

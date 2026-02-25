@@ -16,8 +16,12 @@ type VaccinationHandler struct {
 	service vaccination.VaccinationService
 }
 
-func NewVaccinationHandler(service vaccination.VaccinationService) *VaccinationHandler {
-	return &VaccinationHandler{service: service}
+func NewVaccinationHandler(service vaccination.VaccinationService) (*VaccinationHandler, error) {
+	if service == nil {
+		return nil, ErrVaccinationNil
+	}
+
+	return &VaccinationHandler{service: service}, nil
 }
 
 func (h *VaccinationHandler) Create(w http.ResponseWriter, r *http.Request) {

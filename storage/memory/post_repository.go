@@ -26,23 +26,27 @@ func NewPostRepository() *PostRepository {
 	}
 }
 
-func (pr *PostRepository) Create(ctx context.Context, post *post.Post) error {
-	pr.mu.Lock()
-	defer pr.mu.Unlock()
+func (r *PostRepository) Create(ctx context.Context, post *post.Post) error {
+	if post == nil {
+		return ErrPostNil
+	}
 
-	if _, found := pr.posts[post.ID]; found {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if _, found := r.posts[post.ID]; found {
 		return ErrPostExists
 	}
 
-	pr.posts[post.ID] = post
+	r.posts[post.ID] = post
 	return nil
 }
 
-func (pr *PostRepository) GetByID(ctx context.Context, id uuid.UUID) (*post.Post, error) {
-	pr.mu.Lock()
-	defer pr.mu.Unlock()
+func (r *PostRepository) GetByID(ctx context.Context, id uuid.UUID) (*post.Post, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
 
-	foundPost, isOk := pr.posts[id]
+	foundPost, isOk := r.posts[id]
 	if !isOk {
 		return nil, ErrPostNotFound
 	}
@@ -50,12 +54,12 @@ func (pr *PostRepository) GetByID(ctx context.Context, id uuid.UUID) (*post.Post
 	return foundPost, nil
 }
 
-func (pr *PostRepository) ListByUser(ctx context.Context, userID uuid.UUID) ([]*post.Post, error) {
-	pr.mu.Lock()
-	defer pr.mu.Unlock()
+func (r *PostRepository) ListByUser(ctx context.Context, userID uuid.UUID) ([]*post.Post, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
 
 	var result []*post.Post
-	for _, post := range pr.posts {
+	for _, post := range r.posts {
 		if post.UserID == userID {
 			result = append(result, post)
 		}
@@ -64,14 +68,14 @@ func (pr *PostRepository) ListByUser(ctx context.Context, userID uuid.UUID) ([]*
 	return result, nil
 }
 
-func (pr *PostRepository) Delete(ctx context.Context, id uuid.UUID) error {
-	pr.mu.Lock()
-	defer pr.mu.Unlock()
+func (r *PostRepository) Delete(ctx context.Context, id uuid.UUID) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
 
-	if _, isOk := pr.posts[id]; !isOk {
+	if _, isOk := r.posts[id]; !isOk {
 		return ErrPostNotFound
 	}
 
-	delete(pr.posts, id)
+	delete(r.posts, id)
 	return nil
 }

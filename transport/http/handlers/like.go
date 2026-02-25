@@ -13,8 +13,12 @@ type LikeHandler struct {
 	service like.LikeService
 }
 
-func NewLikeHandler(service like.LikeService) *LikeHandler {
-	return &LikeHandler{service: service}
+func NewLikeHandler(service like.LikeService) (*LikeHandler, error) {
+	if service == nil {
+		return nil, ErrLikeNil
+	}
+
+	return &LikeHandler{service: service}, nil
 }
 
 func (h *LikeHandler) Add(w http.ResponseWriter, r *http.Request) {
@@ -37,7 +41,7 @@ func (h *LikeHandler) Add(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(http.StatusCreated)
+	response.JSON(w, http.StatusNoContent, nil)
 }
 
 func (h *LikeHandler) Remove(w http.ResponseWriter, r *http.Request) {
@@ -60,5 +64,5 @@ func (h *LikeHandler) Remove(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(http.StatusNoContent)
+	response.JSON(w, http.StatusNoContent, nil)
 }
