@@ -11,4 +11,5 @@ var (
 	ErrUserNotFound 		= errors.New("user not found")
 	ErrUserExists 			= errors.New("user already exists")
 	ErrDBNil				= errors.New("base sqlite: db is nil")
+	ErrRefreshTokenNotFound = errors.New("refresh token not found")
 )

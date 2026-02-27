@@ -8,9 +8,9 @@ import (
 
 type User struct {
 	ID			uuid.UUID	`gorm:"primaryKey"`
-	Email		string	`gorm:"unique;not null"`
-	Password	string	`gorm:"not null"`
-	RoleID		uuid.UUID
+	Email		string		`gorm:"unique;not null"`
+	Password	string		`gorm:"not null"`
+	Role		string		`gorm:"type:text;not null;default:'user'"`
 	CreatedAt	time.Time
 	UpdatedAt	time.Time
 }

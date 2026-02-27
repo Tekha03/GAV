@@ -9,6 +9,7 @@ import (
 	"gav/internal/profile"
 	"gav/internal/settings"
 	"gav/internal/stats"
+	"gav/internal/token"
 	"gav/internal/user"
 	"gav/internal/vaccination"
 	gavSqlite "gav/storage/sqlite"
@@ -18,6 +19,7 @@ import (
 
 type Repositories struct {
 	User		user.Repository
+	Token		token.Repository
 	Profile		 profile.Repository
 	Post		post.Repository
 	Comment 	comment.Repository
@@ -34,6 +36,7 @@ func initRepositories(db *gorm.DB) (*Repositories, error) {
 
 	var err error
 	r.User, 		err = gavSqlite.NewUserRepository(db);			if err != nil { return nil, err }
+	r.Token,		err = gavSqlite.NewTokenRepository(db);			if err != nil { return nil, err }
 	r.Profile, 	 	 err = gavSqlite.NewProfileRepository(db);	 	  if err != nil { return nil, err }
 	r.Post, 		err = gavSqlite.NewPostRepository(db);			if err != nil { return nil, err }
 	r.Comment, 		err = gavSqlite.NewCommentRepository(db);		if err != nil { return nil, err }

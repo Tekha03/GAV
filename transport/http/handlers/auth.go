@@ -81,6 +81,30 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
+	type refreshRequest struct {
+		RefreshToken string	`json:"refresh_token" validate:"required"`
+	}
+
+	var req refreshRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.Error(w, err)
+	}
+
+	if err := validation.Validate(&req); err != nil {
+		response.Error(w, err)
+		return
+	}
+
+	tokens, err := h.service.Refresh(r.Context(), req.RefreshToken)
+	if err != nil {
+		response.Error(w, err)
+		return
+	}
+
+	response.JSON(w, http.StatusOK, dto.AuthResponse{Token: tokens})
+}
+
 // stateless jwt (пока без blacklist)
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusOK, map[string]any{

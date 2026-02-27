@@ -94,7 +94,10 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 			Stats: 			handlers.Stats,
 			Settings: 		handlers.Settings,
 		},
-		middleware.JWTAuth(jwtConfig),
+		httptransport.RouterDeps{
+			AuthMW: middleware.JWTAuth(jwtConfig),
+			PostService: services.Post,
+		},
 		logger,
 	)
 

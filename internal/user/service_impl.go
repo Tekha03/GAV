@@ -49,7 +49,7 @@ func (s *service) Update(ctx context.Context, id uuid.UUID, input UpdateUserInpu
 		ID: id,
 		Email: *input.Email,
 		Password: *input.Password,
-		RoleID: *input.RoleID,
+		Role: *input.Role,
 	}
 
 	return s.repo.Update(ctx, user)

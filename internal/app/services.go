@@ -11,12 +11,14 @@ import (
 	"gav/internal/profile"
 	"gav/internal/settings"
 	"gav/internal/stats"
+	"gav/internal/token"
 	"gav/internal/user"
 	"gav/internal/vaccination"
 )
 
 type Services struct {
 	User		user.UserService
+	Token		token.TokenService
 	Auth		auth.AuthService
 	Profile		 profile.ProfileService
 	Post		post.PostService
@@ -35,7 +37,8 @@ func initServices(repos *Repositories, jwtConfig auth.JWTConfig) (*Services, err
 
 	var err error
 	s.User, 		err = user.NewService(repos.User);		 			if err != nil { return nil, err }
-	s.Auth, 		err = auth.NewService(s.User, jwtConfig, &auth.PasswordHasher{});		if err != nil { return nil, err }
+	s.Token,		err = token.NewService(repos.Token);				if err != nil { return nil, err }
+	s.Auth, 		err = auth.NewService(s.User, s.Token, jwtConfig, &auth.PasswordHasher{});		if err != nil { return nil, err }
 	s.Profile, 	 	 err = profile.NewService(repos.Profile);	  		   if err != nil { return nil, err }
 	s.Post, 		err = post.NewService(repos.Post);					if err != nil { return nil, err }
 	s.Feed,			err = feed.NewService(repos.Post);					if err != nil { return nil, err }

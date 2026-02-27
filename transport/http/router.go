@@ -6,6 +6,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"gav/internal/post"
 	"gav/transport/http/handlers"
 	"gav/transport/http/middleware"
 )
@@ -25,14 +26,21 @@ type Handlers struct {
 	Settings     *handlers.SettingsHandler
 }
 
+type RouterDeps struct {
+	AuthMW		func(http.Handler) http.Handler
+	PostService post.PostService
+}
+
 func NewRouter(
 	h Handlers,
-	authMW func(http.Handler) http.Handler,
+	deps RouterDeps,
 	logger *slog.Logger,
 ) http.Handler {
 
 	r := chi.NewRouter()
+	r.Use(deps.AuthMW)
 
+	r.Use(middleware.RequireRole("admin"))
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logging(logger))
@@ -40,6 +48,10 @@ func NewRouter(
 	r.Use(middleware.Timeout)
 
 	r.Route("/api/v1", func(r chi.Router) {
+		// r.Route("/admin", func(r chi.Router) {
+		// 	r.Get("/users", h.Admin.ListUsers)
+		// 	r.Post("/stats/reset", h.Admin.ResetStats)
+		// })
 
 		r.Route("/auth", func(r chi.Router) {
 			r.Post("/register", h.Auth.Register)
@@ -47,11 +59,12 @@ func NewRouter(
 		})
 
 		r.Group(func(r chi.Router) {
-			r.Use(authMW)
+			r.Use(deps.AuthMW)
 
 			// ---- Auth ----
 			r.Route("/auth", func(r chi.Router) {
 				r.Get("/me", h.Auth.Me)
+				r.Post("/refresh", h.Auth.Refresh)
 				r.Post("/logout", h.Auth.Logout)
 			})
 
@@ -74,7 +87,8 @@ func NewRouter(
 				r.Post("/", h.Post.Create)
 				r.Get("/{id}", h.Post.GetByID)
 				r.Get("/", h.Post.ListByUser)
-				r.Delete("/{id}", h.Post.Delete)
+
+				r.With(middleware.RequirePostOwner(deps.PostService)).Delete("/{id}", h.Post.Delete)
 
 				r.Route("/{id}/comments", func(r chi.Router) {
 					r.Post("/", h.Comment.Create)

@@ -1,5 +1,7 @@
 package dto
 
+import "gav/internal/auth"
+
 type AuthResponse struct {
-	Token string `json:"token"`
+	Token *auth.AuthTokens `json:"token"`
 }
