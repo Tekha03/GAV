@@ -9,7 +9,6 @@ import (
 	"syscall"
 	"time"
 
-	"gav/dbserver"
 	"gav/internal/app"
 	"gav/internal/config"
 )
@@ -26,20 +25,6 @@ func main() {
 		logger.Error("failed to load config", "error", err)
 		os.Exit(1)
 	}
-
-	db, err := dbserver.InitDB(cfg.DB.Path, logger)
-	if err != nil {
-		logger.Error("failed to initialize database", "error", err)
-		os.Exit(1)
-	}
-
-	defer func () {
-		if err := dbserver.CloseDB(db); err != nil {
-			logger.Warn("failed to close database", "error", err)
-		} else {
-			logger.Info("database closed successfully")
-		}
-	}()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
