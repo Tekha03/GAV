@@ -6,17 +6,17 @@ import (
 	"net/http"
 	"os"
 
+	"gav/dbserver"
 	"gav/internal/auth"
 	"gav/internal/config"
 	httptransport "gav/transport/http"
 	"gav/transport/http/middleware"
 
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
 type App struct {
-	server *http.Server
+	Server *http.Server
 	sqlDB  *gorm.DB
 	logger *slog.Logger
 }
@@ -35,7 +35,7 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	logger.Info("initializing application")
 
-	db, err := gorm.Open(sqlite.Open(cfg.DB.Path), &gorm.Config{})
+	db, err := dbserver.InitDB(cfg.DB.Path, logger)
 	if err != nil {
 		logger.Error("failed to open database", "error", err)
 		return nil, err
@@ -108,13 +108,13 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 
 	logger.Info("http server configured", "port", cfg.HTTP.Port)
 
-	return &App{server: server, sqlDB: db, logger: logger}, nil
+	return &App{Server: server, sqlDB: db, logger: logger}, nil
 }
 
 func (a *App) Run() error {
-	a.logger.Info("starting http server", "addr", a.server.Addr)
+	a.logger.Info("starting http server", "addr", a.Server.Addr)
 
-	if err := a.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+	if err := a.Server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		a.logger.Error("http server failed", "error", err)
 		return err
 	}
@@ -127,7 +127,7 @@ func (a *App) Run() error {
 func (a *App) Shutdown(ctx context.Context) error {
 	a.logger.Info("shutting down http server")
 
-	if err := a.server.Shutdown(ctx); err != nil {
+	if err := a.Server.Shutdown(ctx); err != nil {
 		a.logger.Error("http server shutdown failed", "error", err)
 		return err
 	}

@@ -8,6 +8,6 @@ type HTTPConfig struct {
 
 func loadHTTP() HTTPConfig {
 	return HTTPConfig{
-		Port: os.Getenv("HTTP_POST"),
+		Port: os.Getenv("HTTP_PORT"),
 	}
 }
