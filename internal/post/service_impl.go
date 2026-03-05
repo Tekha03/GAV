@@ -19,12 +19,7 @@ func NewService(repo Repository) (PostService, error) {
 	return &service{repo: repo}, nil
 }
 
-func (s *service) Create(
-	ctx context.Context,
-	userID uuid.UUID,
-	content string,
-) (*Post, error) {
-
+func (s *service) Create(ctx context.Context, userID uuid.UUID, content string, imageUrl string) (*Post, error) {
 	if content == "" {
 		return  nil, ErrEmptyContent
 	}
@@ -32,6 +27,7 @@ func (s *service) Create(
 	post := &Post{
 		UserID: 	userID,
 		Content: 	content,
+		ImageUrl: 	imageUrl,
 		CreatedAt: 	time.Now(),
 	}
 

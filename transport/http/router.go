@@ -24,6 +24,7 @@ type Handlers struct {
 	Vaccination  *handlers.VaccinationHandler
 	Stats        *handlers.StatsHandler
 	Settings     *handlers.SettingsHandler
+	Upload		 *handlers.UploadHandler
 }
 
 type RouterDeps struct {
@@ -38,34 +39,69 @@ func NewRouter(
 ) http.Handler {
 
 	r := chi.NewRouter()
-	r.Use(deps.AuthMW)
 
-	r.Use(middleware.RequireRole("admin"))
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logging(logger))
 	r.Use(middleware.Recover(logger))
 	r.Use(middleware.Timeout)
 
+	r.Get("/", func (w http.ResponseWriter, r *http.Request)  {
+		w.Header().Set("Content-Type", "text/html")
+	html := `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>GAV API</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 40px auto; line-height: 1.6; }
+        h1 { color: #2c3e50; }
+        pre { background: #f8f9fa; padding: 15px; border-radius: 8px; }
+        code { background: #e9ecef; padding: 2px 6px; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <h1>GAV API запущен!</h1>
+    <p>Все эндпоинты находятся по адресу: <code>/api/v1</code></p>
+
+    <h3>Примеры использования:</h3>
+    <pre>
+POST /api/v1/auth/register   - регистрация
+POST /api/v1/auth/login      - вход
+GET  /api/v1/feed            - лента постов (требуется токен)
+POST /api/v1/posts           - создать пост
+    </pre>
+
+    <p>Swagger UI доступен по адресу: <a href="/swagger/index.html">/swagger/index.html</a> (если подключён)</p>
+</body>
+</html>
+    `
+		w.Write([]byte(html))
+	})
+
 	r.Route("/api/v1", func(r chi.Router) {
 		// r.Route("/admin", func(r chi.Router) {
-		// 	r.Get("/users", h.Admin.ListUsers)
-		// 	r.Post("/stats/reset", h.Admin.ResetStats)
+		// r.Use(middleware.RequireRole("admin"))
+		// r.Get("/users", h.Admin.ListUsers)
+		// r.Post("/stats/reset", h.Admin.ResetStats)
 		// })
-
-		r.Route("/auth", func(r chi.Router) {
-			r.Post("/register", h.Auth.Register)
-			r.Post("/login", h.Auth.Login)
-		})
 
 		r.Group(func(r chi.Router) {
 			r.Use(deps.AuthMW)
 
 			// ---- Auth ----
 			r.Route("/auth", func(r chi.Router) {
-				r.Get("/me", h.Auth.Me)
-				r.Post("/refresh", h.Auth.Refresh)
-				r.Post("/logout", h.Auth.Logout)
+				r.Post("/register", h.Auth.Register)
+				r.Post("/login", h.Auth.Login)
+
+				r.Group(func(r chi.Router) {
+					r.Use(deps.AuthMW)
+
+					r.Get("/me", h.Auth.Me)
+					r.Post("/refresh", h.Auth.Refresh)
+					r.Post("/logout", h.Auth.Logout)
+				})
 			})
 
 			// ---- Users ----
@@ -148,6 +184,12 @@ func NewRouter(
 			r.Route("/settings", func(r chi.Router) {
 				r.Get("/", h.Settings.Get)
 				r.Put("/", h.Settings.Update)
+			})
+
+			// ---- Upload ----
+			r.Route("/upload", func(r chi.Router) {
+				r.Post("/avatar", h.Upload.UploadAvatar)
+				r.Post("/post-image", h.Upload.UploadPostImage)
 			})
 		})
 	})

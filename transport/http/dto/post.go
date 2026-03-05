@@ -11,8 +11,9 @@ type PostRequest struct {
 }
 
 type PostResponse struct {
-	ID			uuid.UUID		`json:"id"`
-	AuthorID	uuid.UUID		`json:"author_id"`
-	Content		string			`json:"content"`
-	CreatedAt	time.Time		`json:"created_at"`
+	ID			uuid.UUID	`json:"id"`
+	AuthorID	uuid.UUID	`json:"author_id"`
+	Content		string		`json:"content"`
+	ImageUrl	string		`json:"image_url,omitempty"`
+	CreatedAt	time.Time	`json:"created_at"`
 }

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"gav/internal/media"
 	"gav/internal/post"
 	"gav/internal/validation"
 	"gav/transport/http/dto"
@@ -15,12 +16,16 @@ import (
 )
 
 type PostHandler struct {
-	service post.PostService
+	service 	 post.PostService
+	mediaService media.MediaService
 }
 
-func NewPostHandler(service post.PostService) (*PostHandler, error) {
+func NewPostHandler(service post.PostService, mediaService media.MediaService) (*PostHandler, error) {
 	if service == nil {
 		return nil, ErrPostNil
+	}
+	if mediaService == nil {
+		return nil, ErrMediaNil
 	}
 
 	return &PostHandler{service: service}, nil
@@ -30,6 +35,24 @@ func (h *PostHandler) Create(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.UserID(r.Context())
 	if !ok {
 		response.Error(w, ErrUnauthorized)
+		return
+	}
+
+	if err := r.ParseMultipartForm(10 << 20); err != nil {
+		response.Error(w, err)
+		return
+	}
+
+	file, header, err := r.FormFile("image")
+	if err != nil {
+		response.Error(w, err)
+		return
+	}
+	defer file.Close()
+
+	imageUrl, err := h.mediaService.UploadImage(r.Context(), file, header, "posts/"+userID.String())
+	if err != nil {
+		response.Error(w, err)
 		return
 	}
 
@@ -44,7 +67,7 @@ func (h *PostHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	post, err := h.service.Create(r.Context(), userID, request.Content)
+	post, err := h.service.Create(r.Context(), userID, request.Content, imageUrl)
 	if err != nil {
 		response.Error(w, err)
 		return
@@ -52,9 +75,9 @@ func (h *PostHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	response.JSON(w, http.StatusCreated, dto.PostResponse{
 		ID: post.ID,
-		AuthorID:
-		post.UserID,
+		AuthorID: post.UserID,
 		Content: post.Content,
+		ImageUrl: post.ImageUrl,
 		CreatedAt: post.CreatedAt,
 	})
 }

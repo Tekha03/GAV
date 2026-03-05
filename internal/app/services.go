@@ -7,6 +7,7 @@ import (
 	"gav/internal/feed"
 	"gav/internal/follow"
 	"gav/internal/like"
+	"gav/internal/media"
 	"gav/internal/post"
 	"gav/internal/profile"
 	"gav/internal/settings"
@@ -23,6 +24,7 @@ type Services struct {
 	Profile		 profile.ProfileService
 	Post		post.PostService
 	Feed		feed.FeedService
+	Media		media.MediaService
 	Comment 	comment.CommentService
 	Like 		like.LikeService
 	Follow 		follow.FollowService
@@ -32,7 +34,7 @@ type Services struct {
 	Settings 	settings.SettingsService
 }
 
-func initServices(repos *Repositories, jwtConfig auth.JWTConfig) (*Services, error) {
+func initServices(repos *Repositories, jwtConfig auth.JWTConfig, storage media.Storage) (*Services, error) {
 	s := &Services{}
 
 	var err error
@@ -42,6 +44,7 @@ func initServices(repos *Repositories, jwtConfig auth.JWTConfig) (*Services, err
 	s.Profile, 	 	 err = profile.NewService(repos.Profile);	  		   if err != nil { return nil, err }
 	s.Post, 		err = post.NewService(repos.Post);					if err != nil { return nil, err }
 	s.Feed,			err = feed.NewService(repos.Post);					if err != nil { return nil, err }
+	s.Media, 		err = media.NewService(storage);					if err != nil { return nil, err }
 	s.Comment, 		err = comment.NewService(repos.Comment); 			if err != nil { return nil, err }
 	s.Like, 		err = like.NewService(repos.Like);					if err != nil { return nil, err }
 	s.Follow, 		err = follow.NewService(repos.Follow);				if err != nil { return nil, err }

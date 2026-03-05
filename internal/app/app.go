@@ -9,6 +9,7 @@ import (
 	"gav/dbserver"
 	"gav/internal/auth"
 	"gav/internal/config"
+	"gav/internal/media"
 	httptransport "gav/transport/http"
 	"gav/transport/http/middleware"
 
@@ -43,6 +44,14 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 
 	logger.Info("database opened", "path", cfg.DB.Path)
 
+	if os.Getenv("ENV") != "production" {
+		if err := dbserver.SeedDatabase(db, logger); err != nil {
+			logger.Error("failed to seed database", "error", err)
+			return nil, err
+		}
+		logger.Info("database seeding completed")
+	}
+
 	sqlDB, err := db.DB()
 	if err != nil {
 		logger.Error("failed to get sql.DB", "error", err)
@@ -59,7 +68,9 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 		TTL: 	cfg.JWT.TTL,
 	}
 
-	logger.Info("jwt cofidured", "ttl", cfg.JWT.TTL.String())
+	logger.Info("jwt cofigured", "ttl", cfg.JWT.TTL.String())
+
+	mediaStorage := media.NewLocalStorage(cfg.Storage.LocalPath)
 
 	// repositories
 	repos, err := initRepositories(db);
@@ -68,7 +79,7 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 	}
 
 	// services
-	services, err := initServices(repos, jwtConfig)
+	services, err := initServices(repos, jwtConfig, mediaStorage)
 	if err != nil {
 		return nil, err
 	}
@@ -93,6 +104,7 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 			Vaccination:	handlers.Vaccination,
 			Stats: 			handlers.Stats,
 			Settings: 		handlers.Settings,
+			Upload: 		handlers.Upload,
 		},
 		httptransport.RouterDeps{
 			AuthMW: middleware.JWTAuth(jwtConfig),
@@ -112,8 +124,6 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 }
 
 func (a *App) Run() error {
-	a.logger.Info("starting http server", "addr", a.Server.Addr)
-
 	if err := a.Server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		a.logger.Error("http server failed", "error", err)
 		return err
@@ -139,8 +149,8 @@ func (a *App) Shutdown(ctx context.Context) error {
 	}
 
 	if err := sqlDB.Close(); err != nil {
-			a.logger.Error("failed to close database", "error", err)
-			return err
+		a.logger.Error("failed to close database", "error", err)
+		return err
 	}
 
 	a.logger.Info("application shutdown completed")

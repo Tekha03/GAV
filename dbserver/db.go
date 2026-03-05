@@ -84,7 +84,7 @@ func InitDB(path string, logger *slog.Logger) (*gorm.DB, error) {
 	}
 
 	for _, idx := range indexes {
-		if err := db.Exec(idx); err != nil {
+		if err := db.Exec(idx).Error; err != nil {
 			logger.Warn("failed to create index", "sql", idx, "error", err)
 		}
 	}

@@ -17,6 +17,7 @@ type Handlers struct {
 	Vaccination *handlers.VaccinationHandler
 	Stats 		*handlers.StatsHandler
 	Settings 	*handlers.SettingsHandler
+	Upload		*handlers.UploadHandler
 }
 
 func initHandlers(services *Services) (*Handlers, error) {
@@ -26,7 +27,7 @@ func initHandlers(services *Services) (*Handlers, error) {
 	h.Auth, 		err = handlers.NewAuthHandler(services.Auth);				if err != nil { return nil, err }
 	h.User, 		err = handlers.NewUserHandler(services.User);				if err != nil { return nil, err }
 	h.Profile,	 	 err = handlers.NewProfileHandler(services.Profile); 		   if err != nil { return nil, err }
-	h.Post, 		err = handlers.NewPostHandler(services.Post);	   			if err != nil { return nil, err }
+	h.Post, 		err = handlers.NewPostHandler(services.Post, services.Media);	if err != nil { return nil, err }
 	h.Feed, 		err = handlers.NewFeedHandler(services.Feed);				if err != nil { return nil, err }
 	h.Comment, 		err = handlers.NewCommentHandler(services.Comment);			if err != nil { return nil, err }
 	h.Like, 		err = handlers.NewLikeHandler(services.Like);				if err != nil { return nil, err }
@@ -35,6 +36,7 @@ func initHandlers(services *Services) (*Handlers, error) {
 	h.Vaccination,  err = handlers.NewVaccinationHandler(services.Vaccination);	if err != nil { return nil, err }
 	h.Stats, 		err = handlers.NewStatsHandler(services.Stats);				if err != nil { return nil, err }
 	h.Settings, 	err = handlers.NewSettingsHandler(services.Settings);		if err != nil { return nil, err }
+	h.Upload, 		err = handlers.NewUploadHandler(services.Media);			if err != nil { return nil, err }
 
 	return h, nil
 }

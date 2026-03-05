@@ -5,6 +5,8 @@ import (
 	"net/http"
 
 	"gav/internal/errors"
+
+	"log/slog"
 )
 
 func JSON(writer http.ResponseWriter, code int, data any) {
@@ -14,6 +16,8 @@ func JSON(writer http.ResponseWriter, code int, data any) {
 		_ = json.NewEncoder(writer).Encode(data)
 	}
 }
+
+var logg slog.Logger
 
 func Error(w http.ResponseWriter, err error) {
 	if err == nil {
@@ -32,6 +36,7 @@ func Error(w http.ResponseWriter, err error) {
 		}
 	}
 
+	logg.Error("handler error", "error", err.Error())
 	JSON(w, http.StatusInternalServerError, ErrorResponse{
 		Error: ErrorBody{
 			Code: 	 "INTERNAL_ERROR",
