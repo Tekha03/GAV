@@ -2,16 +2,10 @@ package memory
 
 import (
 	"context"
-	"errors"
 	"gav/internal/chat/model"
 	"sync"
 
 	"github.com/google/uuid"
-)
-
-var (
-	ErrMemberExists = errors.New("chat member already exists")
-	ErrMemberNotFound = errors.New("member not found")
 )
 
 type MembersRepository struct {
@@ -119,4 +113,19 @@ func (mr *MembersRepository) GetUserChats(ctx context.Context, userId uuid.UUID)
 	}
 
 	return result, nil
+}
+
+func (mr *MembersRepository) GetLastReadMessageID(ctx context.Context, chatID, userID uuid.UUID) (uuid.UUID, error) {
+    mr.mu.RLock()
+    defer mr.mu.RUnlock()
+
+    if _, ok := mr.members[chatID]; !ok {
+        return uuid.Nil, ErrMemberNotFound
+    }
+    member, exists := mr.members[chatID][userID]
+    if !exists {
+        return uuid.Nil, ErrMemberNotFound
+    }
+
+    return member.LastReadMessageID, nil
 }

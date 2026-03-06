@@ -6,7 +6,6 @@ import (
 	"github.com/google/uuid"
 )
 
-
 type Vaccination struct {
 	ID        uuid.UUID
 	DogID     uuid.UUID

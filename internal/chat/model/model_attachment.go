@@ -17,5 +17,5 @@ type Attachment struct {
 	URL       string
 	Type      AttachmentType
 	FileName  string
-	FileSize  string
+	FileSize  int64
 }

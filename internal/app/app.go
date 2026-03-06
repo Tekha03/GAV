@@ -6,38 +6,51 @@ import (
 	"net/http"
 	"os"
 
+	"gav/dbserver"
 	"gav/internal/auth"
 	"gav/internal/config"
-	"gav/internal/like"
-	"gav/internal/post"
-	"gav/internal/transport/http/handlers"
-	"gav/internal/transport/http/middleware"
-	"gav/internal/user"
+	"gav/internal/media"
+	httptransport "gav/transport/http"
+	"gav/transport/http/middleware"
 
-	httptransport "gav/internal/transport/http"
-	gavSqlite "gav/storage/sqlite"
-
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
 type App struct {
-	server *http.Server
+	Server *http.Server
 	sqlDB  *gorm.DB
 	logger *slog.Logger
 }
 
 func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
+	if cfg == nil {
+		return nil, ErrConfigNil
+	}
+	if cfg.DB.Path == "" {
+		return nil, ErrDBPathEmpty
+	}
+	if cfg.JWT.Secret == "" {
+		return nil, ErrJWTSecretEmpty
+	}
+
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	logger.Info("initializing application")
 
-	db, err := gorm.Open(sqlite.Open(cfg.DB.Path), &gorm.Config{})
+	db, err := dbserver.InitDB(cfg.DB.Path, logger)
 	if err != nil {
 		logger.Error("failed to open database", "error", err)
 		return nil, err
 	}
 
 	logger.Info("database opened", "path", cfg.DB.Path)
+
+	if os.Getenv("ENV") != "production" {
+		if err := dbserver.SeedDatabase(db, logger); err != nil {
+			logger.Error("failed to seed database", "error", err)
+			return nil, err
+		}
+		logger.Info("database seeding completed")
+	}
 
 	sqlDB, err := db.DB()
 	if err != nil {
@@ -55,31 +68,48 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 		TTL: 	cfg.JWT.TTL,
 	}
 
-	logger.Info("jwt cofidured", "ttl", cfg.JWT.TTL.String())
+	logger.Info("jwt cofigured", "ttl", cfg.JWT.TTL.String())
+
+	mediaStorage := media.NewLocalStorage(cfg.Storage.LocalPath)
 
 	// repositories
-	userRepo := gavSqlite.NewUserRepository(db)
-	postRepo := gavSqlite.NewPostRepository(db)
-	likeRepo := gavSqlite.NewLikeRepository(db)
+	repos, err := initRepositories(db);
+	if err != nil {
+		return nil, err
+	}
 
 	// services
-	authService := auth.NewService(userRepo, jwtConfig)
-	userService := user.NewService(userRepo)
-	postService := post.NewService(postRepo)
-	likeService := like.NewService(likeRepo)
+	services, err := initServices(repos, jwtConfig, mediaStorage)
+	if err != nil {
+		return nil, err
+	}
 
 	// handlers
-	authHandler := handlers.NewAuthHandler(authService)
-	userHandler := handlers.NewUserHandler(userService)
-	postHandler := handlers.NewPostHandler(postService)
-	likeHandler := handlers.NewLikeHandler(likeService)
+	handlers, err := initHandlers(services)
+	if err != nil {
+		return nil, err
+	}
 
 	router := httptransport.NewRouter(
-		authHandler,
-		userHandler,
-		postHandler,
-		likeHandler,
-		middleware.JWTAuth(jwtConfig),
+		httptransport.Handlers{
+			Auth:			handlers.Auth,
+			User: 			handlers.User,
+			Profile: 	 	 handlers.Profile,
+			Post: 			handlers.Post,
+			Feed:			handlers.Feed,
+			Comment: 		handlers.Comment,
+			Like: 			handlers.Like,
+			Follow: 		handlers.Follow,
+			Dog: 			handlers.Dog,
+			Vaccination:	handlers.Vaccination,
+			Stats: 			handlers.Stats,
+			Settings: 		handlers.Settings,
+			Upload: 		handlers.Upload,
+		},
+		httptransport.RouterDeps{
+			AuthMW: middleware.JWTAuth(jwtConfig),
+			PostService: services.Post,
+		},
 		logger,
 	)
 
@@ -90,13 +120,11 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 
 	logger.Info("http server configured", "port", cfg.HTTP.Port)
 
-	return &App{server: server, sqlDB: db, logger: logger}, nil
+	return &App{Server: server, sqlDB: db, logger: logger}, nil
 }
 
 func (a *App) Run() error {
-	a.logger.Info("starting http server", "addr", a.server.Addr)
-
-	if err := a.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+	if err := a.Server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		a.logger.Error("http server failed", "error", err)
 		return err
 	}
@@ -109,7 +137,7 @@ func (a *App) Run() error {
 func (a *App) Shutdown(ctx context.Context) error {
 	a.logger.Info("shutting down http server")
 
-	if err := a.server.Shutdown(ctx); err != nil {
+	if err := a.Server.Shutdown(ctx); err != nil {
 		a.logger.Error("http server shutdown failed", "error", err)
 		return err
 	}
@@ -121,8 +149,8 @@ func (a *App) Shutdown(ctx context.Context) error {
 	}
 
 	if err := sqlDB.Close(); err != nil {
-			a.logger.Error("failed to close database", "error", err)
-			return err
+		a.logger.Error("failed to close database", "error", err)
+		return err
 	}
 
 	a.logger.Info("application shutdown completed")

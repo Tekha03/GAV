@@ -2,54 +2,121 @@ package auth
 
 import (
 	"context"
-
+	"gav/internal/token"
 	"gav/internal/user"
-	"gav/storage"
+
+	"github.com/google/uuid"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type service struct {
-	users storage.Repository
-	jwtConfig JWTConfig
+	userService 	user.UserService
+	tokenService	token.TokenService
+	jwtConfig 	 	 JWTConfig
+	hasher			*PasswordHasher
 }
 
-func NewService(users storage.Repository, jwtConfig JWTConfig) AuthService {
-	return &service{users: users, jwtConfig: jwtConfig}
+func NewService(userService user.UserService, tokenService token.TokenService, jwtConfig JWTConfig, hasher *PasswordHasher) (AuthService, error) {
+	if userService == nil {
+		return nil, ErrUserServiceNil
+	}
+	if tokenService == nil {
+		return nil, ErrTokenServiceNil
+	}
+	if jwtConfig.Secret == nil {
+		return nil, ErrJWTSecretNil
+	}
+	if hasher == nil {
+		return nil, ErrHasherNil
+	}
+
+	return &service{userService: userService, tokenService: tokenService, jwtConfig: jwtConfig, hasher: hasher}, nil
 }
 
-func (s *service) Register(ctx context.Context, email, password string) (string, error) {
-	hashedPassword, err := HashPassword(password)
+func (s *service) Register(ctx context.Context, email, password string) (*AuthTokens, error) {
+	_, err := s.userService.GetByEmail(ctx, email)
+	if err == nil {
+		return nil, ErrUserAlreadyExists
+	}
+
+	hashedPassword, err := s.hasher.HashPassword(password)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	newUser := user.NewUser(email, hashedPassword)
-
-	if err := s.users.Create(ctx, newUser); err != nil {
-		return "", ErrEmailAlreadyExists
-	}
-
-	token, err := GenerateToken(newUser.ID, s.jwtConfig)
+	newUser, err := s.userService.Create(ctx, email, hashedPassword)
 	if err != nil {
-		return "", ErrInvalidCredentials
+		return nil, ErrEmailAlreadyExists
 	}
 
-	return token, nil
+	accessToken, err := GenerateAccessToken(newUser.ID, newUser.Role, s.jwtConfig)
+	if err != nil {
+		return nil, ErrInvalidCredentials
+	}
+
+	refreshToken, err := s.tokenService.CreateRefresh(ctx, newUser.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &AuthTokens{
+		AccessToken: accessToken,
+		RefreshToken: refreshToken,
+	}, nil
 }
 
-func (s *service) Login(ctx context.Context, email, password string) (string, error) {
-	authorizedUser, err := s.users.GetByEmail(ctx, email)
+func (s *service) Login(ctx context.Context, email, password string) (*AuthTokens, error) {
+	authorizedUser, err := s.userService.GetByEmail(ctx, email)
+	if err != nil || !s.hasher.CheckPassword(authorizedUser.Password, password) {
+		return nil, ErrInvalidCredentials
+	}
+
+	access, err := GenerateAccessToken(authorizedUser.ID, authorizedUser.Role, s.jwtConfig)
 	if err != nil {
-		return "", ErrInvalidCredentials
+		return nil, err
 	}
 
-	if !CheckPassword(authorizedUser.Password, password) {
-		return "", ErrInvalidCredentials
-	}
+	refreshStr, err := s.tokenService.CreateRefresh(ctx, authorizedUser.ID)
 
-	token, err := GenerateToken(authorizedUser.ID, s.jwtConfig)
+	return &AuthTokens{
+		AccessToken: access,
+		RefreshToken: refreshStr,
+	}, nil
+}
+
+func (s *service) Refresh(ctx context.Context, refreshToken string) (*AuthTokens, error) {
+	refrTokenID, _, err := s.tokenService.ValidateAndRotate(ctx, refreshToken)
+
+	user, err := s.userService.GetByID(ctx, refrTokenID)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return token, nil
+	newAccess, err := GenerateAccessToken(user.ID, user.Role, s.jwtConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	newRefreshStr, err := s.tokenService.CreateRefresh(ctx, user.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &AuthTokens{AccessToken: newAccess, RefreshToken: newRefreshStr}, nil
+
+}
+
+func (s *service) Me(ctx context.Context, userID uuid.UUID) (*UserInfo, error) {
+	user, err := s.userService.GetByID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	userInfo := UserInfo{ID: userID, Email: user.Email}
+	return &userInfo, nil
+}
+
+func (s *service) Logout(ctx context.Context, refreshToken string) error {
+	hash, _ := bcrypt.GenerateFromPassword([]byte(refreshToken), 12)
+	return s.tokenService.Revoke(ctx, string(hash))
 }

@@ -27,7 +27,7 @@ func NewMessageRepository() *MessageRepository {
 	return &MessageRepository{messages: make(map[uuid.UUID]map[uuid.UUID]*model.Message)}
 }
 
-func (mr *MessageRepository) Create(ctx context.Context, msg *model.Message) error {
+func (mr *MessageRepository) Create(ctx context.Context, msg *model.Message) (uuid.UUID, error) {
 	mr.mu.Lock()
 	defer mr.mu.Unlock()
 
@@ -41,11 +41,11 @@ func (mr *MessageRepository) Create(ctx context.Context, msg *model.Message) err
 	}
 
 	if _, exists := mr.messages[msg.ChatID][msg.ID]; exists {
-		return ErrMessageExists
+		return uuid.Nil, ErrMessageExists
 	}
 
 	mr.messages[msg.ChatID][msg.ID] = msg
-	return nil
+	return msg.ID, nil
 }
 
 func (mr *MessageRepository) UpdateText(ctx context.Context, chatID, msgID uuid.UUID, newText string) error {

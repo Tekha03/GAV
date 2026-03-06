@@ -16,8 +16,12 @@ type service struct {
 	repo Repository
 }
 
-func NewService(repo Repository) CommentService {
-	return &service{repo: repo}
+func NewService(repo Repository) (CommentService, error) {
+	if repo == nil {
+		return nil, ErrRepoEmpty
+	}
+
+	return &service{repo: repo}, nil
 }
 
 func (s *service) Create(ctx context.Context, userID, postID uuid.UUID, content string) error {
@@ -34,8 +38,8 @@ func (s *service) GetByID(ctx context.Context, commentID uuid.UUID) (*Comment, e
 	return s.repo.GetByID(ctx, commentID)
 }
 
-func (s *service) GetByPostID(ctx context.Context, postID uuid.UUID) ([]Comment, error) {
-	return s.repo.GetByPostID(ctx, postID)
+func (s *service) ListByPostID(ctx context.Context, postID uuid.UUID) ([]Comment, error) {
+	return s.repo.ListByPostID(ctx, postID)
 }
 
 func (s *service) Delete(ctx context.Context, userID, commentID uuid.UUID) error {

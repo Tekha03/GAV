@@ -14,4 +14,5 @@ type ChatMemberRepository interface {
 	UpdateRole(ctx context.Context, chatID, userID uuid.UUID, role *model.MemberRole) error
 	SetMuted(ctx context.Context, chatID, userID uuid.UUID, muted bool) error
 	GetUserChats(ctx context.Context, userID uuid.UUID) ([]uuid.UUID, error)
+	GetLastReadMessageID(ctx context.Context, chatID, userID uuid.UUID) (uuid.UUID, error)
 }

@@ -2,32 +2,29 @@ package vaccination
 
 import (
 	"context"
-	"errors"
 
 	"github.com/google/uuid"
 )
 
-var (
-	ErrVaccAccessDenied = errors.New("vaccination access denied")
-)
-
 type service struct {
-	repo VaccinationRepository
+	repo Repository
 }
 
-func NewVaccinationService(repo VaccinationRepository) *service {
-	return &service{
-		repo: repo,
+func NewService(repo Repository) (VaccinationService, error) {
+	if repo == nil {
+		return nil, ErrRepoNil
 	}
+
+	return &service{repo: repo,}, nil
 }
 
-func (s *service) Create(ctx context.Context, dogID uuid.UUID, vi *CreateVaccinationInput)(*Vaccination, error ){
+func (s *service) Create(ctx context.Context, dogID uuid.UUID, input CreateVaccinationInput) (*Vaccination, error) {
 	vaccination := Vaccination{
 		DogID: dogID,
-		Name: vi.Name,
-		DoneAt: vi.DoneAt,
-		NextDueAt: vi.NextDueAt,
-		Notes: vi.Notes,
+		Name: input.Name,
+		DoneAt: input.DoneAt,
+		NextDueAt: input.NextDueAt,
+		Notes: input.Notes,
 	}
 
 	if err := s.repo.Create(ctx, &vaccination); err != nil {
@@ -37,31 +34,52 @@ func (s *service) Create(ctx context.Context, dogID uuid.UUID, vi *CreateVaccina
 	return &vaccination, nil
 }
 
-func (s *service) Update(ctx context.Context, ID, dogID uuid.UUID, input UpdateVaccinationInput) error {
-	vac, err := s.repo.GetByID(ctx, ID)
+func (s *service) ListByDogID(ctx context.Context, dogID uuid.UUID) ([]*Vaccination, error) {
+	if dogID == uuid.Nil {
+		return nil, ErrDogIDEmpty
+	}
+
+	return s.repo.ListByDogID(ctx, dogID)
+}
+
+func (s *service) Update(ctx context.Context, vaccinationID, dogID uuid.UUID, input UpdateVaccinationInput) error {
+	current_vaccine, err := s.repo.GetByID(ctx, vaccinationID)
 	if err != nil {
 		return err
 	}
 
-	if vac.DogID != dogID {
+	if current_vaccine.DogID != dogID {
 		return ErrVaccAccessDenied
 	}
 
 	if input.Name != nil {
-		vac.Name = *input.Name
+		current_vaccine.Name = *input.Name
 	}
 
 	if input.DoneAt != nil {
-		vac.DoneAt = *input.DoneAt
+		current_vaccine.DoneAt = *input.DoneAt
 	}
 
 	if input.NextDueAt != nil {
-		vac.NextDueAt = input.NextDueAt
+		current_vaccine.NextDueAt = input.NextDueAt
 	}
 
 	if input.Notes != nil {
-		vac.Notes = *input.Notes
+		current_vaccine.Notes = *input.Notes
 	}
 
-	return nil
+	return s.repo.Update(ctx, current_vaccine)
+}
+
+func (s *service) Delete(ctx context.Context, vaccinationID uuid.UUID) error {
+	vaccination, err := s.repo.GetByID(ctx, vaccinationID)
+	if err != nil {
+		return err
+	}
+
+	if vaccination.ID != vaccinationID {
+		return ErrVaccAccessDenied
+	}
+
+	return s.repo.Delete(ctx, vaccinationID)
 }

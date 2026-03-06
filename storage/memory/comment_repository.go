@@ -2,7 +2,6 @@ package memory
 
 import (
 	"context"
-	"errors"
 	"sync"
 	"time"
 
@@ -10,8 +9,6 @@ import (
 
 	"github.com/google/uuid"
 )
-
-var ErrCommentNotFound = errors.New("comment not found")
 
 type CommentRepository struct {
 	mu			sync.RWMutex
@@ -24,23 +21,27 @@ func NewCommentRepository() *CommentRepository {
 	}
 }
 
-func (cr *CommentRepository) Create(ctx context.Context, comment *comment.Comment) error {
-	cr.mu.Lock()
-	defer cr.mu.Unlock()
+func (r *CommentRepository) Create(ctx context.Context, comment *comment.Comment) error {
+	if comment == nil {
+		return ErrCommentNil
+	}
+
+	r.mu.Lock()
+	defer r.mu.Unlock()
 
 	comment.ID = uuid.New()
 	comment.CreatedAt = time.Now()
-	cr.comments[comment.ID] = *comment
+	r.comments[comment.ID] = *comment
 
 	return nil
 }
 
-func (cr *CommentRepository) GetByPostID(ctx context.Context, postID uuid.UUID) ([]comment.Comment, error) {
-	cr.mu.Lock()
-	defer cr.mu.Unlock()
+func (r *CommentRepository) ListyPostID(ctx context.Context, postID uuid.UUID) ([]comment.Comment, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
 
 	var result []comment.Comment
-	for _, comment := range cr.comments {
+	for _, comment := range r.comments {
 		if comment.PostID == postID {
 			result = append(result, comment)
 		}
@@ -49,11 +50,11 @@ func (cr *CommentRepository) GetByPostID(ctx context.Context, postID uuid.UUID) 
 	return result, nil
 }
 
-func (cr *CommentRepository) Delete(ctx context.Context, commentID, userID uuid.UUID) error {
-	cr.mu.Lock()
-	defer cr.mu.Unlock()
+func (r *CommentRepository) Delete(ctx context.Context, commentID, userID uuid.UUID) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
 
-	comment, ok := cr.comments[commentID]
+	comment, ok := r.comments[commentID]
 	if !ok {
 		return ErrCommentNotFound
 	}
@@ -62,6 +63,6 @@ func (cr *CommentRepository) Delete(ctx context.Context, commentID, userID uuid.
 		return ErrCommentNotFound
 	}
 
-	delete(cr.comments, commentID)
+	delete(r.comments, commentID)
 	return nil
 }

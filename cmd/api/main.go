@@ -2,38 +2,60 @@ package main
 
 import (
 	"context"
-	"log"
+	"log/slog"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
-	"gav/dbserver"
 	"gav/internal/app"
 	"gav/internal/config"
 )
 
 func main() {
-	db, err := dbserver.InitDB()
-	if err != nil {
-		log.Fatal(err)
-	}
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+	}))
 
-	defer func () {
-		if err := dbserver.CloseDB(db); err != nil {
-			log.Printf("failed to close db: %v", err)
-		}
-	}()
-
-	ctx := context.Background()
+	logger.Info("starting application")
 
 	cfg, err := config.Load()
 	if err != nil {
-		log.Fatal(err)
+		logger.Error("failed to load config", "error", err)
+		os.Exit(1)
 	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	app, err := app.NewApp(ctx, cfg)
 	if err != nil {
-		log.Fatal(err)
+		logger.Error("failed to create application", "error", err)
+		os.Exit(1)
 	}
 
-	if err := app.Run(); err != nil {
-		log.Fatal(err)
+	go func () {
+		logger.Info("starting HTTP server", "addr", app.Server.Addr)
+		if err := app.Run(); err != nil && err != http.ErrServerClosed {
+			logger.Error("http server failed", "error", err)
+			os.Exit(1)
+		}
+	}()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
+	<-quit
+
+	logger.Info("received shutdown signal")
+
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10 * time.Second)
+	defer shutdownCancel()
+
+	if err := app.Shutdown(shutdownCtx); err != nil {
+		logger.Error("graceful shutdown failed", "error", err)
+		os.Exit(1)
 	}
+
+	logger.Info("application stopped gracefully")
 }

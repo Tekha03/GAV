@@ -9,7 +9,7 @@ import (
 )
 
 type MessageRepository interface {
-	Create(ctx context.Context, message *model.Message) error
+	Create(ctx context.Context, message *model.Message) (uuid.UUID, error)
 	UpdateText(ctx context.Context, messageID uuid.UUID, newText string) error
 	Delete(ctx context.Context, messageID uuid.UUID) error
 	GetByID(ctx context.Context, messageID uuid.UUID) (*model.Message, error)

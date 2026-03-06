@@ -2,24 +2,20 @@ package profile
 
 import (
 	"context"
-	"errors"
 
 	"github.com/google/uuid"
-)
-
-var (
-	ErrProfileAlreadyExists = errors.New("profile already exists")
-	ErrProfileNotFound		= errors.New("profile not found")
-	ErrInvalidUserID	   = errors.New("invalid user ID")
-	ErrInvalidProfileID	  	= errors.New("invalid profile ID")
 )
 
 type service struct {
 	repo Repository
 }
 
-func NewService(repo Repository) ProfileService {
-	return &service{repo: repo}
+func NewService(repo Repository) (ProfileService, error) {
+	if repo == nil {
+		return nil, ErrRepoNil
+	}
+
+	return &service{repo: repo}, nil
 }
 
 func (s *service) Create(ctx context.Context, userID uuid.UUID, input CreateProfileInput) (*UserProfile, error) {
@@ -32,7 +28,7 @@ func (s *service) Create(ctx context.Context, userID uuid.UUID, input CreateProf
 		Name: input.Name,
 		Surname: input.Surname,
 		Username: input.Username,
-		ProfilePhoto: input.ProfilePhoto,
+		ProfilePhotoUrl: input.ProfilePhotoUrl,
 		Bio: input.Bio,
 		Address: input.Address,
 		BirthDate: input.BirthDate,
@@ -58,6 +54,15 @@ func (s *service) GetByID(ctx context.Context, profileID uuid.UUID) (*UserProfil
 	return profile, nil
 }
 
+func (s *service) GetByUserID(ctx context.Context, userID uuid.UUID) (*UserProfile, error) {
+	profile, err := s.repo.GetByUserID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	return profile, nil
+}
+
 func (s *service) Update(ctx context.Context, profileID uuid.UUID, input UpdateProfileInput) error {
 	if profileID == uuid.Nil {
 		return ErrInvalidProfileID
@@ -77,8 +82,8 @@ func (s *service) Update(ctx context.Context, profileID uuid.UUID, input UpdateP
 	if input.Username != nil {
 		profile.Username = *input.Username
 	}
-	if input.ProfilePhoto != nil {
-		profile.ProfilePhoto = *input.ProfilePhoto
+	if input.ProfilePhotoUrl != nil {
+		profile.ProfilePhotoUrl = *input.ProfilePhotoUrl
 	}
 	if input.Bio != nil {
 		profile.Bio = *input.Bio

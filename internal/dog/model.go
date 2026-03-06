@@ -14,8 +14,8 @@ type Dog struct {
 	Age			Age
 	Gender		Gender
 
-	Lat      *float64
-    Lon      *float64
+	Lat         *float64
+    Lon         *float64
     LocationVisible bool
 }
 
@@ -27,7 +27,30 @@ func NewDog(
     status Status,
     age Age,
     photoURL string,
-) *Dog {
+) (*Dog, error) {
+
+    if ownerID == uuid.Nil {
+        return nil, ErrOwnerIDNil
+    }
+    if name == "" {
+        return nil, ErrNameEmpty
+    }
+    if breed == "" {
+        return nil, ErrBreedEmpty
+    }
+    if gender == "" {
+        return nil, ErrGenderEmpty
+    }
+    if status == "" {
+        return nil, ErrStatusEmpty
+    }
+    if age == "" {
+        return nil, ErrAgeEmpty
+    }
+    if photoURL == "" {
+        return nil, ErrPhotoURLEmpty
+    }
+
     return &Dog{
         OwnerID: ownerID,
         Name:    name,
@@ -36,5 +59,5 @@ func NewDog(
         Status:  status,
         Age:     age,
         PhotoUrl: photoURL,
-    }
+    }, nil
 }

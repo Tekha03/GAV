@@ -15,14 +15,21 @@ type service struct {
 	repo Repository
 }
 
-func NewService(repo Repository) UserService {
-	return &service{repo: repo}
+func NewService(repo Repository) (UserService, error) {
+	if repo == nil {
+		return nil, ErrRepoNil
+	}
+
+	return &service{repo: repo}, nil
 }
 
 func (s *service) Create(ctx context.Context, email, passwordHash string) (*User, error) {
-	user := NewUser(email, passwordHash)
+	user, err := NewUser(email, passwordHash)
+	if err != nil {
+		return nil, err
+	}
 
-	if err := s.repo.Create(ctx, user); err != nil {
+	if err = s.repo.Create(ctx, user); err != nil {
 		return nil, err
 	}
 
@@ -37,12 +44,12 @@ func (s *service) GetByEmail(ctx context.Context, email string) (*User, error) {
 	return s.repo.GetByEmail(ctx, email)
 }
 
-func (s *service) Update(ctx context.Context, id uuid.UUID, input UpdateuserInput) error {
+func (s *service) Update(ctx context.Context, id uuid.UUID, input UpdateUserInput) error {
 	user := &User{
 		ID: id,
 		Email: *input.Email,
 		Password: *input.Password,
-		RoleID: *input.RoleID,
+		Role: *input.Role,
 	}
 
 	return s.repo.Update(ctx, user)

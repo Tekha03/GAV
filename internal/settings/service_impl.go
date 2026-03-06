@@ -2,22 +2,20 @@ package settings
 
 import (
 	"context"
-	"errors"
 
 	"github.com/google/uuid"
-)
-
-var (
-	ErrSettingsNotFound = errors.New("settings not found")
-	ErrInvalidUserID	= errors.New("invalid user ID")
 )
 
 type service struct {
 	repo Repository
 }
 
-func NewService(repo Repository) SettingsService {
-	return &service{repo: repo}
+func NewService(repo Repository) (SettingsService, error) {
+	if repo == nil {
+		return nil, ErrRepoNil
+	}
+
+	return &service{repo: repo}, nil
 }
 
 func (s *service) Get(ctx context.Context, userID uuid.UUID) (*UserSettings, error) {

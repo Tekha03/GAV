@@ -4,6 +4,7 @@ type Config struct {
 	HTTP HTTPConfig
 	DB DBConfig
 	JWT JWTConfig
+	Storage StorageConfig
 }
 
 func Load() (*Config, error) {
