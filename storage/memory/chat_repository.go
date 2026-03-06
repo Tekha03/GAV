@@ -2,18 +2,10 @@ package memory
 
 import (
 	"context"
-	"errors"
 	"gav/internal/chat/model"
 	"sync"
 
 	"github.com/google/uuid"
-)
-
-var (
-	ErrChatExists = errors.New("chat already exists")
-	ErrChatNotFound = errors.New("chat not found")
-	ErrNotGroup = errors.New("operation allowed only for group chats")
-	ErrEmptyTitle = errors.New("title can not be empty")
 )
 
 type ChatRepository struct {

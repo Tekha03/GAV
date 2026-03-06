@@ -2,16 +2,10 @@ package memory
 
 import (
 	"context"
-	"errors"
 	"gav/internal/chat/model"
 	"sync"
 
 	"github.com/google/uuid"
-)
-
-var (
-	ErrAttachmentNotFound = errors.New("attachment not found")
-	ErrAttachmentExist = errors.New("attachment exist")
 )
 
 type AttachmentRepository struct {

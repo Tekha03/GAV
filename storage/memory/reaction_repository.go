@@ -2,16 +2,10 @@ package memory
 
 import (
 	"context"
-	"errors"
 	"gav/internal/chat/model"
 	"sync"
 
 	"github.com/google/uuid"
-)
-
-var (
-	ErrReactionExists = errors.New("reaction already exists")
-	ErrReactionNotFound = errors.New("reaction not found")
 )
 
 type ReactionRepository struct {

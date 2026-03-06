@@ -3,18 +3,12 @@ package memory
 import (
 	"bytes"
 	"context"
-	"errors"
 	"gav/internal/chat/model"
 	"sort"
 	"sync"
 	"time"
 
 	"github.com/google/uuid"
-)
-
-var (
-	ErrMessageNotFound = errors.New("messsage not found")
-	ErrMessageExists = errors.New("message already exists")
 )
 
 type MessageRepository struct {

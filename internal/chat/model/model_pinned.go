@@ -9,5 +9,5 @@ import (
 type PinnedMessages struct {
 	ChatID 		uuid.UUID
 	MessageID 	uuid.UUID
-	PinnedAt	*time.Time
+	PinnedAt	time.Time
 }

@@ -20,4 +20,18 @@ var (
 
 	ErrMemberExists = errors.New("chat member already exists")
 	ErrMemberNotFound = errors.New("member not found")
+
+	ErrChatExists = errors.New("chat already exists")
+	ErrChatNotFound = errors.New("chat not found")
+	ErrNotGroup = errors.New("operation allowed only for group chats")
+	ErrEmptyTitle = errors.New("title can not be empty")
+
+	ErrMessageNotFound = errors.New("messsage not found")
+	ErrMessageExists = errors.New("message already exists")
+
+	ErrAttachmentNotFound = errors.New("attachment not found")
+	ErrAttachmentExist = errors.New("attachment exist")
+
+	ErrReactionExists = errors.New("reaction already exists")
+	ErrReactionNotFound = errors.New("reaction not found")
 )
