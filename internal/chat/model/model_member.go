@@ -14,11 +14,11 @@ const (
 )
 
 type ChatMember struct {
-	UserID   	  	  uuid.UUID
-	ChatID    		  uuid.UUID
-	Role      		  MemberRole
-	JoinedAt 		  time.Time
+	UserID   	  	  uuid.UUID 	`gorm:"type:uuid;primaryKey"`
+	ChatID    		  uuid.UUID 	`gorm:"type:uuid;primaryKey"`
+	Role      		  MemberRole 	`gorm:"type:text;not null"`
+	JoinedAt 		  time.Time 	`gorm:"autoCreateTime"`
 	LeftAt   		  *time.Time
-	Muted    		  bool
-	LastReadMessageID uuid.UUID
+	Muted    		  bool			`gorm:"not null;default:false"`
+	LastReadMessageID uuid.UUID		`gorm:"type:uuid"`
 }

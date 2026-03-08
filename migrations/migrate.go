@@ -1,6 +1,7 @@
 package migrations
 
 import (
+	"gav/internal/chat/model"
 	"gav/internal/comment"
 	"gav/internal/follow"
 	"gav/internal/like"
@@ -15,5 +16,11 @@ func Migrate(db *gorm.DB) error {
 		&follow.Follow{},
 		&like.Like{},
 		&comment.Comment{},
+		&model.Chat{},
+		&model.ChatMember{},
+		&model.Message{},
+		&model.Attachment{},
+		&model.PinnedMessages{},
+		&model.Reaction{},
 	)
 }

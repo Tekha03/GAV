@@ -7,7 +7,7 @@ import (
 )
 
 type PinnedMessages struct {
-	ChatID 		uuid.UUID
-	MessageID 	uuid.UUID
-	PinnedAt	time.Time
+	ChatID 		uuid.UUID `gorm:"type:uuid;primaryKey"`
+	MessageID 	uuid.UUID `gorm:"type:uuid"`
+	PinnedAt	time.Time `gorm:"autoCreateTime"`
 }

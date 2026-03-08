@@ -12,10 +12,10 @@ var (
 )
 
 type Attachment struct {
-	ID        uuid.UUID
-	MessageID uuid.UUID
-	URL       string
-	Type      AttachmentType
+	ID        uuid.UUID		 `gorm:"type:uuid;primaryKey"`
+	MessageID uuid.UUID		 `gorm:"type:uuid;index;not null"`
+	URL       string		 `gorm:"not null"`
+	Type      AttachmentType `gorm:"type:text;not null"`
 	FileName  string
 	FileSize  int64
 }

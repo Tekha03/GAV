@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"time"
 
+	"gav/internal/chat/model"
 	"gav/internal/comment"
 	"gav/internal/dog"
 	"gav/internal/follow"
@@ -159,6 +160,137 @@ func SeedDatabase(db *gorm.DB, logger *slog.Logger) error {
 	for _, comment := range comments {
 		if err := db.Create(&comment).Error; err != nil {
 			return fmt.Errorf("failed to create comment: %v", err)
+		}
+	}
+
+	chats := []model.Chat{
+		{
+			ID:        uuid.New(),
+			IsGroup:   false,
+			Title:     "",
+			PhotoURL:  "",
+			CreatedAt: time.Now(),
+		},
+		{
+			ID:        uuid.New(),
+			IsGroup:   true,
+			Title:     "Любители хвостатых 🐕",
+			PhotoURL:  "",
+			CreatedAt: time.Now(),
+		},
+	}
+	
+	for _, chat := range chats {
+		if err := db.Create(&chat).Error; err != nil {
+			return fmt.Errorf("failed to create chat: %v", err)
+		}
+	}
+
+	chatMembers := []model.ChatMember{
+		{
+			UserID:   maxID,
+			ChatID:   chats[0].ID,
+			Role:     model.Member,
+			JoinedAt: time.Now(),
+			Muted:    false,
+		},
+		{
+			UserID:   annaID,
+			ChatID:   chats[0].ID,
+			Role:     model.Member,
+			JoinedAt: time.Now(),
+			Muted:    false,
+		},
+		{
+			UserID:   maxID,
+			ChatID:   chats[1].ID,
+			Role:     model.Admin,
+			JoinedAt: time.Now(),
+			Muted:    false,
+		},
+	}
+	
+	for _, member := range chatMembers {
+		if err := db.Create(&member).Error; err != nil {
+			return fmt.Errorf("failed to create chat member: %v", err)
+		}
+	}
+
+	msg1 := "Привет! Кто идёт гулять с собаками?"
+	msg2 := "Мой пёс опять украл носок 😑"
+
+	messages := []model.Message{
+		{
+			ID:        uuid.New(),
+			ChatID:    chats[0].ID,
+			SenderID:  maxID,
+			Text:      &msg1,
+			CreatedAt: time.Now(),
+		},
+		{
+			ID:        uuid.New(),
+			ChatID:    chats[0].ID,
+			SenderID:  annaID,
+			Text:      &msg2,
+			CreatedAt: time.Now(),
+		},
+	}
+
+	for _, message := range messages {
+		if err := db.Create(&message).Error; err != nil {
+			return fmt.Errorf("failed to create message: %v", err)
+		}
+	}
+
+	attachments := []model.Attachment{
+		{
+			ID:        uuid.New(),
+			MessageID: messages[0].ID,
+			URL:       "https://example.com/dog_photo.jpg",
+			Type:      model.AttachmentImage,
+			FileName:  "dog_photo.jpg",
+			FileSize:  204800,
+		},
+	}
+	
+	for _, attachment := range attachments {
+		if err := db.Create(&attachment).Error; err != nil {
+			return fmt.Errorf("failed to create attachment: %v", err)
+		}
+	}
+
+	pinned := []model.PinnedMessages{
+		{
+			ChatID:    chats[0].ID,
+			MessageID: messages[0].ID,
+			PinnedAt:  time.Now(),
+		},
+	}
+	
+	for _, pin := range pinned {
+		if err := db.Create(&pin).Error; err != nil {
+			return fmt.Errorf("failed to create pinned message: %v", err)
+		}
+	}
+
+	reactions := []model.Reaction{
+		{
+			ID:        uuid.New(),
+			MessageID: messages[0].ID,
+			UserID:    annaID,
+			Emoji:     "🐶",
+		},
+		{
+			ID:        uuid.New(),
+			MessageID: messages[1].ID,
+			UserID:    maxID,
+			Emoji:     "😂",
+		},
+	}
+	
+	for _, reaction := range reactions {
+		if err := db.Create(&reaction).Error; err != nil {
+			return fmt.Errorf("failed to create reaction: %v", err)
 		}
 	}
 

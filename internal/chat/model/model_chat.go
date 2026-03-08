@@ -7,9 +7,9 @@ import (
 )
 
 type Chat struct {
-	ID        uuid.UUID
-	IsGroup   bool
+	ID        uuid.UUID   	`gorm:"type:uuid;primaryKey"`
+	IsGroup   bool			`gorm:"not null;default:false"`
 	Title     string
 	PhotoURL  string
-	CreatedAt time.Time
+	CreatedAt time.Time		`gorm:"autoCreateTime"`
 }
