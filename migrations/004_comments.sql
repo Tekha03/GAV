@@ -5,3 +5,4 @@ CREATE TABLE comments (
     content TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT now()
 );
+
