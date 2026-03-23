@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+
 	"social_network/internal/media"
 	"social_network/internal/post"
 	"social_network/internal/validation"
@@ -15,8 +16,8 @@ import (
 )
 
 type PostHandler struct {
-	service 	 post.PostService
-	mediaService media.MediaService
+	service 	 		post.PostService
+	mediaService 		media.MediaService
 }
 
 func NewPostHandler(service post.PostService, mediaService media.MediaService) (*PostHandler, error) {
@@ -27,7 +28,7 @@ func NewPostHandler(service post.PostService, mediaService media.MediaService) (
 		return nil, ErrMediaNil
 	}
 
-	return &PostHandler{service: service}, nil
+	return &PostHandler{service: service, mediaService: mediaService}, nil
 }
 
 func (h *PostHandler) Create(w http.ResponseWriter, r *http.Request) {

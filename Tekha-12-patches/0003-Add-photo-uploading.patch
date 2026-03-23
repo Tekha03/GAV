@@ -1,0 +1,1172 @@
+From 462067dc00a939c7e7bfb435969b649a25d08c6d Mon Sep 17 00:00:00 2001
+From: Tehron Janobilov <tsdzhanobilov@edu.hse.ru>
+Date: Thu, 5 Mar 2026 16:46:50 +0300
+Subject: [PATCH 03/12] Add photo uploading
+
+---
+ .DS_Store                         | Bin 6148 -> 10244 bytes
+ .env                              |   4 +-
+ cmd/.DS_Store                     | Bin 0 -> 6148 bytes
+ dbserver/db.go                    |   2 +-
+ dbserver/seed.go                  |   8 +--
+ dbserver/social.db                | Bin 167936 -> 167936 bytes
+ internal/.DS_Store                | Bin 0 -> 10244 bytes
+ internal/app/app.go               |  22 +++++--
+ internal/app/handlers.go          |   4 +-
+ internal/app/services.go          |   5 +-
+ internal/config/config.go         |   1 +
+ internal/config/storage.go        |  22 +++++++
+ internal/media/errors.go          |   9 +++
+ internal/media/service.go         |  10 ++++
+ internal/media/service_impl.go    |  35 ++++++++++++
+ internal/media/storage.go         |  11 ++++
+ internal/media/storage_impl.go    |  43 ++++++++++++++
+ internal/post/model.go            |   5 +-
+ internal/post/service.go          |   2 +-
+ internal/post/service_impl.go     |   8 +--
+ internal/profile/dto.go           |  28 ++++-----
+ internal/profile/model.go         |  16 +++---
+ internal/profile/service_impl.go  |   6 +-
+ test.jpg                          |   1 +
+ transport/http/dto/post.go        |   9 +--
+ transport/http/handlers/errors.go |   1 +
+ transport/http/handlers/post.go   |  33 +++++++++--
+ transport/http/handlers/upload.go |  92 ++++++++++++++++++++++++++++++
+ transport/http/router.go          |  66 +++++++++++++++++----
+ transport/response/response.go    |   5 ++
+ 30 files changed, 379 insertions(+), 69 deletions(-)
+ create mode 100644 cmd/.DS_Store
+ create mode 100644 internal/.DS_Store
+ create mode 100644 internal/config/storage.go
+ create mode 100644 internal/media/errors.go
+ create mode 100644 internal/media/service.go
+ create mode 100644 internal/media/service_impl.go
+ create mode 100644 internal/media/storage.go
+ create mode 100644 internal/media/storage_impl.go
+ create mode 100644 test.jpg
+ create mode 100644 transport/http/handlers/upload.go
+
+diff --git a/.DS_Store b/.DS_Store
+index 90ab9b736240b719b0e1e801e29ae45d90f62156..66fdb95d243cf6ac38238dae90789bd012669ec5 100644
+GIT binary patch
+literal 10244
+zcmeHMOK%fN5Uz4U7!$HgLIQ|~WUVhqL}1<^4m&YHs|c+U#Sxn*Va<%)F$3dnGc!&W
+zqDVf&58wxIMdHd4egJ#q%7H(?We=Qos~-*?dpWULqE)vv{nd0=_2ZkV@>ClDu-vYn
+z2Pgo5LzhJNAXWcRWWT%yO3t)Q5F*)ws0EP-=*}I`wGEa5%YbFTGGH074D1aC=r>yy
+zXH=uDEd!PT%fJo;GCmaOlIR)iXjGwtDwP5d4pXx#B&&~q!h&od^bB@1QVSK-ri9uQ
+zO^SggcR+1U{hrb9Xw>F_YGxY8%#0>OL6dr5L8$|J8f|SEunY_`AanO2s6i9zb5SOL
+zpP`<!f2pF(j8?Fjv`m)&I%q{<l9o#EF*h{4Z)CsYIHS(p%6+j}N&U2)l>K;B-Yp3c
+z1zp(>?u2Z!>Q3GiJoQ7)Vr3B48L6!O8uGf>EQ>a;C(5>>JDhwzUv-adZC$uhnl4-{
+zUEH27Y+b)V@}+B~?d`lXRXlfNvHCD-a`9Ae6HTaqF@3*NKO@QPCai6k-Qc_KZa%nf
+zcR%?9qX)-+IOL8`93Gz>pPHIFa`f25@e?Pj?%}|%J#55soi{}!;&RkxRrgRryPc~E
+zz7Vqw+U0V}eorgm6Y84iGgxHx-@Y_0J#LZC<d+6D=+7}@e6<mW_4)Pngr&<p@`{|T
+z7K<oa5J{MZg0HNp*;Ce><LiQElq;BT$*$xMixa{Do8`NaAFybimqnV2=87N3K5ww{
+z<K>WcAy=-ZthD@E$Q#9<K4}v3MenqhTqt&Vbtb!#K`g#m*J6H&3(kt(g1#+!w~dMe
+zXJ7^@um+Ey1JB_Fyn?sz2YiG-aR|ro2>ys?a2hY;RrGKM7jYHW(8mYbKG%K3r_6W;
+zFd@M_;*CnoBf%TgBDEc;LjVadh+#w4+1EZN^?G0XVbT}mAW2q_Rt@m7$31rRzPE#1
+zDqSH5IbZrl2ie(AAAcjzAU@7gz!3c*1Lafb<*uunKpUD_{!lt$udV|ja7fj2;ow7*
+z)u;C&%lCl(_vZay3QPn0vLWjK8=?jtcAv8yAU6xi;bL-#lq5ke(ie!7)Aa_TJS@U3
+z3Qx1}3!!w>zF&6y+~<1xDIBIWww$E_EbDm6QM2QxN|ROsEoGHvEpqbHyw`$mZLthk
+z1}p=X0n318V2>~`q}Nf9=l{39{{R0TS*=}$Wxz798w}v^Y-P4gBX>_z`X`Ye^aZ-^
+z(It!2>u6LaRH@^5LUkNZH}W`M9T8DmiDXqs_M|}A(MS@N|NPH@J$x`ZkP_Pb-{$|j
+HkpKS;TG|4#
+
+delta 112
+zcmZn(XfcprU|?W$DortDU=RQ@Ie-{Mvv5r;6q~50$jG}fU^g=(?_?f<f1BS5U1yxU
+zQhdtfe2Gbm**Q1_nSm;SK!6)axPmloEd0(qnP0^dWCQ~f#5j-*44dP5<}d>Q>T(qq
+
+diff --git a/.env b/.env
+index 5bfc803..7f1bb75 100644
+--- a/.env
++++ b/.env
+@@ -2,7 +2,9 @@ HTTP_PORT=8080
+ 
+ DB_PATH=../../dbserver/social.db
+ 
+-
+ JWT_SECRET=super-secret-key-very-long-and-random-2026
+ JWT_TTL=1h
+ ENV=development
++
++STORAGE_TYPE=local
++STORAGE_LOCAL_PATH=./uploads
+diff --git a/cmd/.DS_Store b/cmd/.DS_Store
+new file mode 100644
+index 0000000000000000000000000000000000000000..ff7511a41d0c719f6f1acc94e5b5509093d093dc
+GIT binary patch
+literal 6148
+zcmeHK%Wl&^6rI}ya9T>;HYpVkDIy!BRuEdAVu9-xp^8PTx+<xf670kYrtVCzorY3X
+z${Id^58wmXvV;$SC0iE!02|hD=V3u8-6BNiN;Buqea!eCYdju82-uy*6+%oxh=Gk`
+zb`ZNi2>0`LKn9d0iwJxUR`){Y;fPPCMKhoo_}3ZWdpAQ|(k8)T*tdUe^j!KbL=>T-
+zyl&i9yZo)!4ud!;mp{QkCVTAo3Bxdkj7{e;>pF>>bYk0$Huz|jvCvC(*INtxZq3Zk
+zGn%*o^&^oGG<*!HJ_u-ob#2z6jacM5(qZIsxtck-w>NXWJYAeE&+bnb_ioLge)VQ~
+ze?MmwN|$f1)V9KH%3es)0l!H?h83pp5*1ZVP~TD2z=yP&&!(BylN%g5Iecow932}U
+z&5sreg^AOXV`t8utC{1TTi<F${5j`Y$Ra!J_%(AR#%dSqj4nt14pv!7{AY<1JV)2q
+zZwV`Y<Ka)!>TVlj@;?n?(tDBb(~VXXG?tpp*iS0I=<9s7dc?wTnZ-d8FuGn9t0(^U
+zB5g8Ukw3vwo4evQKZ+3#<Wx38*Ym?AYO^F^+v{!=xwPfmyOjW|;7=}=blPq`psmuK
+zuad)D$+{>tlax|gjeM#pgwngFRCBA8QNLs@%VEj7uR;tmMdpY@s^lr@kyqq3c|+cl
+zkK_ya1{oNJ3Ag}LFb&t>23Rl$E3g4oaN&u}A4p&Ec{QH`h*43mc*luo$Y={KX>@<^
+zksT>IjG-gTfG%7!pcy!f0seg`V&iBj>`4@#4(!Ag0FnPj2ti%^{38~*0nt*}lZX}+
+zkg13=71R|2)ZGDOI{GaY-;*fQ35b<(9<?&48w#ka2NXp(0ZXFpH3OP~eg-mfX!7&_
+z?&0_U{v<up3}^=aD+VCD;4Ii!k~&)t6vxlnBDP1^xbV21M3I7>I*x_HkK##eLeN*_
+X3ZkX3ClM_u`bR*}pgYaLUuED2JXp_9
+
+literal 0
+HcmV?d00001
+
+diff --git a/dbserver/db.go b/dbserver/db.go
+index b1e80e6..e549065 100644
+--- a/dbserver/db.go
++++ b/dbserver/db.go
+@@ -84,7 +84,7 @@ func InitDB(path string, logger *slog.Logger) (*gorm.DB, error) {
+ 	}
+ 
+ 	for _, idx := range indexes {
+-		if err := db.Exec(idx); err != nil {
++		if err := db.Exec(idx).Error; err != nil {
+ 			logger.Warn("failed to create index", "sql", idx, "error", err)
+ 		}
+ 	}
+diff --git a/dbserver/seed.go b/dbserver/seed.go
+index 0f844dd..2eb9d63 100644
+--- a/dbserver/seed.go
++++ b/dbserver/seed.go
+@@ -146,8 +146,8 @@ func SeedDatabase(db *gorm.DB, logger *slog.Logger) error {
+ 	}
+ 
+ 	for _, like := range likes {
+-		if err := db.Create(&like); err != nil {
+-			return fmt.Errorf("failed to create like: %w", err)
++		if err := db.Create(&like).Error; err != nil {
++			return fmt.Errorf("failed to create like: %v", err)
+ 		}
+ 	}
+ 
+@@ -157,8 +157,8 @@ func SeedDatabase(db *gorm.DB, logger *slog.Logger) error {
+ 	}
+ 
+ 	for _, comment := range comments {
+-		if err := db.Create(&comment); err != nil {
+-			return fmt.Errorf("failed to create comment: %w", err)
++		if err := db.Create(&comment).Error; err != nil {
++			return fmt.Errorf("failed to create comment: %v", err)
+ 		}
+ 	}
+ 
+diff --git a/dbserver/social.db b/dbserver/social.db
+index c3af099cb18de31b22351a9c77ff20a8e987b045..44cbbca794d2173719ba2809c982218905ebb037 100644
+GIT binary patch
+literal 167936
+zcmeI5eQX=&eaA^rBqdoAofqYjIEpDJu63x+=H2l%L7KR>lDf9!#4)?3MMfU)juI1!
+zRCttMu(mesBu&w-X}T2Xnq_SY6j%ccaS}VR9mfSa6vcq8pfC(efnk62kNvTKHef3-
+zAb)JX=eawPCsEdAvs1_U5|DWJJkR}JKF`bXx##5`f9yb|X~xU-#)8(2tAWjdU@-7d
+zJRS%HK1Y8d{kfklbkOgf(08!wc)i2V1$G|!R+uG@eaO=6h<!M+WprUw89u)0H^Z|-
+zA8vYeNE>PozCNT3{A{oly)aOXoQr-f{7U3x|I6WW|JKmYLl5`;s_&V;@!;9u7XrUu
+zPtivTe{5Ss*fkbhsMHMeSj9M2FzRzwp?<VxHVPGko!qnM(Dd%Z)A4<?d#Aq~Uy~$$
+za5m18O}f{JPfbLH2et%TgDW!2^=h?#)GFBDmD(JMcEYx;k=`pYQ{seAb_)^b;!)v#
+z(iL7u7x%)sa$*BjJndRdJXk!ml{g7qoT`<lO{=hE@o0V$UnAd>hDqiDlg>rrp}Tv^
+zT&!D70>sm9T}P&qrX$k{5KoLph3WBNOI!h>*B2JdTGJ{xNeX(y)S9N@hTpwLg&VW_
+z3Z~7Cn{=d2#T{`4sx!ME-y>>wMTL|QY=u?~U@0wED<$LS<7>38PR6wHu*ohBd#6c7
+zb4yfskW_44rNZIrs^S;lwT_-uX*<fC2#;S}t92(8>xp1%%%innH8t{1TWZeNS&d;z
+z?XWE#%|%vmI+2|VicEE}6H}Zlt_UlNt%J8mg^7vasY+8TRn1Pa&e0u?p2NF8e_+}p
+zDL!e-tr*34(>&Ik>XPgP*d<i2FV&jGc%{}f=gh`b(aq$-nh3k-P$m}R1{I=aWx<>(
+zE-kWS!yEeOp?x#E4?PjzKmA0P9iph-5fL7l2nIMs>zOJwxeP{~pLY|IJ1*YYD&590
+zoQ`n}JdZf|&XM57(1|FLdM8s|3|#VR-|SYxY*<|&R@$2GK;A;GzPeLJKOz~|G$JEh
+ziA=|#g4{X2y|wq&s33~LQ+qg>hFNZy)_kE^f7+~B-m@_;A#Wt3)F~&fQBEo0(hBpM
+zHSZEMk1bY6kvGeW4f6=;rP5YgS}+?Gok~)#0^=<jq*WB}ABzYF#q~;s*VKaSJ-@A$
+zxH&3p-yS@54`*;h)AdSCYgXzttNZvCum9aqUhgS`sV2Lw*0crFJvQn!Dy^QvU!#gu
+zFqYN?*PA948eZ*s_?x*UBJAJ3p1<9u73A)-TU$?TjtXOA!P8^hS5_9;-%VcMSdiBz
+z_wMX^((P5LVX{oKn~25vdb3_wYE<0-R?n7PSBl!)3XD0Eels-OWL1WRa=SWJtk!Ft
+zL!D<t;Yh`*Py^N}8a<%wxG5ssKeiqe=2Jmt|8H)EN29_Py6tNmf^&a&zG7Y!PAH>c
+zAMzWvYqcF@{~~e1yoPmOGv!Edl8d4giwL{7tY@&Jxga|Sn-_+of<X7J9JiV`z5L&Z
+z*J2*V>|Iq0d8@TjF1=>DNvBp?d{GofBEkd0de+%3zs$czTU&>s!uWXb)J@zpxBYj&
+zH+c<ogS{opYu;+(^*Y^L*iD9&viR)5!|~btfdl><h+Uf^!k+Q<oN+BG$nMebHwJ9j
+zU*#S#<1GGf(CZ5i^E%?PbSi|$a{mU4gIA)@)fV_I&KhcMjYfqXJA$pRb6dH7%WO8O
+zoLQce0k7?zxLyUOQ7>1jW?`{Wp*G}rr|uQ4`TEg9wQkqVu5gY0PA@E&mPPfP>b%pA
+zi>Gew=N6ux>sYvGOSdg_Pr^McbmMwh*xd?QOO5VR=3Mu=Bc;IGC%5{RDs}fzGYq;R
+zt+Z36N~1YnV82UxR%?!q-Fc?=9Grdp@S)xNW)H`UOSOvqi{3SvpV?OAXZJmppLS{`
+z4-&;(BqGf0Sg%lW9V?O)&uKIl_J65;zjq}?T1SJtXrG>0$qb$eR^M9qtL_5kf>v=F
+z_O3d(s9Dz0dc(N|bVW4kti|@!*!bS*hj-@>9FA{e{%l*PKKS`bxGsIG;F!6B+&-rk
+zEp(+i#SF3voU_$0_HCS$bG1Tte|h`OBXkfRRsylljUF3$XZXM95FZc#0T2KI5C8!X
+z009sH0T6Hqv>pr(<kePqY-YwNr&H;Yu1cDj)}&-AQI@i5Iwh&Pl2l|ZlhG2YQCZM-
+zTJz@OyxA}wDm}fkv2?GZ-76>VJ@Dnmqt6`LlRnhQs`=vwzxc(ubpFwuk5sjz_1x@%
+zT|2F>?E9lHDz)V2zmm!(zjW+C^LXm1$60?zNhoP4p-Krko>1<S)Az}#oic@GlAlee
+z_azd&<CED;#*S}2*gud@F%R||<&>sp6A8)4WECl?r^$n)l93D}ol;aYrKb}KtG+m2
+zF?Z_q#$4qg)|b4NE~r;@A>~B39t^p8kknJUkxQkdl&YIjGM!bWEXxf;&ZK3HTuA2B
+z1?||*`6cV=;}0Fz*pTNR&VfY2^<YomK>mJSipnX449?0@Hk~a=N!2JxS;aJ@Y&M~2
+z$wWD&=VYx`({@(1QbRN9jfduVF3?l2YgUq!D`kV4N~PSA6dcIQt*|gNla<p+J(EpK
+zrmBz^B}0`;WV@uQhN@)}rCcIg)(jeQeu$ptR_jO1#!hW<@&Drhm)5(iQ(d^C2TCUC
+z#1B!e4#$##*z>UuVo%1Bu{Y4rfdB}A00@8p2!H?xfB*=900@8p2rvSZp?uKKqpz@?
+zaN{RT{VbuM2RR{@(9iRdz8#_bpr1z)cK`pmK<wXQzll8;dnfiP@)!g_00ck)1V8`;
+zKmY_l00ck)1VG@L5D-FYu*W=^@a>^gu-EL9es)2RNgbgrq5FgDOqJ*x3(13PCm`_o
+z|06#L#7>O<&*-zG_tGIgAOHd&00JNY0w4eaAOHd&00JKuf!1(%FfU5uBPT{i{0ua=
+zUv6J&pI<(;e6oGMeWCrM<<sqV+wZr}EkEDB+<uGoEDN+_O8eFJIZDSuFSgGtzZhqc
+z%ipBKlPn<qyOS@++wU!(UjF9t3rtSDeRlaIiF*5w`v>zA;`Wgp%$kiyv)iw=FE2k!
+z_Pp5sF==B~k)rk)yC+NAE73ZN_K(<q+Un}4*_b#U8q9CszI8+&8Syg+-u{dBnfAry
+z7TI{I{X-_1d?gLkAujM$4(*?jPc8E4Jojn&PnS=%FUOZ#^mU#b{7$_64jnK;=fBZ6
+zm>(z5^^p-j!|Ltt(M9i*!q+(PleXga8P?}6(DDQ_?J@)V9wm8`{65n@O93ZsGg|FS
+z%ikuu-s{qTBFNBgW%~V$)|39TOf%{IGp^*V_WR4<ZeQU2dbW#Q`<3PIw%;TtzZ<8#
+zZ4v(G$Z?|cCfRb4<@i~CHJ$KGxs3V$A6KP@9uNQl5C8!X009sH0T2KI5CDNs8i5;c
+z{{O{5>_21w8oNk)0Q~xsmK(4a1V8`;KmY_l00ck)1V8`;KmY`8WCFvXalUAPP3;J8
+z4sCZ<3fS{2`bR=r*$M%BLPUtAb>}Gb4TrYc3jx@K0Y3jfCI({v7<)Z-B6gS#@c{u4
+z009sH0T2KI5C8!X009sHfln_1F&xeh3=aBPjv@Ak^MeBee%4BeAuiR=vInt`NgedF
+zOhF8CseV=zu>ODl@P$AuGg=$@79HRN0w4eaAOHd&00JNY0w4ea*BgP>On)SwZ|$Fv
+z4ZWnOYC=*BB}=dHODR&$pjY@MOg)pxrs>sqrsk*D*8T}CkEdnjv`BjSIlgxLeOkdz
+z>(^-=Jgt?!#KP(LZ91k!^0c7(T>HY#IIZ|TPb<r5F*;lK{T408{sl`w3$)L%h2nAk
+zPfjGZ_k2;CEUW39^D4Pgi21WLLq^MHIjKoHy*^P&%9(^z%F?U-49(1?vnh?<ikI=z
+zwQRpcR=&qq_Vd;5v<95KI>(lcGppFze_A=tR)>?t_8M{f<P0s@r#152`m>bkG+#qb
+zfh2DEJIgQ9DP4Wmk-<dLrUG<EGP|8jxNl};PG%h^AMRsLJ}{$aWI3&t%2G)w>ryhC
+z%ShQ&CM9Ju^!~_lMo;IAl%Gy9Er`EBS;jXRI7beiwlnM(<mu)1+ctpZ)08oBNlE?k
+z%$_*y3E=Dp!0e@DmuO);xy8=n|MBA=KKHv<pZ)jqFWQbMl9G+f$)1h`ZAZ$9l2I-j
+zvQ#ovdi`Qn*CkCUsgj)2a&pp0nyQ-i(`9eJM45Dn=N9F~IbO^NF)LK8KwYryq^zUZ
+zw^%@Y`8jsLb~T98UIu64DvM$z_%!))cKO>A<j(ir>2jp=u1uCA&bu(#`v3melL317
+z-}A9IVjo;@)g1PK00@8p2!H?xfB*=900@8p2!OzKPk?O{;OFrafB&DK=RW-Xe}0~w
+z@b~}uc{ahu|NBPw1!9}%A3h)e0w4eaAOHd&00JNY0w4eaAg~dE)`M(lKR-94$Qd<d
+zDhVlTXquE%`22-*Qc5P|T!Kx>$f&BHzOJuP^S`#Y_CL+X``=>I5ZKg(H~F}D%N{MK
+zc?@hQ{D-HyCnqQ?WBS>o>dwGu1f%2uO)1GJ22B|;4T&aV7*aBmlWBH>T#~e0I-$y?
+zw5jTvpU$<f84N#SJM;7RG0@2UB^tXwPcLX7liRPcJ^Gnr<Pb%j<x?BzeGP2B#V=^K
+zz~%P)d~yJL-2i*R!h7v=U6TUHd2;&MjhtrV|9!DH0vP+>sDL9L1V8`;KmY_l00ck)
+z1V8`;KmY_jHUex$fu9E~eEi?fV+=O_ABx=(h`k*v(-%G<00JNY0w4eaAOHd&00JNY
+z0wD0|BCtOc%IE#eLGUvje}5kd^RsD#pIHU_gCxw))B-=k*!X`aCb0g$NniMY00@8p
+z2!H?xfB*=900@8p2!Oz+iNH*MJ|DbVz5fuGcD1_yeFw<4!K>B(XXF2oQN<bmAN{-0
+z6Lf+P2!H?xfB*=900@8p2!H?xfB*;t_DA?wb~=?V>8hleX<Fo;N|dE6?c6V^x{_36
+zEkmy^Q2lgK_lJE7^V1jK-|u&nJ*AM@Sz6Vf&X%O4YLuj`Ld*TL^lk+$nJB09oXp4n
+z{kY)EGB*D2C!wE*1bqD8k1#*hv+@7Ps1%3^qklUpjs6Ln2Y^Bj0w4eaAOHd&00JNY
+z0w4eaAn++C;EZEmovwexw=_R}-LU^Lb|0PpelE>V|Jjdi_V~Y_lzzJZ_V~XaX@2Zy
+z<Nx8|zYN3<j=nw`9GRg*d_VvMKmY_l00ck)1V8`;K;RERpfwd9&gaMXPfu(a3j_vo
+zxnw3=&L~n!FUwL=&+1anGz>|R6UnksN@mq;*(h(^J#GJlzbL)cewA;gevUR=w|8J?
+z`>4|n>t|@!bqbhoHW#h?cI`5cX$y;0bEjTk*fnPv^3JCg=d`)GhG|)qBc@q3%trP2
+zf>t$KazB|nk>58iFmrWXOP39LwS6YR_P<ZDm)s|lX-QGkY*sTfie?yodVKAd>=)V7
+zM)BV#gXwMc%P&aI=J0RR3+-t)c(y0}n|u@ei@mJY>y5bzx4Yb^m^Gt%Tr-xcO>XmN
+zLS*wDk2p4)Ni(GrM#<D^R6MDgDJduG8G5sQu4LrQl1T&pe)^T|@3k+``{-Yzed^z&
+z9qmuj@kKi3udP30pY$?xe#v_JxW~}NrNu=X?zTP#S2{Q@&^~noayFewsG2Ux<r3}D
+zZ<NbYDJPdDS<Y%HMK@K=l>Ky)sVrP>UnGmpw_hQ^4B{EuYo9jW?`2<AD@oiURt9u!
+zsadHnSv;U@a+*7X%*cb&wvn2tClYDRkkWd_l#(S?AtSYfl+(>}ie5ZmYGksH=Mn9f
+z$h=FeOs+OkB74s*pQ8Wg=@kIy*0tKhlxMzeFdP35$C7OS|77fg*psp6{{Yn-DnS4Q
+zKmY_l00ck)1V8`;KmY_l;5sD0HsSa4C@Rbn`gsV{&l381@)BYR{XF^L`~UlS`oPBj
+z1Dmfy$S?^6KmY_l00ck)1V8`;KmY_l00cnbsu5u0|LFf;HJlIx0w4eaAOHd&00JNY
+z0w4eaAOHf_B>{~8Uzgbeqd))zKmY_l00ck)1V8`;KmY_l;Hnb9`2SVK31J`r0w4ea
+zAOHd&00JNY0w4eaAaGq0!1(`lnJq911V8`;KmY_l00ck)1V8`;KmY`;DgliDUsaqC
+z1_B@e0w4eaAOHd&00JNY0w4ea*Chdr|6iBc0;50x1V8`;KmY_l00ck)1V8`;K;Wtp
+z!1(`F#R*{`00JNY0w4eaAOHd&00JNY0w8c*5<vg|y37_B1p*)d0w4eaAOHd&00JNY
+z0w4eaSCs(k|M!pnHV|8g-81^z*t=I%ID~-!2!H?xfB*=900@8p2!H?xfWWmTu&+Nq
+z6Ew={RJx?Al4hngDVa)?rL3AxNvf_S6<Nz<w1lc8l(dvkrGy+$DEG<f`{dM4S(epw
+z?z0K?zC@zmk(AQ(Y$72UnXDou^)yLJDjCTz(kVqXQ+hg)=$4e|mXx(6g}9`op3;q6
+zDkY^<-IS8)tSV)hb%vZt%NmJF<{X<8Ny*0LWDiMwUm))W%PEB}%*s+Woh?a8)hJ0>
+z#WbXBHlb+AL^-ABWZNb#$?ILlwu$%uV+*YR|NYpzv46hS*#h|>00JNY0w4eaAOHd&
+z00JNY0w8e16Sy}t6YPFS(DQM_>O?)CBy<v8;UU32p_xHH{r^6@|Btc%8@>R-K@b1|
+z5C8!X009sH0T2KI5CDOXg#aJ_&m^+4Sx#z_PO}fBq?}1er7X<^Ff=ol&ZaaPywCK0
+zNRUmc&YT2i{6A4L%4I{AN~TIP39`B_X-Y|z<eZk1lSa~1)$~S^*!X`a_Ix1reC&hR
+z8y^b=C;<Tw009sH0T2KI5C8!X009sHfln!c$xuG1XJk38mda8|DeKgm&t;@+DwC2j
+z8CtPW&gki!kqWVdWgp%Cz8#_bpr3>*{eSBH(_;X9KmY_l00ck)1V8`;KmY_l00ck)
+z1g;qY-mUksnxFUojq=7@5%B)MpPdF+|34Dj#K!-hj3r~6Fbm+CWikYV00@8p2!H?x
+zfB*=900@8p2wWcoSSQ@ihJg{k3Bz{6jeG0;ETNy?x;_5y<3WKv{_i8<O8@@@>ig3S
+z0QMB%`p6Dg0RkWZ0w4eaAOHd&00JNY0w4ea*MxxIPB`!X``LS+_y7GQ<o$m?39rrg
+zf0(-b&iFs}0JtVa3qnBv1V8`;KmY_l00ck)1V8`;K8XZwwDJGI=1*cSz-ABt0T2KI
+z5C8!X009sH0T2KI5C8$c1V#p`ftw>Q1V;ZV_V=-$MqU_Q7*&RkkNkLecId-RuMTNL
+z?ZMZFl!2cOwxSmXs*!WiuZ3TUoa}!&T<+f*`g!Q#zF+k{(>ESG8~j4x_knNv)w(8K
+z^`5A3|Mp-jT&Wr6v5Il5a75GfN=<84>NTri)aMEnqdVx{J%^@uAD)iyo83G8<@h=m
+z#1GEKyDyrw<%o}MiwL{Mf(t9kDBLR4kJiivsbMGgtP$@?!UVH`N%tD@sfnoYz?NWZ
+za7AXhUai)TS_S*NQez%CVcXV7@0FM-al$9Ng@|);f<?MIu)LRZFPxx>4OH>8Yc=s;
+z@z7S{By@4AR-QJk!ji?K`AK|@d`}uCnFmZd7m0`N?kRJzZZ!!IPrG#;nNFIHOea7*
+zF&-7B$Ac|#1-@QiSTJi%tKcLl=nYeAnuZ&G_Zk&$%<3zcHaBk4kv0`~#1*t=eD~vf
+zMD4DqkP?Ee(24;prR8d+Wc+-5jn>u4m^L0Z*`;CcG^uEAi3$&rimj_uI9y#-{NlUT
+z(X%RTN0}4h@r!G<?xbQp5p0clv=*$UM&4;l&G|a3F-)l)w#B2l$m(S$vU5R^sV;V6
+zij&0^VMVcZ@b;)MF%djfX=<ga*-6$py2H_Pc=zWIOnW57CvCYEqZn_R$C^`JlAQp%
+zgzELBTC*6h)SBj;*_bN2nOs;CVHX|B#A4i_Le#7*m{Y~2MRsg>Lmxe~Z)W$QC*u33
+zpXjnf6bGt(k3TXI3~-9pGu2AdWH9Rdyql2Raq-Sp={Anxbc|!*dBnkYjs!1;PDGK^
+zJDKWY;F4GSX15Y%!|DRD($;hb^5$>#)txf>5y`lwF*3m%BXeqJe^l79Blzr=j<bu6
+zdbv_HEuPvv3HNZ>jqBlcO<OQs0@hNa`;>|8K6j)P7U%2Dx_eEjvT~>yM#HoSie0Qq
+zl}2;EzzTsALdDQF*p^UOYE+#VZ?RZ$ernIb*~bqb+P!b~aJ;xwtJn>z>kL1$?aR;Z
+zdn`ZgWGN34#a80xsIYx|@YFpVSodwN`}h_wuI?yCt5ZuTgQ+IF&UJG!>NP5@p2A<F
+zid8U{)&$p^rpw3cGf5W3O}`1`_HSRW7Id3dkh{-rZ9TC$DvXT<Pmgh5Sy^O%H+g+y
+zL0+HSyK^tEN)6LoahGR#SB4c?JzH{JDQa_W9vA0K`hn7L1y&grY96Xn#cI9QIn?>@
+zmco&WRiOr~7_TiYn2m}))dR|on<B#fW9va-J{4s4|K?VBG%9SN+rGvjIQMtwE9OPv
+zgfbfTA-`d}R@*`LFA^urYgqR+Q;q~DxhP7ph_HLhdIme13$k;td0{vz2z1}dajSXL
+z%m0mdE#_f8>Mw7#R?4N<Ot&IUt+e=}D2_yg2ZZ&kvs-?de~q@b4n>9W@!+YOxM^<t
+z?|yIc8t4XlOPJTZ)lIHmr<)7A$*>k9K6~(Rd^UgJ0NrYO-BG;0@d~qRQ$*M^zMeC#
+zMFrVC8XnmaILTmtm3zdDv-rP3uP;2z>xj$JY1}-P`!`q|yb^t`w!m+3)=+C}lsEXT
+zuX9_ue#>k&shrsjzI!s@wcV4jSAlWc;6{bokmH@YSG4BqM+?=uT{pYJHTFBbus}^a
+z)pM%zPGuEi{~dUi-I7kvbu4rnXKsaiat&`ut<3{=^*Qlz<Y>HDSs(^o4PlQ$nTte(
+znH}pDN)MQV;yI1x!u~InJ(osWM}r*1>6w+x;Kju1TU$I<-381At>WB?yXxSgW?4t;
+z4d)in715}(7TZ%}<9nwc-km>iIKGV;wQZgH;O8eHtJXbl`&Pj*bLC!dpHqt#x>B8D
+z23a;|t6%KfI4S39g{TKUz<S|q{XfS483cSl00ck)1V8`;KmY_l00ck)1VG@%B``v+
+z-5R|u5c_p3F#0zm|1$FP;eQ(b>9Dlv-A#vw{$c3E&}RpKIryc)(7+D{?u!07CBz2=
+zKmY_l00eGW0<FMjqQWC$ur<Ci@1<duY4m@-(5ydg(u_3o*kXmwX<XbJAv(hmoq1{A
+z_^u1t92jrpWJjvl3T)rN1a3)TUbE&`N!iGR&V@Zp=tPP~?~Mw(3Bpb5LEu9)6`B>%
+zjpj2OsdujGq1%ZOF&l90)Io;J8B@n>KsF1JjV9BK6~={+=ev{hFdML9+(@$l)jJ}>
+zN1r=)!%ZPng)3p;EvG#z(;hhI$G3kfrV!pg77-4L>rF`T-kb`u_x!fj-dm%BC<agM
+z;qwZ-vEH*W?@R-4<P~SrbndC{6s*pTzI*0m!#qO2E@(=EJ73KAOrgvz5#j$dwGQL|
+zH|&pCI0gbB00JNY0w4eaAOHd&00JNY0xJa2|6f6Y0}ucK5C8!X009sH0T2KI5C8!X
+IxM2zWFBNY#hyVZp
+
+delta 2356
+zcmeH}U2M}<6vut8W5;&lIBlWnXldLMKDwqfp<%RTObskRKWIxxh5AC0CT?O#oHTYy
+zhbBs3LuFH?!PVrKNky83CIMp;f^O0#v1uRDG$dX&1W1$EB=#_E(_YF0Xq%l9SgTFi
+z!yb6pmG9L(|8tLgeDAqG`Pf<R*jet4`YJa;5G_WpH1V{zW7th>oIFJt5(p1Whevq8
+zeJ7j|_B*a{2OP)Q*SR+4H#Wv}GoM;FGgWji{g4XLc1tVeBt7H;x`evmTNnW#E*jC{
+zCcShJt;7NJ0*K~xAGq<C=omEO-Q*ao#^=c*G~gyn5mxE9Gw24?>*uqmLBEzkb!e<k
+zznewh<8i7H4?8IR>ny54FV^A@=+D80k6O3E3jC4veOQSVrVFa^JIrmWhIVaTsb9*X
+zIy}en;KUc%lT;P$3f3=*!(25uaDr1nz{B<i{0k?59skaq1s>1Ye8Axwwxi_n6*O+-
+z*WphbHF!UNXa6gW7OTtUf|+_PK9-S+s#H+R1GOU@3PwU=B)EMbBsQ0|W>MS_lanz~
+zRx~Lk6~y6i@19_IRO}Cpioub{Q174-wI?(f!4rJjw3Lm@nV6_aQ<^t6CKt4HG#S^V
+zijptn#^sC@&8Kr(t|G>h$%3S+6?05}?8)a;&Cn03ImH_r&t)>X!$z)41zAZ|gnVw=
+zSRYL&+T(Qp685*c5xq>$7v#xu#!4|O7373BR{o}_lGEgIIT6?7oDvfsJM(c>J)A2T
+z8)Sa7zOV<m+_8!nO~=*rqDLGYiim?F0|Q<WR|%e4F;>i*JClsYjcm=CCTAtA3hl};
+zqFt@6Fj_txbs{5cQdE^DijtC$mYL*|6I<ropv1G1*NAL!TqIVRCw`KxoH)ITHZKIx
+zVlxV-#U@-Q7}G4dS^Tnn4s|g&=Xe$$a5%wg%sOor!&zR@LX|7+nm{xDq9Ha{^Yh>X
+z(#e3ZKnM%Mz4<B;ZVT%ih+M;#ODG!Eq->r+q-)XU%r`mBfk5WsUj>06NuK2m0fbpX
+zn7!N-J0VO@KrO*PYKDt38_{2)Hu*L^*XHxL`8!2_pxd{lI}q5oCD7H?)#~f$_W3-U
+z;vRp%)7v*y*u66x3@XK!CIfvVeR(C=D~(T1?%qBW+}E{hATqjnsOUQs=nYKmIy4pV
+z_eZoHW@;cjB#eicuMy#A!D=XGa_4*?p6h{_*{}A1B|mQw;i21*ot1vo2Nvfpr*(!9
+z-sNZcF?+w=Y5T_3!CmHN*n8|1b|+iUU?ypuu}0|&v`Sr|a+cRDBjgEk5ZyuvM8Gt(
+z5;qB@f*O~(e^EJ^kq=3#xFgkUb#1MO5{37I>kOjsEeOHCg_4Rop5W-2M})#DYITK1
+zE1*oMAIda(ei2Qdp)DqlI+4$W(|h##B}B5LQIk`*=(Z(Hsv=92iK<soO9e|j%9@<Y
+zqIMHZ?PSSqVrmX8mLEF02&#XoK8s};!qAf{Jm4?a82vxgq(TLDPa)L8|2@>o*UeW;
+zcN4-*!Q=SJ;o*Pek^Q>uf$a<1UhWPz#olM%W`~%2%n@e2^+Rh9{W0Brxyeb>WQo|I
+zzm-C6y)%Upu-=@PV4dEWMghaxn?j<#Esd=Dku++6wfd<Z)UJoqs9OK32YJDB`o0Kj
+haUJ+!4eo<hW4vqp3cLv-^OW6C8*uX=!XHaG^(R4<!s`G4
+
+diff --git a/internal/.DS_Store b/internal/.DS_Store
+new file mode 100644
+index 0000000000000000000000000000000000000000..e7a7a74587c158f57ac0e3abbe152ef2087694a6
+GIT binary patch
+literal 10244
+zcmeHMPjA~c6o0gxL~fc@Nt3qNAHb+DLmO;fyT9mRs@q}+c1REhU4o=_Ws7#TD5NLJ
+z@!BAO&)aR6eSlpD4A^PM?gMPcU3b_Q*k$MKJ(6xEx!s|MYzRn!eAMIbk$gYtQ6>!l
+ztT_zc0jL3hgPEjz7K`U3YNtGvN=9=LB}03V-A*Jsc;`-Gt->;38L$jk1}p=Xf&T{s
+z_|2x|%xh^&%YbFTGVqiES|4hdNqR<(wNy(77HSKCvVv-ru&#dmqpXnvrDx<=OVnUu
+z+7zWWWoC=P%-(@%b8PnveypW72c|~Ge$2?s>`<85da#;;1M{@BrDeb}FwFq%-OJ#^
+z00wJOZvWoImbd;^Ntqc`XOs-gF8`;_APSST(fEy(%9WYfImdD4oqMf^a@0!wbeJ^#
+zc$e<Bq>MU~y5G4Q@=@Dez9mKKhl0n-APhJ{_C5<mAV*C(6hWeFTe`uiR;z9I($Uei
+z_ZzFV>y7KjtF@z#u3`P%4;#nFRcEFC_KnT<esmz@SK3WxmI_$V_fN~Ov1YspyNAXb
+z_RGYZ-(7d&PxZ|F*@aimxr<BZ7nc`TR#q-tytMS{Yp=K6^Bupt-;ZgYw`3&aW;En&
+z_gsSBu63o@i1{IUxt;Pa(^mKxo0bX&n>@JxOttlBfSBcH3f1W+G3R2pABVwuub1$2
+zJ5%4G(YmpWq79jZX(+|co*F&n2Wz4yaYUNI`hc2}yF5-%PT6eVi~J6c)<sjMsXW;6
+z<JcE{-h8wjq8BuCHDqhxcSF&yfBdH=v0C@u)HN6C6JDL=NzF)Bf6~*{>Xwj#*S!sW
+zTlYRS5C^WpO=!U$d;w$l7QTZY;Ai+1{(!$&nJusj>@vH`R@r;(1Lm=tY?JM>J?68|
+zwS8&wh~F^%8Nm{)m`8lribW(vA2o!o;LARQ6do2{_aCt>`?}9T7bG0u#X&%tN3+WX
+z^sGV)=s^hm0`{AK!=93G%K2}D>huOx?m-tqs|*2#OyTt}(GRt3V9jDc#dt}~Nj_9c
+zaRFPwfZ})sc^uHU>HEyLX%=x3BD^Gw3Rnv4EVhEE5cYxRaVn(qxB>Q-Oocv$a~3y;
+z-%j#|LO&|@s=Uvl9qf_g@{=N3K>xW6WbrdJ16;DwB9b^@S27&TAV!j3Ao898GLS=7
+zZ~>%Q#CaSski*TxA&%U|i{?sm2yui$?+p3KS)EZ<#BuN<8)7AAgOu828L$jk1}p=X
+z0n5ONFi_T`)ad;G&Wr#5KasiEK`aB7f&Yd9R=M4}O<StTX-aV#_;Vd<m>*!KM7Xh*
+w$^;97kX{|f;|(3ht0N-RHK>ge);%M~TA~KiiT@d357l1wP|fcDPs#rOAFl@-8~^|S
+
+literal 0
+HcmV?d00001
+
+diff --git a/internal/app/app.go b/internal/app/app.go
+index 15d1f17..86fafe5 100644
+--- a/internal/app/app.go
++++ b/internal/app/app.go
+@@ -9,6 +9,7 @@ import (
+ 	"gav/dbserver"
+ 	"gav/internal/auth"
+ 	"gav/internal/config"
++	"gav/internal/media"
+ 	httptransport "gav/transport/http"
+ 	"gav/transport/http/middleware"
+ 
+@@ -43,6 +44,14 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
+ 
+ 	logger.Info("database opened", "path", cfg.DB.Path)
+ 
++	if os.Getenv("ENV") != "production" {
++		if err := dbserver.SeedDatabase(db, logger); err != nil {
++			logger.Error("failed to seed database", "error", err)
++			return nil, err
++		}
++		logger.Info("database seeding completed")
++	}
++
+ 	sqlDB, err := db.DB()
+ 	if err != nil {
+ 		logger.Error("failed to get sql.DB", "error", err)
+@@ -59,7 +68,9 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
+ 		TTL: 	cfg.JWT.TTL,
+ 	}
+ 
+-	logger.Info("jwt cofidured", "ttl", cfg.JWT.TTL.String())
++	logger.Info("jwt cofigured", "ttl", cfg.JWT.TTL.String())
++
++	mediaStorage := media.NewLocalStorage(cfg.Storage.LocalPath)
+ 
+ 	// repositories
+ 	repos, err := initRepositories(db);
+@@ -68,7 +79,7 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
+ 	}
+ 
+ 	// services
+-	services, err := initServices(repos, jwtConfig)
++	services, err := initServices(repos, jwtConfig, mediaStorage)
+ 	if err != nil {
+ 		return nil, err
+ 	}
+@@ -93,6 +104,7 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
+ 			Vaccination:	handlers.Vaccination,
+ 			Stats: 			handlers.Stats,
+ 			Settings: 		handlers.Settings,
++			Upload: 		handlers.Upload,
+ 		},
+ 		httptransport.RouterDeps{
+ 			AuthMW: middleware.JWTAuth(jwtConfig),
+@@ -112,8 +124,6 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
+ }
+ 
+ func (a *App) Run() error {
+-	a.logger.Info("starting http server", "addr", a.Server.Addr)
+-
+ 	if err := a.Server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+ 		a.logger.Error("http server failed", "error", err)
+ 		return err
+@@ -139,8 +149,8 @@ func (a *App) Shutdown(ctx context.Context) error {
+ 	}
+ 
+ 	if err := sqlDB.Close(); err != nil {
+-			a.logger.Error("failed to close database", "error", err)
+-			return err
++		a.logger.Error("failed to close database", "error", err)
++		return err
+ 	}
+ 
+ 	a.logger.Info("application shutdown completed")
+diff --git a/internal/app/handlers.go b/internal/app/handlers.go
+index 33d6118..95413b7 100644
+--- a/internal/app/handlers.go
++++ b/internal/app/handlers.go
+@@ -17,6 +17,7 @@ type Handlers struct {
+ 	Vaccination *handlers.VaccinationHandler
+ 	Stats 		*handlers.StatsHandler
+ 	Settings 	*handlers.SettingsHandler
++	Upload		*handlers.UploadHandler
+ }
+ 
+ func initHandlers(services *Services) (*Handlers, error) {
+@@ -26,7 +27,7 @@ func initHandlers(services *Services) (*Handlers, error) {
+ 	h.Auth, 		err = handlers.NewAuthHandler(services.Auth);				if err != nil { return nil, err }
+ 	h.User, 		err = handlers.NewUserHandler(services.User);				if err != nil { return nil, err }
+ 	h.Profile,	 	 err = handlers.NewProfileHandler(services.Profile); 		   if err != nil { return nil, err }
+-	h.Post, 		err = handlers.NewPostHandler(services.Post);	   			if err != nil { return nil, err }
++	h.Post, 		err = handlers.NewPostHandler(services.Post, services.Media);	if err != nil { return nil, err }
+ 	h.Feed, 		err = handlers.NewFeedHandler(services.Feed);				if err != nil { return nil, err }
+ 	h.Comment, 		err = handlers.NewCommentHandler(services.Comment);			if err != nil { return nil, err }
+ 	h.Like, 		err = handlers.NewLikeHandler(services.Like);				if err != nil { return nil, err }
+@@ -35,6 +36,7 @@ func initHandlers(services *Services) (*Handlers, error) {
+ 	h.Vaccination,  err = handlers.NewVaccinationHandler(services.Vaccination);	if err != nil { return nil, err }
+ 	h.Stats, 		err = handlers.NewStatsHandler(services.Stats);				if err != nil { return nil, err }
+ 	h.Settings, 	err = handlers.NewSettingsHandler(services.Settings);		if err != nil { return nil, err }
++	h.Upload, 		err = handlers.NewUploadHandler(services.Media);			if err != nil { return nil, err }
+ 
+ 	return h, nil
+ }
+diff --git a/internal/app/services.go b/internal/app/services.go
+index c33a12f..95179b9 100644
+--- a/internal/app/services.go
++++ b/internal/app/services.go
+@@ -7,6 +7,7 @@ import (
+ 	"gav/internal/feed"
+ 	"gav/internal/follow"
+ 	"gav/internal/like"
++	"gav/internal/media"
+ 	"gav/internal/post"
+ 	"gav/internal/profile"
+ 	"gav/internal/settings"
+@@ -23,6 +24,7 @@ type Services struct {
+ 	Profile		 profile.ProfileService
+ 	Post		post.PostService
+ 	Feed		feed.FeedService
++	Media		media.MediaService
+ 	Comment 	comment.CommentService
+ 	Like 		like.LikeService
+ 	Follow 		follow.FollowService
+@@ -32,7 +34,7 @@ type Services struct {
+ 	Settings 	settings.SettingsService
+ }
+ 
+-func initServices(repos *Repositories, jwtConfig auth.JWTConfig) (*Services, error) {
++func initServices(repos *Repositories, jwtConfig auth.JWTConfig, storage media.Storage) (*Services, error) {
+ 	s := &Services{}
+ 
+ 	var err error
+@@ -42,6 +44,7 @@ func initServices(repos *Repositories, jwtConfig auth.JWTConfig) (*Services, err
+ 	s.Profile, 	 	 err = profile.NewService(repos.Profile);	  		   if err != nil { return nil, err }
+ 	s.Post, 		err = post.NewService(repos.Post);					if err != nil { return nil, err }
+ 	s.Feed,			err = feed.NewService(repos.Post);					if err != nil { return nil, err }
++	s.Media, 		err = media.NewService(storage);					if err != nil { return nil, err }
+ 	s.Comment, 		err = comment.NewService(repos.Comment); 			if err != nil { return nil, err }
+ 	s.Like, 		err = like.NewService(repos.Like);					if err != nil { return nil, err }
+ 	s.Follow, 		err = follow.NewService(repos.Follow);				if err != nil { return nil, err }
+diff --git a/internal/config/config.go b/internal/config/config.go
+index 5704aa2..b18d4e7 100644
+--- a/internal/config/config.go
++++ b/internal/config/config.go
+@@ -4,6 +4,7 @@ type Config struct {
+ 	HTTP HTTPConfig
+ 	DB DBConfig
+ 	JWT JWTConfig
++	Storage StorageConfig
+ }
+ 
+ func Load() (*Config, error) {
+diff --git a/internal/config/storage.go b/internal/config/storage.go
+new file mode 100644
+index 0000000..5cd99ec
+--- /dev/null
++++ b/internal/config/storage.go
+@@ -0,0 +1,22 @@
++package config
++
++import "os"
++
++type StorageConfig struct {
++	Type		string
++	LocalPath	string
++}
++
++func loadStorage() StorageConfig {
++	return StorageConfig{
++		Type: getEnv("STORAGE_TYPE", "local"),
++		LocalPath: getEnv("STORAGE_LOCAL_PATH", "./uploads"),
++	}
++}
++
++func getEnv(key, defaultValue string) string {
++	if env := os.Getenv(key); env != "" {
++		return env
++	}
++	return defaultValue
++}
+diff --git a/internal/media/errors.go b/internal/media/errors.go
+new file mode 100644
+index 0000000..dbc375c
+--- /dev/null
++++ b/internal/media/errors.go
+@@ -0,0 +1,9 @@
++package media
++
++import "errors"
++
++var (
++	ErrStorageNil		= errors.New("media service: storage is nil")
++	ErrFileTooLarge		= errors.New("file too large (max 5MB)")
++	ErrInvalidFileType	= errors.New("inly jpg, png, webp allowed")
++)
+diff --git a/internal/media/service.go b/internal/media/service.go
+new file mode 100644
+index 0000000..362c8ac
+--- /dev/null
++++ b/internal/media/service.go
+@@ -0,0 +1,10 @@
++package media
++
++import (
++	"context"
++	"mime/multipart"
++)
++
++type MediaService interface {
++	UploadImage(ctx context.Context, file multipart.File, header *multipart.FileHeader, folder string) (string, error)
++}
+diff --git a/internal/media/service_impl.go b/internal/media/service_impl.go
+new file mode 100644
+index 0000000..94a29d4
+--- /dev/null
++++ b/internal/media/service_impl.go
+@@ -0,0 +1,35 @@
++package media
++
++import (
++	"context"
++	"mime/multipart"
++	"path/filepath"
++)
++
++const FIVE_MEGABYTES int64 = 5 * 1024 * 1024
++
++type service struct {
++	storage Storage
++}
++
++func NewService(storage Storage) (MediaService, error) {
++	if storage == nil {
++		return nil, ErrStorageNil
++	}
++	return &service{storage: storage}, nil
++}
++
++func (s *service) UploadImage(ctx context.Context, file multipart.File, header *multipart.FileHeader, folder string) (string, error) {
++	if header.Size > FIVE_MEGABYTES {
++		return "", ErrFileTooLarge
++	}
++
++	extension := filepath.Ext(header.Filename)
++	if extension != ".jpg" && extension != ".jpeg" && extension != "png" && extension != ".webp" {
++		return "", ErrInvalidFileType
++	}
++
++	return s.storage.Upload(ctx, file, header, folder)
++}
++
++
+diff --git a/internal/media/storage.go b/internal/media/storage.go
+new file mode 100644
+index 0000000..e0ddd7a
+--- /dev/null
++++ b/internal/media/storage.go
+@@ -0,0 +1,11 @@
++package media
++
++import (
++	"context"
++	"mime/multipart"
++)
++
++type Storage interface {
++	Upload(ctx context.Context, file multipart.File, header *multipart.FileHeader, folder string) (url string, err error)
++	Delete(ctx context.Context, url string) error
++}
+diff --git a/internal/media/storage_impl.go b/internal/media/storage_impl.go
+new file mode 100644
+index 0000000..66075f3
+--- /dev/null
++++ b/internal/media/storage_impl.go
+@@ -0,0 +1,43 @@
++package media
++
++import (
++	"context"
++	"fmt"
++	"io"
++	"mime/multipart"
++	"os"
++	"path/filepath"
++	"time"
++)
++
++type LocalStorage struct {
++	basePath string
++}
++
++func NewLocalStorage(basePath string) Storage {
++	return &LocalStorage{basePath: basePath}
++}
++
++func (s *LocalStorage) Upload(ctx context.Context, file multipart.File, header *multipart.FileHeader, folder string) (string, error) {
++	extension := filepath.Ext(header.Filename)
++	filename := fmt.Sprintf("%d%s", time.Now().UnixNano(), extension)
++	fullPath := filepath.Join(s.basePath, folder, filename)
++
++	os.MkdirAll(filepath.Join(s.basePath, folder), 0755)
++
++	destination, err := os.Create(fullPath)
++	if err != nil {
++		return "", err
++	}
++	defer destination.Close()
++
++	if _, err := io.Copy(destination, file); err != nil {
++		return "", err
++	}
++
++	return "/uploads/" + folder + "/" + filename, nil
++}
++
++func (s *LocalStorage) Delete(ctx context.Context, url string) error {
++	return nil
++}
+diff --git a/internal/post/model.go b/internal/post/model.go
+index 49f3e96..58d2778 100644
+--- a/internal/post/model.go
++++ b/internal/post/model.go
+@@ -7,8 +7,9 @@ import (
+ )
+ 
+ type Post struct {
+-	ID			uuid.UUID		`json:"id"`
+-	UserID 		uuid.UUID		`json:"user_id"`
++	ID			uuid.UUID	`json:"id"`
++	UserID 		uuid.UUID	`json:"user_id"`
+ 	Content 	string		`json:"content"`
++	ImageUrl	string		`json:"image_url,omitempty"`
+ 	CreatedAt	time.Time	`json:"created_at"`
+ }
+diff --git a/internal/post/service.go b/internal/post/service.go
+index 0757b60..030b9e6 100644
+--- a/internal/post/service.go
++++ b/internal/post/service.go
+@@ -8,7 +8,7 @@ import (
+ )
+ 
+ type PostService interface {
+-	Create(ctx context.Context, userID uuid.UUID, content string) (*Post, error)
++	Create(ctx context.Context, userID uuid.UUID, content, imageUrl string) (*Post, error)
+ 	GetByID(ctx context.Context, postID uuid.UUID) (*Post, error)
+ 	ListByUser(ctx context.Context, userID uuid.UUID) ([]*Post, error)
+ 	GetFeed(ctx context.Context, userID uuid.UUID, before time.Time, limit int) ([]*Post, time.Time, error)
+diff --git a/internal/post/service_impl.go b/internal/post/service_impl.go
+index 80fa02d..83d0567 100644
+--- a/internal/post/service_impl.go
++++ b/internal/post/service_impl.go
+@@ -19,12 +19,7 @@ func NewService(repo Repository) (PostService, error) {
+ 	return &service{repo: repo}, nil
+ }
+ 
+-func (s *service) Create(
+-	ctx context.Context,
+-	userID uuid.UUID,
+-	content string,
+-) (*Post, error) {
+-
++func (s *service) Create(ctx context.Context, userID uuid.UUID, content string, imageUrl string) (*Post, error) {
+ 	if content == "" {
+ 		return  nil, ErrEmptyContent
+ 	}
+@@ -32,6 +27,7 @@ func (s *service) Create(
+ 	post := &Post{
+ 		UserID: 	userID,
+ 		Content: 	content,
++		ImageUrl: 	imageUrl,
+ 		CreatedAt: 	time.Now(),
+ 	}
+ 
+diff --git a/internal/profile/dto.go b/internal/profile/dto.go
+index 5656c0e..c62a234 100644
+--- a/internal/profile/dto.go
++++ b/internal/profile/dto.go
+@@ -1,21 +1,21 @@
+ package profile
+ 
+ type CreateProfileInput struct {
+-	Name         string
+-    Surname      string
+-    Username     string
+-    ProfilePhoto  string
+-    Bio          string
+-    Address      string
+-    BirthDate    string
++	Name            string
++    Surname         string
++    Username        string
++    ProfilePhotoUrl  string
++    Bio             string
++    Address         string
++    BirthDate       string
+ }
+ 
+ type UpdateProfileInput struct {
+-	Name         *string
+-    Surname      *string
+-    Username     *string
+-    ProfilePhoto  *string
+-    Bio          *string
+-    Address      *string
+-    BirthDate    *string
++	Name            *string
++    Surname         *string
++    Username        *string
++    ProfilePhotoUrl  *string
++    Bio             *string
++    Address         *string
++    BirthDate       *string
+ }
+diff --git a/internal/profile/model.go b/internal/profile/model.go
+index 38b62cf..e25a9e2 100644
+--- a/internal/profile/model.go
++++ b/internal/profile/model.go
+@@ -3,12 +3,12 @@ package profile
+ import "github.com/google/uuid"
+ 
+ type UserProfile struct {
+-    UserID       uuid.UUID   `gorm:"primaryKey"`
+-    Name         string
+-    Surname      string
+-    Username     string      `gorm:"unique"`
+-    ProfilePhoto  string
+-    Bio          string
+-    Address      string
+-    BirthDate    string
++    UserID          uuid.UUID   `gorm:"primaryKey"`
++    Name            string
++    Surname         string
++    Username        string      `gorm:"unique"`
++    ProfilePhotoUrl  string
++    Bio             string
++    Address         string
++    BirthDate       string
+ }
+diff --git a/internal/profile/service_impl.go b/internal/profile/service_impl.go
+index 743ebde..be7c4dc 100644
+--- a/internal/profile/service_impl.go
++++ b/internal/profile/service_impl.go
+@@ -28,7 +28,7 @@ func (s *service) Create(ctx context.Context, userID uuid.UUID, input CreateProf
+ 		Name: input.Name,
+ 		Surname: input.Surname,
+ 		Username: input.Username,
+-		ProfilePhoto: input.ProfilePhoto,
++		ProfilePhotoUrl: input.ProfilePhotoUrl,
+ 		Bio: input.Bio,
+ 		Address: input.Address,
+ 		BirthDate: input.BirthDate,
+@@ -82,8 +82,8 @@ func (s *service) Update(ctx context.Context, profileID uuid.UUID, input UpdateP
+ 	if input.Username != nil {
+ 		profile.Username = *input.Username
+ 	}
+-	if input.ProfilePhoto != nil {
+-		profile.ProfilePhoto = *input.ProfilePhoto
++	if input.ProfilePhotoUrl != nil {
++		profile.ProfilePhotoUrl = *input.ProfilePhotoUrl
+ 	}
+ 	if input.Bio != nil {
+ 		profile.Bio = *input.Bio
+diff --git a/test.jpg b/test.jpg
+new file mode 100644
+index 0000000..5f33bc5
+--- /dev/null
++++ b/test.jpg
+@@ -0,0 +1 @@
++test image
+diff --git a/transport/http/dto/post.go b/transport/http/dto/post.go
+index a065caf..cc60443 100644
+--- a/transport/http/dto/post.go
++++ b/transport/http/dto/post.go
+@@ -11,8 +11,9 @@ type PostRequest struct {
+ }
+ 
+ type PostResponse struct {
+-	ID			uuid.UUID		`json:"id"`
+-	AuthorID	uuid.UUID		`json:"author_id"`
+-	Content		string			`json:"content"`
+-	CreatedAt	time.Time		`json:"created_at"`
++	ID			uuid.UUID	`json:"id"`
++	AuthorID	uuid.UUID	`json:"author_id"`
++	Content		string		`json:"content"`
++	ImageUrl	string		`json:"image_url,omitempty"`
++	CreatedAt	time.Time	`json:"created_at"`
+ }
+diff --git a/transport/http/handlers/errors.go b/transport/http/handlers/errors.go
+index 02a56d4..5f96425 100644
+--- a/transport/http/handlers/errors.go
++++ b/transport/http/handlers/errors.go
+@@ -19,4 +19,5 @@ var (
+ 	ErrStatsNil		 	= errors.New("stats handler: service is nil")
+ 	ErrUserNil		 	= errors.New("user handler: service is nil")
+ 	ErrVaccinationNil	= errors.New("vaccination handler: service is nil")
++	ErrMediaNil			= errors.New("upload handler: service is nil")
+ )
+diff --git a/transport/http/handlers/post.go b/transport/http/handlers/post.go
+index d92584e..15ac0f8 100644
+--- a/transport/http/handlers/post.go
++++ b/transport/http/handlers/post.go
+@@ -4,6 +4,7 @@ import (
+ 	"encoding/json"
+ 	"net/http"
+ 
++	"gav/internal/media"
+ 	"gav/internal/post"
+ 	"gav/internal/validation"
+ 	"gav/transport/http/dto"
+@@ -15,13 +16,17 @@ import (
+ )
+ 
+ type PostHandler struct {
+-	service post.PostService
++	service 	 post.PostService
++	mediaService media.MediaService
+ }
+ 
+-func NewPostHandler(service post.PostService) (*PostHandler, error) {
++func NewPostHandler(service post.PostService, mediaService media.MediaService) (*PostHandler, error) {
+ 	if service == nil {
+ 		return nil, ErrPostNil
+ 	}
++	if mediaService == nil {
++		return nil, ErrMediaNil
++	}
+ 
+ 	return &PostHandler{service: service}, nil
+ }
+@@ -33,6 +38,24 @@ func (h *PostHandler) Create(w http.ResponseWriter, r *http.Request) {
+ 		return
+ 	}
+ 
++	if err := r.ParseMultipartForm(10 << 20); err != nil {
++		response.Error(w, err)
++		return
++	}
++
++	file, header, err := r.FormFile("image")
++	if err != nil {
++		response.Error(w, err)
++		return
++	}
++	defer file.Close()
++
++	imageUrl, err := h.mediaService.UploadImage(r.Context(), file, header, "posts/"+userID.String())
++	if err != nil {
++		response.Error(w, err)
++		return
++	}
++
+ 	var request dto.PostRequest
+ 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+ 		response.Error(w, err)
+@@ -44,7 +67,7 @@ func (h *PostHandler) Create(w http.ResponseWriter, r *http.Request) {
+ 		return
+ 	}
+ 
+-	post, err := h.service.Create(r.Context(), userID, request.Content)
++	post, err := h.service.Create(r.Context(), userID, request.Content, imageUrl)
+ 	if err != nil {
+ 		response.Error(w, err)
+ 		return
+@@ -52,9 +75,9 @@ func (h *PostHandler) Create(w http.ResponseWriter, r *http.Request) {
+ 
+ 	response.JSON(w, http.StatusCreated, dto.PostResponse{
+ 		ID: post.ID,
+-		AuthorID:
+-		post.UserID,
++		AuthorID: post.UserID,
+ 		Content: post.Content,
++		ImageUrl: post.ImageUrl,
+ 		CreatedAt: post.CreatedAt,
+ 	})
+ }
+diff --git a/transport/http/handlers/upload.go b/transport/http/handlers/upload.go
+new file mode 100644
+index 0000000..0f91b7c
+--- /dev/null
++++ b/transport/http/handlers/upload.go
+@@ -0,0 +1,92 @@
++package handlers
++
++import (
++	"net/http"
++
++	"gav/internal/media"
++	"gav/internal/profile"
++	"gav/transport/http/middleware"
++	"gav/transport/response"
++
++	"github.com/go-chi/chi/v5"
++	"github.com/google/uuid"
++)
++
++type UploadHandler struct {
++	mediaService  media.MediaService
++	profileService profile.ProfileService
++}
++
++func NewUploadHandler(mediaService media.MediaService) (*UploadHandler, error) {
++	if mediaService == nil {
++		return nil, ErrMediaNil
++	}
++
++	return &UploadHandler{mediaService: mediaService}, nil
++}
++
++func (h *UploadHandler) UploadAvatar(w http.ResponseWriter, r *http.Request) {
++	userID, ok := middleware.UserID(r.Context())
++	if !ok {
++		response.Error(w, ErrUnauthorized)
++		return
++	}
++
++	if err := r.ParseMultipartForm(10 << 20); err != nil {	// 10MB max
++		response.Error(w, err)
++		return
++	}
++
++	file, header, err := r.FormFile("avatar")
++	if err != nil {
++		response.Error(w, err)
++		return
++	}
++	defer file.Close()
++
++	url, err := h.mediaService.UploadImage(r.Context(), file, header, "avatars/"+userID.String())
++	if err != nil {
++		response.Error(w, err)
++		return
++	}
++
++	profileID, err := uuid.Parse(chi.URLParam(r, "profileID"))
++	if err != nil {
++		response.Error(w, ErrInvalidInput)
++		return
++	}
++	update := profile.UpdateProfileInput{ProfilePhotoUrl: &url}
++	h.profileService.Update(r.Context(), profileID, update)
++
++	response.JSON(w, http.StatusOK, map[string]string{"url": url})
++}
++
++func (h *UploadHandler) UploadPostImage(w http.ResponseWriter, r *http.Request) {
++	userID, ok := middleware.UserID(r.Context())
++	if !ok {
++		response.Error(w, ErrUnauthorized)
++		return
++	}
++
++	if err := r.ParseMultipartForm(10 << 20); err != nil {
++		response.Error(w, err)
++		return
++	}
++
++	file, header, err := r.FormFile("image")
++	if err != nil {
++		response.Error(w, err)
++		return
++	}
++	defer file.Close()
++
++	url, err := h.mediaService.UploadImage(r.Context(), file, header, "posts/"+userID.String())
++	if err != nil {
++		response.Error(w, err)
++		return
++	}
++
++	response.JSON(w, http.StatusOK, map[string]string{"url": url})
++}
++
++
+diff --git a/transport/http/router.go b/transport/http/router.go
+index b0b2bf6..b9336bc 100644
+--- a/transport/http/router.go
++++ b/transport/http/router.go
+@@ -24,6 +24,7 @@ type Handlers struct {
+ 	Vaccination  *handlers.VaccinationHandler
+ 	Stats        *handlers.StatsHandler
+ 	Settings     *handlers.SettingsHandler
++	Upload		 *handlers.UploadHandler
+ }
+ 
+ type RouterDeps struct {
+@@ -38,34 +39,69 @@ func NewRouter(
+ ) http.Handler {
+ 
+ 	r := chi.NewRouter()
+-	r.Use(deps.AuthMW)
+ 
+-	r.Use(middleware.RequireRole("admin"))
+ 	r.Use(middleware.RequestID)
+ 	r.Use(middleware.RealIP)
+ 	r.Use(middleware.Logging(logger))
+ 	r.Use(middleware.Recover(logger))
+ 	r.Use(middleware.Timeout)
+ 
++	r.Get("/", func (w http.ResponseWriter, r *http.Request)  {
++		w.Header().Set("Content-Type", "text/html")
++	html := `
++<!DOCTYPE html>
++<html>
++<head>
++    <meta charset="UTF-8">
++    <title>GAV API</title>
++    <style>
++        body { font-family: Arial, sans-serif; max-width: 800px; margin: 40px auto; line-height: 1.6; }
++        h1 { color: #2c3e50; }
++        pre { background: #f8f9fa; padding: 15px; border-radius: 8px; }
++        code { background: #e9ecef; padding: 2px 6px; border-radius: 4px; }
++    </style>
++</head>
++<body>
++    <h1>GAV API запущен!</h1>
++    <p>Все эндпоинты находятся по адресу: <code>/api/v1</code></p>
++
++    <h3>Примеры использования:</h3>
++    <pre>
++POST /api/v1/auth/register   - регистрация
++POST /api/v1/auth/login      - вход
++GET  /api/v1/feed            - лента постов (требуется токен)
++POST /api/v1/posts           - создать пост
++    </pre>
++
++    <p>Swagger UI доступен по адресу: <a href="/swagger/index.html">/swagger/index.html</a> (если подключён)</p>
++</body>
++</html>
++    `
++		w.Write([]byte(html))
++	})
++
+ 	r.Route("/api/v1", func(r chi.Router) {
+ 		// r.Route("/admin", func(r chi.Router) {
+-		// 	r.Get("/users", h.Admin.ListUsers)
+-		// 	r.Post("/stats/reset", h.Admin.ResetStats)
++		// r.Use(middleware.RequireRole("admin"))
++		// r.Get("/users", h.Admin.ListUsers)
++		// r.Post("/stats/reset", h.Admin.ResetStats)
+ 		// })
+ 
+-		r.Route("/auth", func(r chi.Router) {
+-			r.Post("/register", h.Auth.Register)
+-			r.Post("/login", h.Auth.Login)
+-		})
+-
+ 		r.Group(func(r chi.Router) {
+ 			r.Use(deps.AuthMW)
+ 
+ 			// ---- Auth ----
+ 			r.Route("/auth", func(r chi.Router) {
+-				r.Get("/me", h.Auth.Me)
+-				r.Post("/refresh", h.Auth.Refresh)
+-				r.Post("/logout", h.Auth.Logout)
++				r.Post("/register", h.Auth.Register)
++				r.Post("/login", h.Auth.Login)
++
++				r.Group(func(r chi.Router) {
++					r.Use(deps.AuthMW)
++
++					r.Get("/me", h.Auth.Me)
++					r.Post("/refresh", h.Auth.Refresh)
++					r.Post("/logout", h.Auth.Logout)
++				})
+ 			})
+ 
+ 			// ---- Users ----
+@@ -149,6 +185,12 @@ func NewRouter(
+ 				r.Get("/", h.Settings.Get)
+ 				r.Put("/", h.Settings.Update)
+ 			})
++
++			// ---- Upload ----
++			r.Route("/upload", func(r chi.Router) {
++				r.Post("/avatar", h.Upload.UploadAvatar)
++				r.Post("/post-image", h.Upload.UploadPostImage)
++			})
+ 		})
+ 	})
+ 
+diff --git a/transport/response/response.go b/transport/response/response.go
+index 62cb24c..46e6c00 100644
+--- a/transport/response/response.go
++++ b/transport/response/response.go
+@@ -5,6 +5,8 @@ import (
+ 	"net/http"
+ 
+ 	"gav/internal/errors"
++
++	"log/slog"
+ )
+ 
+ func JSON(writer http.ResponseWriter, code int, data any) {
+@@ -15,6 +17,8 @@ func JSON(writer http.ResponseWriter, code int, data any) {
+ 	}
+ }
+ 
++var logg slog.Logger
++
+ func Error(w http.ResponseWriter, err error) {
+ 	if err == nil {
+ 		return
+@@ -32,6 +36,7 @@ func Error(w http.ResponseWriter, err error) {
+ 		}
+ 	}
+ 
++	logg.Error("handler error", "error", err.Error())
+ 	JSON(w, http.StatusInternalServerError, ErrorResponse{
+ 		Error: ErrorBody{
+ 			Code: 	 "INTERNAL_ERROR",
+-- 
+2.50.1 (Apple Git-155)
+

@@ -3,21 +3,36 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+
 	"social_network/internal/like"
+	"social_network/internal/notification"
+	"social_network/internal/post"
 	"social_network/transport/http/middleware"
 	"social_network/transport/response"
 )
 
 type LikeHandler struct {
-	service like.LikeService
+	service 			like.LikeService
+	postService			post.PostService
+	notificationService  notification.NotificationService
 }
 
-func NewLikeHandler(service like.LikeService) (*LikeHandler, error) {
+func NewLikeHandler(
+	service like.LikeService,
+	postService post.PostService,
+	notificationService notification.NotificationService,
+) (*LikeHandler, error) {
 	if service == nil {
 		return nil, ErrLikeNil
 	}
+	if postService == nil {
+		return nil, ErrPostNil
+	}
+	if notificationService == nil {
+		return nil, ErrNotificationNil
+	}
 
-	return &LikeHandler{service: service}, nil
+	return &LikeHandler{service: service, postService: postService, notificationService: notificationService}, nil
 }
 
 func (h *LikeHandler) Add(w http.ResponseWriter, r *http.Request) {
@@ -38,6 +53,16 @@ func (h *LikeHandler) Add(w http.ResponseWriter, r *http.Request) {
 	if err := h.service.Add(r.Context(), like); err != nil {
 		response.Error(w, err)
 		return
+	}
+
+	post, err := h.postService.GetByID(r.Context(), like.PostID)
+	if err != nil {
+		response.Error(w, err)
+		return
+	}
+
+	if post != nil && post.UserID != userID {
+		go h.notificationService.NotifyLike(r.Context(), post.UserID, userID, like.PostID)
 	}
 
 	response.JSON(w, http.StatusNoContent, nil)

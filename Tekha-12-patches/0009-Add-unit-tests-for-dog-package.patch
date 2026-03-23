@@ -1,0 +1,377 @@
+From 1d570d7fad4dd1acd6c9cf333347eca0d4d0b98e Mon Sep 17 00:00:00 2001
+From: Tehron Janobilov <tsdzhanobilov@edu.hse.ru>
+Date: Sat, 14 Mar 2026 01:46:08 +0300
+Subject: [PATCH 09/12] Add unit tests for dog package
+
+---
+ internal/dog/errors.go               |   1 +
+ internal/dog/mock_repository_test.go |  47 +++++++
+ internal/dog/model_test.go           |  75 +++++++++++
+ internal/dog/service_impl.go         |   7 +-
+ internal/dog/service_test.go         | 179 +++++++++++++++++++++++++++
+ 5 files changed, 303 insertions(+), 6 deletions(-)
+ create mode 100644 internal/dog/mock_repository_test.go
+ create mode 100644 internal/dog/model_test.go
+ create mode 100644 internal/dog/service_test.go
+
+diff --git a/internal/dog/errors.go b/internal/dog/errors.go
+index 7be6cb6..6cfa683 100644
+--- a/internal/dog/errors.go
++++ b/internal/dog/errors.go
+@@ -11,4 +11,5 @@ var (
+ 	ErrAgeEmpty			= errors.New("dog model: age is empty")
+ 	ErrPhotoURLEmpty	= errors.New("dog model: photo url is empty")
+ 	ErrRepoNil			= errors.New("dog service: repo is nil")
++	ErrDogAccessDenied 	= errors.New("dog access denied")
+ )
+diff --git a/internal/dog/mock_repository_test.go b/internal/dog/mock_repository_test.go
+new file mode 100644
+index 0000000..6aa284a
+--- /dev/null
++++ b/internal/dog/mock_repository_test.go
+@@ -0,0 +1,47 @@
++package dog
++
++import (
++	"context"
++
++	"github.com/google/uuid"
++	"github.com/stretchr/testify/mock"
++)
++
++type MockRepository struct {
++	mock.Mock
++}
++
++func (m *MockRepository) Create(ctx context.Context, dog *Dog) error {
++	args := m.Called(ctx, dog)
++	return args.Error(0)
++}
++
++func (m *MockRepository) Update(ctx context.Context, dog *Dog) error {
++	args := m.Called(ctx, dog)
++	return args.Error(0)
++}
++
++func (m *MockRepository) Delete(ctx context.Context, id uuid.UUID) error {
++	args := m.Called(ctx, id)
++	return args.Error(0)
++}
++
++func (m *MockRepository) GetByOwnerID(ctx context.Context, ownerID uuid.UUID) ([]*Dog, error) {
++	args := m.Called(ctx, ownerID)
++
++	if args.Get(0) == nil {
++		return nil, args.Error(1)
++	}
++
++	return args.Get(0).([]*Dog), args.Error(1)
++}
++
++func (m *MockRepository) GetByID(ctx context.Context, id uuid.UUID) (*Dog, error) {
++	args := m.Called(ctx, id)
++
++	if args.Get(0) == nil {
++		return nil, args.Error(1)
++	}
++
++	return args.Get(0).(*Dog), args.Error(1)
++}
+diff --git a/internal/dog/model_test.go b/internal/dog/model_test.go
+new file mode 100644
+index 0000000..ac3b472
+--- /dev/null
++++ b/internal/dog/model_test.go
+@@ -0,0 +1,75 @@
++package dog
++
++import (
++	"testing"
++
++	"github.com/google/uuid"
++	"github.com/stretchr/testify/assert"
++)
++
++func TestNewDog_Success(t *testing.T) {
++	ownerID := uuid.New()
++
++	dog, err := NewDog(
++		ownerID,
++		"Buddy",
++		"Labrador",
++		Male,
++		StatusFriendly,
++		AdultAge,
++		"url",
++	)
++
++	assert.NoError(t, err)
++	assert.Equal(t, ownerID, dog.OwnerID)
++	assert.Equal(t, "Buddy", dog.Name)
++}
++
++func TestNewDog_OwnerNil(t *testing.T) {
++	_, err := NewDog(uuid.Nil, "a", "b", Male, StatusFriendly, AdultAge, "url")
++
++	assert.Error(t, err)
++	assert.Equal(t, ErrOwnerIDNil, err)
++}
++
++func TestNewDog_NameEmpty(t *testing.T) {
++	_, err := NewDog(uuid.New(), "", "b", Male, StatusFriendly, AdultAge, "url")
++
++	assert.Error(t, err)
++	assert.Equal(t, ErrNameEmpty, err)
++}
++
++func TestNewDog_BreedEmpty(t *testing.T) {
++	_, err := NewDog(uuid.New(), "a", "", Male, StatusFriendly, AdultAge, "url")
++
++	assert.Error(t, err)
++	assert.Equal(t, ErrBreedEmpty, err)
++}
++
++func TestNewDog_GenderEmpty(t *testing.T) {
++	_, err := NewDog(uuid.New(), "a", "b", "", StatusFriendly, AdultAge, "url")
++
++	assert.Error(t, err)
++	assert.Equal(t, ErrGenderEmpty, err)
++}
++
++func TestNewDog_StatusEmpty(t *testing.T) {
++	_, err := NewDog(uuid.New(), "a", "b", Male, "", AdultAge, "url")
++
++	assert.Error(t, err)
++	assert.Equal(t, ErrStatusEmpty, err)
++}
++
++func TestNewDog_AgeEmpty(t *testing.T) {
++	_, err := NewDog(uuid.New(), "a", "b", Male, StatusFriendly, "", "url")
++
++	assert.Error(t, err)
++	assert.Equal(t, ErrAgeEmpty, err)
++}
++
++func TestNewDog_PhotoEmpty(t *testing.T) {
++	_, err := NewDog(uuid.New(), "a", "b", Male, StatusFriendly, AdultAge, "")
++
++	assert.Error(t, err)
++	assert.Equal(t, ErrPhotoURLEmpty, err)
++}
+diff --git a/internal/dog/service_impl.go b/internal/dog/service_impl.go
+index 275a34e..184b423 100644
+--- a/internal/dog/service_impl.go
++++ b/internal/dog/service_impl.go
+@@ -2,15 +2,10 @@ package dog
+ 
+ import (
+ 	"context"
+-	"errors"
+ 
+ 	"github.com/google/uuid"
+ )
+ 
+-var (
+-	ErrDogAccessDenied = errors.New("dog access denied")
+-)
+-
+ type service struct {
+ 	repo Repository
+ }
+@@ -130,7 +125,7 @@ func (s *service) GetPublic(ctx context.Context, dogID uuid.UUID) (*Dog, error)
+ 	return s.repo.GetByID(ctx, dogID)
+ }
+ 
+-func (s *service) GetPrivate(ctx context.Context, dogID, ownerID uuid.UUID) (*Dog, error) {
++func (s *service) GetPrivate(ctx context.Context, ownerID, dogID uuid.UUID) (*Dog, error) {
+ 	dog, err := s.repo.GetByID(ctx, dogID)
+ 	if err != nil {
+ 		return nil, err
+diff --git a/internal/dog/service_test.go b/internal/dog/service_test.go
+new file mode 100644
+index 0000000..3b58464
+--- /dev/null
++++ b/internal/dog/service_test.go
+@@ -0,0 +1,179 @@
++package dog
++
++import (
++	"context"
++	"testing"
++
++	"github.com/google/uuid"
++	"github.com/stretchr/testify/assert"
++	"github.com/stretchr/testify/mock"
++	"github.com/stretchr/testify/require"
++)
++
++type testEnv struct {
++	service DogService
++	repo	*MockRepository
++}
++
++func setup(t *testing.T) *testEnv {
++	repo := &MockRepository{}
++
++	service, err := NewService(repo)
++	require.NoError(t, err)
++
++	return &testEnv{
++		service: service,
++		repo: repo,
++	}
++}
++
++func TestNewService(t *testing.T) {
++	env := setup(t)
++	assert.NotNil(t, env.service)
++}
++
++func TestNewService_RepoNil(t *testing.T) {
++	service, err := NewService(nil)
++
++	assert.Error(t, err)
++	assert.Nil(t, service)
++	assert.Equal(t, ErrRepoNil, err)
++}
++
++func TestCreate_Success(t *testing.T) {
++	env := setup(t)
++
++	ctx := context.Background()
++	ownerID := uuid.New()
++
++	input := CreateDogInput{
++		Name: "Buddy",
++		Breed: "Labrador",
++		Gender: Male,
++		Status: StatusFriendly,
++		Age: AdultAge,
++		PhotoUrl: "url",
++	}
++
++	env.repo.
++		On("Create", ctx, mock.AnythingOfType("*dog.Dog")).
++		Return(nil)
++
++	dog, err := env.service.Create(ctx, ownerID, input)
++
++	assert.NoError(t, err)
++	assert.Equal(t, ownerID, dog.OwnerID)
++}
++
++func TestUpdate_Success(t *testing.T) {
++	env := setup(t)
++
++	ctx := context.Background()
++	ownerID := uuid.New()
++	dogID := uuid.New()
++
++	name := "NewName"
++
++	dog := &Dog{
++		ID: dogID,
++		OwnerID: ownerID,
++		Name: "Old",
++	}
++
++	env.repo.
++		On("GetByID", ctx, dogID).
++		Return(dog, nil)
++
++	env.repo.
++		On("Update", ctx, dog).
++		Return(nil)
++
++	input := UpdateDogInput{
++		Name: &name,
++	}
++
++	err := env.service.Update(ctx, ownerID, dogID, input)
++
++	assert.NoError(t, err)
++	assert.Equal(t, "NewName", dog.Name)
++}
++
++func TestUpdate_AccessDenied(t *testing.T) {
++	env := setup(t)
++	ctx := context.Background()
++
++	dogID := uuid.New()
++	dog := &Dog{
++		ID: dogID,
++		OwnerID: uuid.New(),
++	}
++
++	env.repo.
++		On("GetByID", ctx, dogID).
++		Return(dog, nil)
++
++	err := env.service.Update(ctx, uuid.New(), dogID, UpdateDogInput{})
++
++	assert.Error(t, err)
++	assert.Equal(t, ErrDogAccessDenied, err)
++}
++
++func TestDelete_Success(t *testing.T) {
++	env := setup(t)
++
++	ctx := context.Background()
++	ownerID := uuid.New()
++	dogID := uuid.New()
++
++	dog := &Dog{
++		ID: dogID,
++		OwnerID: ownerID,
++	}
++
++	env.repo.On("GetByID", ctx, dogID).Return(dog, nil)
++	env.repo.On("Delete", ctx, dogID).Return(nil)
++
++	err := env.service.Delete(ctx, ownerID, dogID)
++	assert.NoError(t, err)
++}
++
++func TestUpdateLocation(t *testing.T) {
++	env := setup(t)
++	ctx := context.Background()
++
++	ownerID := uuid.New()
++	dogID := uuid.New()
++
++	dog := &Dog{
++		ID: dogID,
++		OwnerID: ownerID,
++	}
++
++	env.repo.On("GetByID", ctx, dogID).Return(dog, nil)
++	env.repo.On("Update", ctx, dog).Return(nil)
++
++	err := env.service.UpdateLocation(ctx, ownerID, dogID, 10, 20)
++
++	assert.NoError(t, err)
++	assert.NotNil(t, dog.Lat)
++	assert.NotNil(t, dog.Lon)
++}
++
++func TestGetPrivate_AccessDenied(t *testing.T) {
++	env := setup(t)
++	ctx := context.Background()
++
++	dogID := uuid.New()
++	dog := &Dog{
++		ID: dogID,
++		OwnerID: uuid.New(),
++	}
++
++	env.repo.On("GetByID", ctx, dogID).Return(dog, nil)
++	_, err := env.service.GetPrivate(ctx, uuid.New(), dogID)
++
++	assert.Error(t, err)
++	assert.Equal(t, ErrDogAccessDenied, err)
++}
++
++
+-- 
+2.50.1 (Apple Git-155)
+

@@ -3,7 +3,10 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+
 	"social_network/internal/comment"
+	"social_network/internal/notification"
+	"social_network/internal/post"
 	"social_network/internal/validation"
 	"social_network/transport/http/dto"
 	"social_network/transport/http/middleware"
@@ -14,15 +17,27 @@ import (
 )
 
 type CommentHandler struct {
-	service comment.CommentService
+	service 			comment.CommentService
+	postService 		post.PostService
+	notificationService	 notification.NotificationService
 }
 
-func NewCommentHandler(service comment.CommentService) (*CommentHandler, error) {
+func NewCommentHandler(
+	service comment.CommentService,
+	postService post.PostService,
+	notficationService notification.NotificationService,
+) (*CommentHandler, error) {
 	if service == nil {
 		return nil, ErrCommentNil
 	}
+	if postService == nil {
+		return nil, ErrPostNil
+	}
+	if notficationService == nil {
+		return nil, ErrNotificationNil
+	}
 
-	return &CommentHandler{service: service}, nil
+	return &CommentHandler{service: service, postService: postService, notificationService: notficationService}, nil
 }
 
 func (h *CommentHandler) Create(w http.ResponseWriter, r *http.Request) {
@@ -47,6 +62,16 @@ func (h *CommentHandler) Create(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		response.Error(w, err)
 		return
+	}
+
+	post, err := h.postService.GetByID(r.Context(), request.PostID)
+	if err != nil {
+		response.Error(w, err)
+		return
+	}
+
+	if post != nil && post.UserID != userID {
+		go h.notificationService.NotifyComment(r.Context(), post.UserID, userID, request.PostID)
 	}
 
 	response.JSON(w, http.StatusCreated, nil)

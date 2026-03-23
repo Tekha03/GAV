@@ -10,6 +10,7 @@ import (
 	"social_network/internal/auth"
 	"social_network/internal/config"
 	"social_network/internal/media"
+	"social_network/internal/notification"
 	httptransport "social_network/transport/http"
 	"social_network/transport/http/middleware"
 
@@ -78,14 +79,17 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 		return nil, err
 	}
 
+	notificationHub := notification.NewHub()
+	go notificationHub.Run()
+
 	// services
-	services, err := initServices(repos, jwtConfig, mediaStorage)
+	services, err := initServices(repos, jwtConfig, mediaStorage, notificationHub)
 	if err != nil {
 		return nil, err
 	}
 
 	// handlers
-	handlers, err := initHandlers(services)
+	handlers, err := initHandlers(services, notificationHub)
 	if err != nil {
 		return nil, err
 	}
@@ -105,6 +109,7 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 			Stats: 			handlers.Stats,
 			Settings: 		handlers.Settings,
 			Upload: 		handlers.Upload,
+			WS: 		handlers.WSHandler,
 		},
 		httptransport.RouterDeps{
 			AuthMW: middleware.JWTAuth(jwtConfig),

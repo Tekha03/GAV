@@ -1,0 +1,907 @@
+From a84ab88eb08f072c84c8544b40d7a9b568da5a81 Mon Sep 17 00:00:00 2001
+From: Tehron Janobilov <tsdzhanobilov@edu.hse.ru>
+Date: Fri, 13 Mar 2026 02:28:56 +0300
+Subject: [PATCH 06/12] Add unit tests to auth package
+
+---
+ go.mod                                   |   6 +-
+ go.sum                                   |   6 +-
+ internal/auth/claims_test.go             |  66 +++++
+ internal/auth/errors.go                  |   9 +-
+ internal/auth/jwt_test.go                | 135 ++++++++++
+ internal/auth/mock_token_service_test.go |  32 +++
+ internal/auth/mock_user_service_test.go  |  54 ++++
+ internal/auth/password_test.go           |  97 +++++++
+ internal/auth/service_impl.go            |  14 +-
+ internal/auth/service_test.go            | 327 +++++++++++++++++++++++
+ 10 files changed, 738 insertions(+), 8 deletions(-)
+ create mode 100644 internal/auth/claims_test.go
+ create mode 100644 internal/auth/jwt_test.go
+ create mode 100644 internal/auth/mock_token_service_test.go
+ create mode 100644 internal/auth/mock_user_service_test.go
+ create mode 100644 internal/auth/password_test.go
+ create mode 100644 internal/auth/service_test.go
+
+diff --git a/go.mod b/go.mod
+index 67c67d1..24e3201 100644
+--- a/go.mod
++++ b/go.mod
+@@ -17,6 +17,7 @@ require (
+ 
+ require (
+ 	github.com/KyleBanks/depth v1.2.1 // indirect
++	github.com/davecgh/go-spew v1.1.1 // indirect
+ 	github.com/go-openapi/jsonpointer v0.22.5 // indirect
+ 	github.com/go-openapi/jsonreference v0.21.5 // indirect
+ 	github.com/go-openapi/spec v0.22.4 // indirect
+@@ -27,11 +28,14 @@ require (
+ 	github.com/go-openapi/swag/stringutils v0.25.5 // indirect
+ 	github.com/go-openapi/swag/typeutils v0.25.5 // indirect
+ 	github.com/go-openapi/swag/yamlutils v0.25.5 // indirect
++	github.com/pmezard/go-difflib v1.0.0 // indirect
++	github.com/stretchr/objx v0.5.2 // indirect
+ 	github.com/swaggo/files v1.0.1 // indirect
+ 	go.yaml.in/yaml/v3 v3.0.4 // indirect
+ 	golang.org/x/mod v0.33.0 // indirect
+ 	golang.org/x/sync v0.19.0 // indirect
+ 	golang.org/x/tools v0.42.0 // indirect
++	gopkg.in/yaml.v3 v3.0.1 // indirect
+ )
+ 
+ require (
+@@ -43,7 +47,7 @@ require (
+ 	github.com/jinzhu/now v1.1.5 // indirect
+ 	github.com/leodido/go-urn v1.4.0 // indirect
+ 	github.com/mattn/go-sqlite3 v1.14.22 // indirect
+-	github.com/stretchr/testify v1.10.0 // indirect
++	github.com/stretchr/testify v1.11.1
+ 	golang.org/x/net v0.51.0 // indirect
+ 	golang.org/x/sys v0.41.0 // indirect
+ 	golang.org/x/text v0.34.0 // indirect
+diff --git a/go.sum b/go.sum
+index 6f7641a..0050b33 100644
+--- a/go.sum
++++ b/go.sum
+@@ -61,8 +61,10 @@ github.com/mattn/go-sqlite3 v1.14.22 h1:2gZY6PC6kBnID23Tichd1K+Z0oS6nE/XwU+Vz/5o
+ github.com/mattn/go-sqlite3 v1.14.22/go.mod h1:Uh1q+B4BYcTPb+yiD3kU8Ct7aC0hY9fxUwlHK0RXw+Y=
+ github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
+ github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
+-github.com/stretchr/testify v1.10.0 h1:Xv5erBjTwe/5IxqUQTdXv5kgmIvbHo3QQyRwhJsOfJA=
+-github.com/stretchr/testify v1.10.0/go.mod h1:r2ic/lqez/lEtzL7wO/rwa5dbSLXVDPFyf8C91i36aY=
++github.com/stretchr/objx v0.5.2 h1:xuMeJ0Sdp5ZMRXx/aWO6RZxdr3beISkG5/G/aIRr3pY=
++github.com/stretchr/objx v0.5.2/go.mod h1:FRsXN1f5AsAjCGJKqEizvkpNtU+EGNCLh3NxZ/8L+MA=
++github.com/stretchr/testify v1.11.1 h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu7U=
++github.com/stretchr/testify v1.11.1/go.mod h1:wZwfW3scLgRK+23gO65QZefKpKQRnfz6sD981Nm4B6U=
+ github.com/swaggo/files v1.0.1 h1:J1bVJ4XHZNq0I46UU90611i9/YzdrF7x92oX1ig5IdE=
+ github.com/swaggo/files v1.0.1/go.mod h1:0qXmMNH6sXNf+73t65aKeB+ApmgxdnkQzVTAj2uaMUg=
+ github.com/swaggo/http-swagger v1.3.4 h1:q7t/XLx0n15H1Q9/tk3Y9L4n210XzJF5WtnDX64a5ww=
+diff --git a/internal/auth/claims_test.go b/internal/auth/claims_test.go
+new file mode 100644
+index 0000000..fcff172
+--- /dev/null
++++ b/internal/auth/claims_test.go
+@@ -0,0 +1,66 @@
++package auth
++
++import (
++	"testing"
++	"time"
++
++	"github.com/google/uuid"
++	"github.com/stretchr/testify/assert"
++)
++
++func TestNewClaims(t *testing.T) {
++	tests := []struct {
++		name 		string
++		userID 		uuid.UUID
++		role 		string
++		ttl 		time.Duration
++		wantError 	error
++	}{
++		{
++			name: 		"success",
++			userID:	 	uuid.New(),
++			role:		"user",
++			ttl:		time.Hour,
++			wantError: 	nil,
++		},
++		{
++			name: 		"empty user id",
++			userID: 	uuid.Nil,
++			role: 		"user",
++			ttl: 		time.Hour,
++			wantError: 	ErrUserIDNil,
++		},
++		{
++			name:		"empty role",
++			userID:		uuid.New(),
++			role: 		"",
++			ttl:		time.Hour,
++			wantError: 	ErrEmptyRole,
++		},
++	}
++
++	for _, test := range tests {
++		t.Run(test.name, func(t *testing.T) {
++			claims, err := NewClaims(test.userID, test.role, test.ttl)
++
++			if test.wantError != nil {
++				assert.Error(t, err)
++				assert.Nil(t, claims)
++				assert.Equal(t, test.wantError, err)
++
++				return
++			}
++
++			assert.NoError(t, err)
++			assert.NotNil(t, claims)
++
++			assert.Equal(t, test.userID, claims.UserID)
++			assert.Equal(t, test.role, claims.Role)
++
++			assert.NotNil(t, claims.ExpiresAt)
++			assert.NotNil(t, claims.IssuedAt)
++
++			assert.True(t, claims.ExpiresAt.After(claims.IssuedAt.Time))
++		})
++	}
++}
+diff --git a/internal/auth/errors.go b/internal/auth/errors.go
+index b00ba4e..d8c27b8 100644
+--- a/internal/auth/errors.go
++++ b/internal/auth/errors.go
+@@ -1,6 +1,8 @@
+ package auth
+ 
+-import "errors"
++import (
++	"errors"
++)
+ 
+ var (
+ 	ErrEmailAlreadyExists 		= errors.New("email already exists")
+@@ -8,7 +10,6 @@ var (
+ 	ErrInvalidCredentials 		= errors.New("invalid credentials")
+ 	ErrUserAlreadyExists 		= errors.New("user already exists")
+ 	ErrUserIdNotFound 			= errors.New("user_id not found in token")
+-
+ 	ErrUserServiceNil 			= errors.New("auth service: user service is nil")
+ 	ErrTokenServiceNil			= errors.New("auth service: token service is nil")
+ 	ErrJWTSecretNil 			= errors.New("auth service: jwt secret is nil")
+@@ -18,4 +19,8 @@ var (
+ 	ErrEmptyRole				= errors.New("claims: role is empty")
+ 	ErrUnexpectedSigningMethod 	= errors.New("unexpected signing method")
+ 	ErrInvalidToken 			= errors.New("invalid token")
++	ErrNotFound					= errors.New("not found")
++	ErrDBError					= errors.New("db error")
++	ErrInvalid					= errors.New("invalid")
++	ErrTokenErr					= errors.New("token error")
+ )
+diff --git a/internal/auth/jwt_test.go b/internal/auth/jwt_test.go
+new file mode 100644
+index 0000000..8420e47
+--- /dev/null
++++ b/internal/auth/jwt_test.go
+@@ -0,0 +1,135 @@
++package auth
++
++import (
++	"testing"
++	"time"
++
++	"github.com/golang-jwt/jwt/v5"
++	"github.com/google/uuid"
++	"github.com/stretchr/testify/assert"
++)
++
++func setupConfig() JWTConfig {
++	return JWTConfig{
++		Secret: []byte("secret"),
++		TTL: time.Hour,
++	}
++}
++
++func TestGenerateAndParseToken_Success(t *testing.T) {
++	cfg := setupConfig()
++	userID := uuid.New()
++
++	token, err := GenerateAccessToken(userID, "user", cfg)
++
++	assert.NoError(t, err)
++	assert.NotEmpty(t, token)
++
++	claims, err := ParseToken(token, cfg)
++
++	assert.NoError(t, err)
++	assert.NotNil(t, claims)
++
++	assert.Equal(t, userID, claims.UserID)
++	assert.Equal(t, "user", claims.Role)
++}
++
++func TestGenerateAccessToken_InvalidUserID(t *testing.T) {
++	cfg := setupConfig()
++
++	token, err := GenerateAccessToken(uuid.Nil, "user", cfg)
++
++	assert.Error(t, err)
++	assert.Empty(t, token)
++	assert.Equal(t, ErrUserIDNil, err)
++}
++
++func TestGenerateAccessToken_EmptyRole(t *testing.T) {
++	cfg := setupConfig()
++
++	token, err := GenerateAccessToken(uuid.New(), "", cfg)
++
++	assert.Error(t, err)
++	assert.Empty(t, token)
++	assert.Equal(t, ErrEmptyRole, err)
++}
++
++func TestGenerateAccessToken_ClaimsFields(t *testing.T) {
++	cfg := setupConfig()
++	userID := uuid.New()
++
++	tokenStr, err := GenerateAccessToken(userID, "admin", cfg)
++	assert.NoError(t, err)
++
++	claims, err := ParseToken(tokenStr, cfg)
++	assert.NoError(t, err)
++
++	assert.Equal(t, "admin", claims.Role)
++	assert.Equal(t, userID, claims.UserID)
++
++	assert.NotNil(t, claims.ExpiresAt)
++	assert.NotNil(t, claims.IssuedAt)
++
++	assert.True(t, claims.ExpiresAt.After(claims.IssuedAt.Time))
++}
++
++func TestParseToken_WrongSecret(t *testing.T) {
++	cfg := setupConfig()
++	userID := uuid.New()
++
++	token, err := GenerateAccessToken(userID, "user", cfg)
++	assert.NoError(t, err)
++
++	wrongConfig := JWTConfig{
++		Secret: []byte("secret2"),
++	}
++
++	claims, err := ParseToken(token, wrongConfig)
++
++	assert.Error(t, err)
++	assert.Nil(t, claims)
++	assert.Equal(t, ErrInvalidToken, err)
++}
++
++func TestParseToken_InvalidTokenString(t *testing.T) {
++	cfg := setupConfig()
++
++	claims, err := ParseToken("invalid.token.string", cfg)
++
++	assert.Error(t, err)
++	assert.Nil(t, claims)
++	assert.Equal(t, ErrInvalidToken, err)
++}
++
++func TestParseToken_ExpiredToken(t *testing.T) {
++	cfg := setupConfig()
++	cfg.TTL = time.Millisecond
++	userID := uuid.New()
++
++	token, err := GenerateAccessToken(userID, "user", cfg)
++	assert.NoError(t, err)
++
++	time.Sleep(10 * time.Millisecond)
++	claims, err := ParseToken(token, cfg)
++
++	assert.Error(t, err)
++	assert.Nil(t, claims)
++	assert.Equal(t, ErrInvalidToken, err)
++}
++
++func TestParseToken_UnexpectedSigningMethod(t *testing.T) {
++	cfg := setupConfig()
++
++	claims := &Claims{
++		UserID: uuid.New(),
++		Role: "user",
++	}
++
++	token := jwt.NewWithClaims(jwt.SigningMethodNone, claims)
++	tokenStr, err := token.SignedString(jwt.UnsafeAllowNoneSignatureType)
++	assert.NoError(t, err)
++
++	parsedClaims, err := ParseToken(tokenStr, cfg)
++	assert.Error(t, err)
++	assert.Nil(t, parsedClaims)
++}
+diff --git a/internal/auth/mock_token_service_test.go b/internal/auth/mock_token_service_test.go
+new file mode 100644
+index 0000000..acbfc0b
+--- /dev/null
++++ b/internal/auth/mock_token_service_test.go
+@@ -0,0 +1,32 @@
++package auth
++
++import (
++	"context"
++
++	"github.com/google/uuid"
++	"github.com/stretchr/testify/mock"
++)
++
++type MockTokenService struct {
++	mock.Mock
++}
++
++func (m *MockTokenService) CreateRefresh(ctx context.Context, id uuid.UUID) (string, error) {
++	args := m.Called(ctx, id)
++	return args.String(0), args.Error(1)
++}
++
++func (m *MockTokenService) ValidateAndRotate(ctx context.Context, token string) (uuid.UUID, string, error) {
++	args := m.Called(ctx, token)
++	return args.Get(0).(uuid.UUID), args.String(1), args.Error(2)
++}
++
++func (m *MockTokenService) Revoke(ctx context.Context, hash string) error {
++	args := m.Called(ctx, hash)
++	return args.Error(0)
++}
++
++func (m *MockTokenService) RevokeAllForUser(ctx context.Context, userID uuid.UUID) error {
++	args := m.Called(ctx, userID)
++	return args.Error(0)
++}
+diff --git a/internal/auth/mock_user_service_test.go b/internal/auth/mock_user_service_test.go
+new file mode 100644
+index 0000000..c1e33a9
+--- /dev/null
++++ b/internal/auth/mock_user_service_test.go
+@@ -0,0 +1,54 @@
++package auth
++
++import (
++	"context"
++
++	"gav/internal/user"
++
++	"github.com/google/uuid"
++	"github.com/stretchr/testify/mock"
++)
++
++type MockUserService struct {
++	mock.Mock
++}
++
++func (m *MockUserService) Create(ctx context.Context, email, password string) (*user.User, error) {
++	args := m.Called(ctx, email, password)
++
++	if args.Get(0) == nil {
++		return nil, args.Error(1)
++	}
++
++	return args.Get(0).(*user.User), args.Error(1)
++}
++
++func (m *MockUserService) GetByEmail(ctx context.Context, email string) (*user.User, error) {
++	args := m.Called(ctx, email)
++
++	if args.Get(0) == nil {
++		return nil, args.Error(1)
++	}
++
++	return args.Get(0).(*user.User), args.Error(1)
++}
++
++func (m *MockUserService) GetByID(ctx context.Context, id uuid.UUID) (*user.User, error) {
++	args := m.Called(ctx, id)
++
++	if args.Get(0) == nil {
++		return nil, args.Error(1)
++	}
++
++	return args.Get(0).(*user.User), args.Error(1)
++}
++
++func (m *MockUserService) Update(ctx context.Context, id uuid.UUID, input user.UpdateUserInput) error {
++	args := m.Called(ctx, id, input)
++	return args.Error(0)
++}
++
++func (m *MockUserService) Delete(ctx context.Context, id uuid.UUID) error {
++	args := m.Called(ctx, id)
++	return args.Error(0)
++}
+diff --git a/internal/auth/password_test.go b/internal/auth/password_test.go
+new file mode 100644
+index 0000000..afc19c7
+--- /dev/null
++++ b/internal/auth/password_test.go
+@@ -0,0 +1,97 @@
++package auth
++
++import (
++	"strings"
++	"testing"
++
++	"github.com/stretchr/testify/assert"
++	"golang.org/x/crypto/bcrypt"
++)
++
++func TestHashPassword_Success(t *testing.T) {
++	hasher := &PasswordHasher{}
++	password := "my-secure-password"
++
++	hash, err := hasher.HashPassword(password)
++	assert.NoError(t, err)
++
++	assert.NotEmpty(t, hash)
++	assert.NotEqual(t, password, hash)
++}
++
++func TestHashPassword_GenerateDifferentHashes(t *testing.T) {
++	hasher := &PasswordHasher{}
++	password := "same-password"
++
++	hash1, err := hasher.HashPassword(password)
++	assert.NoError(t, err)
++
++	hash2, err := hasher.HashPassword(password)
++	assert.NoError(t, err)
++
++	assert.NotEqual(t, hash1, hash2)
++
++	assert.True(t, hasher.CheckPassword(hash1, password))
++	assert.True(t, hasher.CheckPassword(hash2, password))
++}
++
++func TestHashPassword_EmptyPassword(t *testing.T) {
++	hasher := &PasswordHasher{}
++
++	hash, err := hasher.HashPassword("")
++
++	assert.NoError(t, err)
++	assert.NotEmpty(t, hash)
++
++	ok := hasher.CheckPassword(hash, "")
++	assert.True(t, ok)
++}
++
++func TestHashPassword_LongPassword(t *testing.T) {
++	hasher := &PasswordHasher{}
++
++	longPassword := strings.Repeat("a", 100)
++	hash, err := hasher.HashPassword(longPassword)
++
++	assert.Error(t, err)
++	assert.Empty(t, hash)
++	assert.Equal(t, bcrypt.ErrPasswordTooLong, err)
++}
++
++func TestHashPassword_DifferentHash(t *testing.T) {
++	hasher := &PasswordHasher{}
++
++	hash1, err := hasher.HashPassword("password1")
++	assert.NoError(t, err)
++
++	ok := hasher.CheckPassword(hash1, "password2")
++	assert.False(t, ok)
++}
++
++func TestCheckPassword_CorrectPassword(t *testing.T) {
++	hasher := &PasswordHasher{}
++	password := "password123"
++
++	hash, err := hasher.HashPassword(password)
++	assert.NoError(t, err)
++
++	ok := hasher.CheckPassword(hash, password)
++	assert.True(t, ok)
++}
++
++func TestCheckPassword_WrongPassword(t *testing.T) {
++	hasher := &PasswordHasher{}
++
++	hash, err := hasher.HashPassword("correct-password")
++	assert.NoError(t, err)
++
++	ok := hasher.CheckPassword(hash, "wrong-password")
++	assert.False(t, ok)
++}
++
++func TestCheckPassword_InvalidHash(t *testing.T) {
++	hasher := &PasswordHasher{}
++
++	ok := hasher.CheckPassword("not-a-valid-hash", "password")
++	assert.False(t, ok)
++}
+diff --git a/internal/auth/service_impl.go b/internal/auth/service_impl.go
+index 7939a7f..37dfcc7 100644
+--- a/internal/auth/service_impl.go
++++ b/internal/auth/service_impl.go
+@@ -2,6 +2,7 @@ package auth
+ 
+ import (
+ 	"context"
++	"errors"
+ 	"gav/internal/token"
+ 	"gav/internal/user"
+ 
+@@ -34,11 +35,15 @@ func NewService(userService user.UserService, tokenService token.TokenService, j
+ }
+ 
+ func (s *service) Register(ctx context.Context, email, password string) (*AuthTokens, error) {
+-	_, err := s.userService.GetByEmail(ctx, email)
+-	if err == nil {
++	existingUser, err := s.userService.GetByEmail(ctx, email)
++	if err == nil && existingUser != nil {
+ 		return nil, ErrUserAlreadyExists
+ 	}
+ 
++	if err == nil && !errors.Is(err, user.ErrUserNotFound) {
++		return nil, err
++	}
++
+ 	hashedPassword, err := s.hasher.HashPassword(password)
+ 	if err != nil {
+ 		return nil, err
+@@ -46,7 +51,7 @@ func (s *service) Register(ctx context.Context, email, password string) (*AuthTo
+ 
+ 	newUser, err := s.userService.Create(ctx, email, hashedPassword)
+ 	if err != nil {
+-		return nil, ErrEmailAlreadyExists
++		return nil, err
+ 	}
+ 
+ 	accessToken, err := GenerateAccessToken(newUser.ID, newUser.Role, s.jwtConfig)
+@@ -86,6 +91,9 @@ func (s *service) Login(ctx context.Context, email, password string) (*AuthToken
+ 
+ func (s *service) Refresh(ctx context.Context, refreshToken string) (*AuthTokens, error) {
+ 	refrTokenID, _, err := s.tokenService.ValidateAndRotate(ctx, refreshToken)
++	if err != nil {
++		return nil, err
++	}
+ 
+ 	user, err := s.userService.GetByID(ctx, refrTokenID)
+ 	if err != nil {
+diff --git a/internal/auth/service_test.go b/internal/auth/service_test.go
+new file mode 100644
+index 0000000..4b35815
+--- /dev/null
++++ b/internal/auth/service_test.go
+@@ -0,0 +1,327 @@
++package auth
++
++import (
++	"context"
++	"gav/internal/user"
++	"testing"
++	"time"
++
++	"github.com/google/uuid"
++	"github.com/stretchr/testify/assert"
++	"github.com/stretchr/testify/mock"
++	"github.com/stretchr/testify/require"
++)
++
++type testEnv struct {
++	userService 	*MockUserService
++	tokenService 	*MockTokenService
++	userID			uuid.UUID
++	service			AuthService
++	cfg 			JWTConfig
++	hasher			*PasswordHasher
++}
++
++func setupAuthService(t *testing.T) *testEnv {
++	t.Helper()
++
++	userService := &MockUserService{}
++	tokenService := &MockTokenService{}
++	hasher := &PasswordHasher{}
++
++	userID := uuid.New()
++
++	cfg := JWTConfig{
++		Secret: []byte("secret"),
++		TTL: time.Hour,
++	}
++
++	service, err := NewService(userService, tokenService, cfg, hasher)
++	require.NoError(t, err)
++
++	return &testEnv{
++		userService: 	userService,
++		tokenService: 	tokenService,
++		userID: 		userID,
++		service: 		service,
++		cfg: 			cfg,
++		hasher: 		hasher,
++	}
++}
++
++func TestNewService(t *testing.T) {
++	env := setupAuthService(t)
++	assert.NotNil(t, env.service)
++}
++
++func TestNewService_UserServiceNil(t *testing.T) {
++	cfg := JWTConfig{
++		Secret: []byte("secret"),
++	}
++
++	service, err := NewService(nil, &MockTokenService{}, cfg, &PasswordHasher{})
++
++	assert.Error(t, err)
++	assert.Nil(t, service)
++	assert.Equal(t, ErrUserServiceNil, err)
++}
++
++func TestNewService_TokenServiceNil(t *testing.T) {
++	cfg := JWTConfig{
++		Secret: []byte("secret"),
++	}
++
++	service, err := NewService(&MockUserService{}, nil, cfg, &PasswordHasher{})
++
++	assert.Error(t, err)
++	assert.Nil(t, service)
++	assert.Equal(t, ErrTokenServiceNil, err)
++}
++
++func TestRegister_Success(t *testing.T) {
++	env := setupAuthService(t)
++	ctx := context.Background()
++
++	mail := "test@mail.com"
++
++	env.userService.
++		On("GetByEmail", ctx, mail).
++		Return(nil, user.ErrUserNotFound)
++
++	env.userService.
++		On("Create", ctx, mail, mock.Anything).
++		Return(&user.User{
++			ID: env.userID,
++			Email: mail,
++			Role: "user",
++		}, nil)
++
++	env.tokenService.
++		On("CreateRefresh", ctx, env.userID).
++		Return("refresh_token", nil)
++
++	tokens, err := env.service.Register(ctx, mail, "password")
++
++	assert.NoError(t, err)
++	assert.NotNil(t, tokens)
++	assert.NotEmpty(t, tokens.AccessToken)
++	assert.Equal(t, "refresh_token", tokens.RefreshToken)
++}
++
++func TestRegister_UserAlreadyExists(t *testing.T) {
++	env := setupAuthService(t)
++	ctx := context.Background()
++
++	env.userService.
++		On("GetByEmail", ctx, "mail@test.com").
++		Return(&user.User{ID: uuid.New()}, nil)
++
++	tokens, err := env.service.Register(ctx, "mail@test.com", "password")
++
++	assert.Error(t, err)
++	assert.Nil(t, tokens)
++	assert.Equal(t, ErrUserAlreadyExists, err)
++}
++
++func TestRegister_CreateUserError(t *testing.T) {
++	env := setupAuthService(t)
++	ctx := context.Background()
++
++	env.userService.
++		On("GetByEmail", ctx, "mail@test.com").
++		Return(nil, user.ErrUserNotFound)
++
++	env.userService.
++		On("Create", ctx, "mail@test.com", mock.Anything).
++		Return(nil, ErrDBError)
++
++	tokens, err := env.service.Register(ctx, "mail@test.com", "password")
++
++	assert.Error(t, err)
++	assert.Nil(t, tokens)
++}
++
++func TestRegister_RefreshTokenError(t *testing.T) {
++	env := setupAuthService(t)
++	ctx := context.Background()
++
++	env.userService.
++		On("GetByEmail", ctx, "mail@test.com").
++		Return(nil, user.ErrUserNotFound)
++
++	env.userService.
++		On("Create", ctx, "mail@test.com", mock.Anything).
++		Return(&user.User{ID: env.userID, Role: "user"}, nil)
++
++	env.tokenService.On("CreateRefresh", ctx, env.userID).
++		Return("", ErrTokenErr)
++
++	tokens, err := env.service.Register(ctx, "mail@test.com", "password")
++
++	assert.Error(t, err)
++	assert.Nil(t, tokens)
++}
++
++func TestLogin_Success(t *testing.T) {
++	env := setupAuthService(t)
++	ctx := context.Background()
++
++	password := "123456"
++	hash, err := env.hasher.HashPassword(password)
++	assert.NoError(t, err)
++
++	env.userService.
++		On("GetByEmail", ctx, "user@mail.com").
++		Return(&user.User{
++			ID: env.userID,
++			Email: "user@mail.com",
++			Password: hash,
++			Role: "user",
++		}, nil)
++
++	env.tokenService.
++		On("CreateRefresh", ctx, env.userID).
++		Return("refresh", nil)
++
++	tokens, err := env.service.Login(ctx, "user@mail.com", password)
++	assert.NoError(t, err)
++
++	assert.NotNil(t, tokens)
++	assert.NotEmpty(t, tokens.AccessToken)
++	assert.Equal(t, "refresh", tokens.RefreshToken)
++}
++
++func TestLogin_UserNotFound(t *testing.T) {
++	env := setupAuthService(t)
++	ctx := context.Background()
++
++	env.userService.
++		On("GetByEmail", ctx, "mail@test.com").
++		Return(nil, user.ErrUserNotFound)
++
++	tokens, err := env.service.Login(ctx, "mail@test.com", "password")
++
++	assert.Error(t, err)
++	assert.Nil(t, tokens)
++	assert.Equal(t, ErrInvalidCredentials, err)
++}
++
++func TestLogin_WrongPassword(t *testing.T) {
++	env := setupAuthService(t)
++	ctx := context.Background()
++
++	hash, _ := env.hasher.HashPassword("correct")
++
++	env.userService.
++		On("GetByEmail", ctx, "mail@test.com").
++		Return(&user.User{
++			ID:       uuid.New(),
++			Password: hash,
++			Role:     "user",
++		}, nil)
++
++	tokens, err := env.service.Login(ctx, "mail@test.com", "wrong")
++
++	assert.Error(t, err)
++	assert.Nil(t, tokens)
++}
++
++func TestRefresh_Success(t *testing.T) {
++	env := setupAuthService(t)
++	ctx := context.Background()
++
++	env.userService.
++		On("GetByID", ctx, env.userID).
++		Return(&user.User{
++			ID: env.userID,
++			Email: "user@mail.ru",
++			Role: "user",
++		}, nil)
++
++	env.tokenService.
++		On("CreateRefresh", ctx, env.userID).
++		Return("new_refresh", nil)
++
++	env.tokenService.
++		On("ValidateAndRotate", ctx, "refresh").
++		Return(env.userID, "", nil)
++
++	tokens, err := env.service.Refresh(ctx, "refresh")
++	assert.NoError(t, err)
++
++	assert.Equal(t, "new_refresh", tokens.RefreshToken)
++	assert.NotEmpty(t, tokens.AccessToken)
++}
++
++func TestRefresh_InvalidToken(t *testing.T) {
++	env := setupAuthService(t)
++	ctx := context.Background()
++
++	env.tokenService.
++		On("ValidateAndRotate", ctx, "token").
++		Return(uuid.Nil, "", ErrInvalid)
++
++	tokens, err := env.service.Refresh(ctx, "token")
++
++	assert.Error(t, err)
++	assert.Nil(t, tokens)
++}
++
++func TestRefresh_UserNotFound(t *testing.T) {
++	env := setupAuthService(t)
++	ctx := context.Background()
++
++	env.tokenService.
++		On("ValidateAndRotate", ctx, "token").
++		Return(env.userID, "", nil)
++
++	env.userService.
++		On("GetByID", ctx, env.userID).
++		Return(nil, user.ErrUserNotFound)
++
++	tokens, err := env.service.Refresh(ctx, "token")
++
++	assert.Error(t, err)
++	assert.Nil(t, tokens)
++}
++
++func TestMe_Success(t *testing.T) {
++	env := setupAuthService(t)
++	ctx := context.Background()
++
++	env.userService.
++		On("GetByID", ctx, env.userID).
++		Return(&user.User{
++			ID: env.userID,
++			Email: "mail@test.ru",
++		}, nil)
++
++	info, err := env.service.Me(ctx, env.userID)
++	assert.NoError(t, err)
++
++	assert.Equal(t, "mail@test.ru", info.Email)
++}
++
++func TestMe_UserNotFound(t *testing.T) {
++	env := setupAuthService(t)
++	ctx := context.Background()
++
++	env.userService.On("GetByID", ctx, env.userID).
++		Return(nil, user.ErrUserNotFound)
++
++	info, err := env.service.Me(ctx, env.userID)
++
++	assert.Error(t, err)
++	assert.Nil(t, info)
++}
++
++func TestLogout(t *testing.T) {
++	env := setupAuthService(t)
++	ctx := context.Background()
++
++	env.tokenService.
++		On("Revoke", ctx, mock.Anything).
++		Return(nil)
++
++	err := env.service.Logout(ctx, "refresh")
++	assert.NoError(t, err)
++}
+-- 
+2.50.1 (Apple Git-155)
+

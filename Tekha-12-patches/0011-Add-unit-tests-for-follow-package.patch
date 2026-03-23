@@ -1,0 +1,412 @@
+From ab695302235464724bf64b288181a883e3772d06 Mon Sep 17 00:00:00 2001
+From: Tehron Janobilov <tsdzhanobilov@edu.hse.ru>
+Date: Sat, 21 Mar 2026 05:43:12 +0300
+Subject: [PATCH 11/12] Add unit tests for follow package
+
+---
+ .DS_Store                               | Bin 12292 -> 12292 bytes
+ internal/.DS_Store                      | Bin 14340 -> 14340 bytes
+ internal/dog/mock_repository_test.go    |  68 +++++-----
+ internal/follow/errors.go               |   1 +
+ internal/follow/mock_repository_test.go |  47 +++++++
+ internal/follow/model_test.go           |  36 +++++
+ internal/follow/service_test.go         | 171 ++++++++++++++++++++++++
+ 7 files changed, 289 insertions(+), 34 deletions(-)
+ create mode 100644 internal/follow/mock_repository_test.go
+ create mode 100644 internal/follow/model_test.go
+ create mode 100644 internal/follow/service_test.go
+
+diff --git a/.DS_Store b/.DS_Store
+index a7d01131591cda8099a2fb1e005d76a085c09a7c..47fda38471f54b9a6c099194e9c05fa298bdbed6 100644
+GIT binary patch
+delta 173
+zcmZokXi3<>Ey8r>=j28a5s}<{7nh`*{3Hej1`Y;>hHSa*#~nculRZWFS%qLc{(=m{
+z;N<+=0-!Pm2KI){4I<09V_)6^a#$Gj7}6Os8A?!1Vt6hMGznEc1#VO3q6v@D<x#8%
+L71-RY(8vz}9Z)Z=
+
+delta 173
+zcmZokXi3<>EyA?@^W;Vm5s}<{7nh`*{3Hej1`Y;>hD@pL#~nculRZWFSp@~5JpO_V
+z!{Frn+ybC71_t(k%?%>UxMSDG134@VdJO3dnG7Y!Ch`6hWnu;DMU_v1+mx=-*C&l8
+Ok77megU!tfjr;(Y<u0xO
+
+diff --git a/internal/.DS_Store b/internal/.DS_Store
+index 9c9b91f84e56035641dd9bd64f7998943ff82972..77b283de4e139bb555ddaf537d067deacbfe2426 100644
+GIT binary patch
+delta 46
+zcmZoEXero`F2Go_IYZzJBa{5+$#Ft*EDhOm+b1^&DX=sM0U1k#6c`&e9~H7!1ptkc
+B5GDWs
+
+delta 46
+ycmZoEXero`F2ESLIYZzJBNMm4<TxQY7KW9xmrrgGQh+d)2q`cIY(6SvuL=NjmJf>n
+
+diff --git a/internal/dog/mock_repository_test.go b/internal/dog/mock_repository_test.go
+index 6aa284a..cbbf688 100644
+--- a/internal/dog/mock_repository_test.go
++++ b/internal/dog/mock_repository_test.go
+@@ -1,47 +1,47 @@
+-package dog
++	package dog
+ 
+-import (
+-	"context"
++	import (
++		"context"
+ 
+-	"github.com/google/uuid"
+-	"github.com/stretchr/testify/mock"
+-)
++		"github.com/google/uuid"
++		"github.com/stretchr/testify/mock"
++	)
+ 
+-type MockRepository struct {
+-	mock.Mock
+-}
++	type MockRepository struct {
++		mock.Mock
++	}
++
++	func (m *MockRepository) Create(ctx context.Context, dog *Dog) error {
++		args := m.Called(ctx, dog)
++		return args.Error(0)
++	}
+ 
+-func (m *MockRepository) Create(ctx context.Context, dog *Dog) error {
+-	args := m.Called(ctx, dog)
+-	return args.Error(0)
+-}
++	func (m *MockRepository) Update(ctx context.Context, dog *Dog) error {
++		args := m.Called(ctx, dog)
++		return args.Error(0)
++	}
+ 
+-func (m *MockRepository) Update(ctx context.Context, dog *Dog) error {
+-	args := m.Called(ctx, dog)
+-	return args.Error(0)
+-}
++	func (m *MockRepository) Delete(ctx context.Context, id uuid.UUID) error {
++		args := m.Called(ctx, id)
++		return args.Error(0)
++	}
+ 
+-func (m *MockRepository) Delete(ctx context.Context, id uuid.UUID) error {
+-	args := m.Called(ctx, id)
+-	return args.Error(0)
+-}
++	func (m *MockRepository) GetByOwnerID(ctx context.Context, ownerID uuid.UUID) ([]*Dog, error) {
++		args := m.Called(ctx, ownerID)
+ 
+-func (m *MockRepository) GetByOwnerID(ctx context.Context, ownerID uuid.UUID) ([]*Dog, error) {
+-	args := m.Called(ctx, ownerID)
++		if args.Get(0) == nil {
++			return nil, args.Error(1)
++		}
+ 
+-	if args.Get(0) == nil {
+-		return nil, args.Error(1)
++		return args.Get(0).([]*Dog), args.Error(1)
+ 	}
+ 
+-	return args.Get(0).([]*Dog), args.Error(1)
+-}
++	func (m *MockRepository) GetByID(ctx context.Context, id uuid.UUID) (*Dog, error) {
++		args := m.Called(ctx, id)
+ 
+-func (m *MockRepository) GetByID(ctx context.Context, id uuid.UUID) (*Dog, error) {
+-	args := m.Called(ctx, id)
++		if args.Get(0) == nil {
++			return nil, args.Error(1)
++		}
+ 
+-	if args.Get(0) == nil {
+-		return nil, args.Error(1)
++		return args.Get(0).(*Dog), args.Error(1)
+ 	}
+-
+-	return args.Get(0).(*Dog), args.Error(1)
+-}
+diff --git a/internal/follow/errors.go b/internal/follow/errors.go
+index 485ac7a..55819c3 100644
+--- a/internal/follow/errors.go
++++ b/internal/follow/errors.go
+@@ -10,4 +10,5 @@ var (
+ 	ErrFollowerIDNil 		= errors.New("follow model: follower id is nil")
+ 	ErrFollowingIDNil 		= errors.New("follow model: following id is nil")
+ 	ErrRepoNil				= errors.New("follow service: repo is nil")
++	ErrDBError				= errors.New("db error")
+ )
+diff --git a/internal/follow/mock_repository_test.go b/internal/follow/mock_repository_test.go
+new file mode 100644
+index 0000000..b12b6b1
+--- /dev/null
++++ b/internal/follow/mock_repository_test.go
+@@ -0,0 +1,47 @@
++package follow
++
++import (
++	"context"
++
++	"github.com/google/uuid"
++	"github.com/stretchr/testify/mock"
++)
++
++type MockRepository struct {
++	mock.Mock
++}
++
++func (m *MockRepository) Follow(ctx context.Context, f Follow) error {
++	args := m.Called(ctx, f)
++	return args.Error(0)
++}
++
++func (m *MockRepository) Unfollow(ctx context.Context, f Follow) error {
++	args := m.Called(ctx, f)
++	return args.Error(0)
++}
++
++func (m *MockRepository) FollowerExists(ctx context.Context, f Follow) (bool, error) {
++	args := m.Called(ctx, f)
++	return args.Bool(0), args.Error(1)
++}
++
++func (m *MockRepository) GetFollowers(ctx context.Context, userID uuid.UUID) ([]Follow, error) {
++	args := m.Called(ctx, userID)
++
++	if args.Get(0) == nil {
++		return nil, args.Error(1)
++	}
++
++	return args.Get(0).([]Follow), args.Error(1)
++}
++
++func (m *MockRepository) GetFollowing(ctx context.Context, userID uuid.UUID) ([]Follow, error) {
++	args := m.Called(ctx, userID)
++
++	if args.Get(0) == nil {
++		return nil, args.Error(1)
++	}
++
++	return args.Get(0).([]Follow), args.Error(1)
++}
+diff --git a/internal/follow/model_test.go b/internal/follow/model_test.go
+new file mode 100644
+index 0000000..173d7c3
+--- /dev/null
++++ b/internal/follow/model_test.go
+@@ -0,0 +1,36 @@
++package follow
++
++import (
++	"testing"
++
++	"github.com/google/uuid"
++	"github.com/stretchr/testify/require"
++)
++
++func TestNewFollow(t *testing.T) {
++	followerID := uuid.New()
++	followingID := uuid.New()
++
++	t.Run("success", func(t *testing.T) {
++		f, err := NewFollow(followerID, followingID)
++
++		require.NoError(t, err)
++		require.NotNil(t, f)
++		require.Equal(t, followerID, f.FollowerID)
++		require.Equal(t, followingID, f.FollowingID)
++	})
++
++	t.Run("follower is nil", func(t *testing.T) {
++		f, err := NewFollow(uuid.Nil, followingID)
++
++		require.ErrorIs(t, err, ErrFollowerIDNil)
++		require.Nil(t, f)
++	})
++
++	t.Run("following is nil", func(t *testing.T) {
++		f, err := NewFollow(followerID, uuid.Nil)
++
++		require.ErrorIs(t, err, ErrFollowingIDNil)
++		require.Nil(t, f)
++	})
++}
+diff --git a/internal/follow/service_test.go b/internal/follow/service_test.go
+new file mode 100644
+index 0000000..752e548
+--- /dev/null
++++ b/internal/follow/service_test.go
+@@ -0,0 +1,171 @@
++package follow
++
++import (
++	"context"
++	"testing"
++
++	"github.com/google/uuid"
++	"github.com/stretchr/testify/require"
++)
++
++func TestNewService(t *testing.T) {
++	t.Run("success", func(t *testing.T) {
++		repo := new(MockRepository)
++
++		s, err := NewService(repo)
++
++		require.NoError(t, err)
++		require.NotNil(t, s)
++	})
++
++	t.Run("nil repo", func(t *testing.T) {
++		s, err := NewService(nil)
++
++		require.ErrorIs(t, err, ErrRepoNil)
++		require.Nil(t, s)
++	})
++}
++
++func TestService_Follow(t *testing.T) {
++	ctx := context.Background()
++	repo := new(MockRepository)
++
++	s, _ := NewService(repo)
++
++	followerID := uuid.New()
++	followingID := uuid.New()
++
++	t.Run("cannot follow yourself", func(t *testing.T) {
++		f := Follow{FollowerID: followerID, FollowingID: followerID}
++
++		err := s.Follow(ctx, f)
++
++		require.ErrorIs(t, err, ErrCannotFollowYourself)
++	})
++
++	t.Run("already following", func(t *testing.T) {
++		f := Follow{FollowerID: followerID, FollowingID: followingID}
++
++		repo.On("FollowerExists", ctx, f).Return(true, nil).Once()
++
++		err := s.Follow(ctx, f)
++
++		require.ErrorIs(t, err, ErrAlreadyFollowing)
++	})
++
++	t.Run("repo error on exists", func(t *testing.T) {
++		f := Follow{FollowerID: followerID, FollowingID: followingID}
++
++		repo.On("FollowerExists", ctx, f).Return(false, ErrDBError).Once()
++
++		err := s.Follow(ctx, f)
++
++		require.Error(t, err)
++	})
++
++	t.Run("success", func(t *testing.T) {
++		f := Follow{FollowerID: followerID, FollowingID: followingID}
++
++		repo.On("FollowerExists", ctx, f).Return(false, nil).Once()
++		repo.On("Follow", ctx, f).Return(nil).Once()
++
++		err := s.Follow(ctx, f)
++
++		require.NoError(t, err)
++	})
++}
++
++func TestService_Unfollow(t *testing.T) {
++	ctx := context.Background()
++	repo := new(MockRepository)
++
++	s, _ := NewService(repo)
++
++	f := Follow{
++		FollowerID:  uuid.New(),
++		FollowingID: uuid.New(),
++	}
++
++	repo.On("Unfollow", ctx, f).Return(nil).Once()
++
++	err := s.Unfollow(ctx, f)
++
++	require.NoError(t, err)
++}
++
++func TestService_GetFollowers(t *testing.T) {
++	ctx := context.Background()
++	repo := new(MockRepository)
++
++	s, _ := NewService(repo)
++
++	userID := uuid.New()
++
++	t.Run("invalid user id", func(t *testing.T) {
++		res, err := s.GetFollowers(ctx, uuid.Nil)
++
++		require.ErrorIs(t, err, ErrInvalidUserID)
++		require.Nil(t, res)
++	})
++
++	t.Run("repo error", func(t *testing.T) {
++		repo.On("GetFollowers", ctx, userID).Return(nil, ErrDBError).Once()
++
++		res, err := s.GetFollowers(ctx, userID)
++
++		require.Error(t, err)
++		require.Nil(t, res)
++	})
++
++	t.Run("success", func(t *testing.T) {
++		expected := []Follow{
++			{FollowerID: uuid.New(), FollowingID: userID},
++		}
++
++		repo.On("GetFollowers", ctx, userID).Return(expected, nil).Once()
++
++		res, err := s.GetFollowers(ctx, userID)
++
++		require.NoError(t, err)
++		require.Equal(t, expected, res)
++	})
++}
++
++func TestService_GetFollowing(t *testing.T) {
++	ctx := context.Background()
++	repo := new(MockRepository)
++
++	s, _ := NewService(repo)
++
++	userID := uuid.New()
++
++	t.Run("invalid user id", func(t *testing.T) {
++		res, err := s.GetFollowing(ctx, uuid.Nil)
++
++		require.ErrorIs(t, err, ErrInvalidUserID)
++		require.Nil(t, res)
++	})
++
++	t.Run("repo error", func(t *testing.T) {
++		repo.On("GetFollowing", ctx, userID).Return(nil, ErrDBError).Once()
++
++		res, err := s.GetFollowing(ctx, userID)
++
++		require.Error(t, err)
++		require.Nil(t, res)
++	})
++
++	t.Run("success", func(t *testing.T) {
++		expected := []Follow{
++			{FollowerID: userID, FollowingID: uuid.New()},
++		}
++
++		repo.On("GetFollowing", ctx, userID).Return(expected, nil).Once()
++
++		res, err := s.GetFollowing(ctx, userID)
++
++		require.NoError(t, err)
++		require.Equal(t, expected, res)
++	})
++}
++
+-- 
+2.50.1 (Apple Git-155)
+

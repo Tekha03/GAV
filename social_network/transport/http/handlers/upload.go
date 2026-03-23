@@ -2,9 +2,9 @@ package handlers
 
 import (
 	"net/http"
+
 	"social_network/internal/media"
 	"social_network/internal/profile"
-
 	"social_network/transport/http/middleware"
 	"social_network/transport/response"
 
@@ -25,6 +25,17 @@ func NewUploadHandler(mediaService media.MediaService) (*UploadHandler, error) {
 	return &UploadHandler{mediaService: mediaService}, nil
 }
 
+// @Summary      Загрузка аватара пользователя
+// @Description  Загружает фото аватара (jpg/png/webp, max 5MB)
+// @Tags         upload
+// @Accept       multipart/form-data
+// @Produce      json
+// @Param        avatar  formData  file  true  "Фото аватара"
+// @Security     BearerAuth
+// @Success      200   {object} map[string]string
+// @Failure      400   {object} response.ErrorResponse
+// @Failure      401   {object} response.ErrorResponse
+// @Router       /upload/avatar [post]
 func (h *UploadHandler) UploadAvatar(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.UserID(r.Context())
 	if !ok {
@@ -88,5 +99,3 @@ func (h *UploadHandler) UploadPostImage(w http.ResponseWriter, r *http.Request) 
 
 	response.JSON(w, http.StatusOK, map[string]string{"url": url})
 }
-
-

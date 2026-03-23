@@ -17,7 +17,7 @@ func (s *ChatService) PinMessage(ctx context.Context, messageID uuid.UUID) error
         return errors.ErrMessageNotFound
     }
 
-    return s.pinnedRepo.Pin(msg.ChatID, messageID)
+    return s.pinnedRepo.Pin(ctx, msg.ChatID, messageID)
 }
 
 func (s *ChatService) UnpinMessage(ctx context.Context, messageID uuid.UUID) error {
@@ -29,11 +29,11 @@ func (s *ChatService) UnpinMessage(ctx context.Context, messageID uuid.UUID) err
         return errors.ErrMessageNotFound
     }
 
-    return s.pinnedRepo.Unpin(msg.ChatID, messageID)
+    return s.pinnedRepo.Unpin(ctx, msg.ChatID, messageID)
 }
 
 func (s *ChatService) GetPinnedMessages(ctx context.Context, chatID uuid.UUID) ([]*model.Message, error) {
-    ids := s.pinnedRepo.GetByChatID(chatID)
+    ids := s.pinnedRepo.GetByChatID(ctx, chatID)
     messages := []*model.Message{}
 
     for _, id := range ids {

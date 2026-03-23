@@ -1,0 +1,254 @@
+From 7509b4a64940b7faaf49530dac4874163c73f001 Mon Sep 17 00:00:00 2001
+From: Tehron Janobilov <tsdzhanobilov@edu.hse.ru>
+Date: Sat, 14 Mar 2026 01:22:14 +0300
+Subject: [PATCH 08/12] Add unit tests for config package
+
+---
+ internal/config/config_test.go | 212 +++++++++++++++++++++++++++++++++
+ internal/config/env.go         |   6 +-
+ 2 files changed, 217 insertions(+), 1 deletion(-)
+ create mode 100644 internal/config/config_test.go
+
+diff --git a/internal/config/config_test.go b/internal/config/config_test.go
+new file mode 100644
+index 0000000..3cb3150
+--- /dev/null
++++ b/internal/config/config_test.go
+@@ -0,0 +1,212 @@
++package config
++
++import (
++	"os"
++	"path/filepath"
++	"testing"
++	"time"
++
++	"github.com/stretchr/testify/assert"
++)
++
++func TestErr(t *testing.T) {
++	err := Err("test")
++
++	assert.Error(t, err)
++	assert.Equal(t, "config error: test", err.Error())
++}
++
++func TestLoadHTTP(t *testing.T) {
++	t.Setenv("HTTP_PORT", "8080")
++	cfg := loadHTTP()
++
++	assert.Equal(t, "8080", cfg.Port)
++}
++
++func TestLoadDB(t *testing.T) {
++	t.Setenv("DB_PATH", "./test.db")
++	cfg := loadDB()
++
++	assert.Equal(t, "./test.db", cfg.Path)
++}
++
++func TestLoadJWT(t *testing.T) {
++	t.Setenv("JWT_SECRET", "secret")
++	t.Setenv("JWT_TTL", "1h")
++
++	cfg := loadJWT()
++
++	assert.Equal(t, "secret", cfg.Secret)
++	assert.Equal(t, time.Hour, cfg.TTL)
++}
++
++func TestLoadJWT_InvalidTTL(t *testing.T) {
++	t.Setenv("JWT_SECRET", "secret")
++	t.Setenv("JWT_TTL", "invalid")
++
++	cfg := loadJWT()
++
++	assert.Equal(t, "secret", cfg.Secret)
++	assert.Equal(t, time.Duration(0), cfg.TTL)
++}
++
++func TestLoadStorage_Defaults(t *testing.T) {
++	cfg := loadStorage()
++
++	assert.Equal(t, "local", cfg.Type)
++	assert.Equal(t, "./uploads", cfg.LocalPath)
++}
++
++
++func TestLoadStorage_FromEnv(t *testing.T) {
++	t.Setenv("STORAGE_TYPE", "s3")
++	t.Setenv("STORAGE_LOCAL_PATH", "/data")
++
++	cfg := loadStorage()
++
++	assert.Equal(t, "s3", cfg.Type)
++	assert.Equal(t, "/data", cfg.LocalPath)
++}
++
++func TestGetEnv_Default(t *testing.T) {
++	val := getEnv("NOT_EXISTING", "default")
++
++	assert.Equal(t, "default", val)
++}
++
++func TestGetEnv_FromEnv(t *testing.T) {
++	t.Setenv("TEST_KEY", "value")
++	val := getEnv("TEST_KEY", "default")
++
++	assert.Equal(t, "value", val)
++}
++
++func TestValidate_Success(t *testing.T) {
++	cfg := &Config{
++		HTTP: HTTPConfig{
++			Port: "8080",
++		},
++		DB: DBConfig{
++			Path: "./db.sqlite",
++		},
++		JWT: JWTConfig{
++			Secret: "secret",
++			TTL: time.Hour,
++		},
++	}
++
++	err := cfg.validate()
++	assert.NoError(t, err)
++}
++
++func TestValidate_HTTPPortMissing(t *testing.T) {
++	cfg := &Config{
++		HTTP: HTTPConfig{},
++		DB: DBConfig{
++			Path: "./db",
++		},
++		JWT: JWTConfig{
++			Secret: "secret",
++			TTL: time.Hour,
++		},
++	}
++
++	err := cfg.validate()
++
++	assert.Error(t, err)
++	assert.Contains(t, err.Error(), "HTTP_PORT")
++}
++
++
++func TestValidate_DBPathMissing(t *testing.T) {
++	cfg := &Config{
++		HTTP: HTTPConfig{
++			Port: "8080",
++		},
++		DB: DBConfig{},
++		JWT: JWTConfig{
++			Secret: "secret",
++			TTL: time.Hour,
++		},
++	}
++
++	err := cfg.validate()
++
++	assert.Error(t, err)
++	assert.Contains(t, err.Error(), "DB_PATH")
++}
++
++func TestValidate_JWTSecretMissing(t *testing.T) {
++	cfg := &Config{
++		HTTP: HTTPConfig{
++			Port: "8080",
++		},
++		DB: DBConfig{
++			Path: "./db",
++		},
++		JWT: JWTConfig{
++			TTL: time.Hour,
++		},
++	}
++
++	err := cfg.validate()
++
++	assert.Error(t, err)
++	assert.Contains(t, err.Error(), "JWT_SECRET")
++}
++
++func TestValidate_JWTTTLMissing(t *testing.T) {
++	cfg := &Config{
++		HTTP: HTTPConfig{
++			Port: "8080",
++		},
++		DB: DBConfig{
++			Path: "./db",
++		},
++		JWT: JWTConfig{
++			Secret: "secret",
++		},
++	}
++
++	err := cfg.validate()
++
++	assert.Error(t, err)
++	assert.Contains(t, err.Error(), "JWT_TTL")
++}
++
++func TestLoad_Success(t *testing.T) {
++	t.Setenv("HTTP_PORT", "8080")
++	t.Setenv("DB_PATH", "./db.sqlite")
++	t.Setenv("JWT_SECRET", "secret")
++	t.Setenv("JWT_TTL", "1h")
++
++	cfg, err := Load()
++
++	assert.NoError(t, err)
++	assert.Equal(t, "8080", cfg.HTTP.Port)
++	assert.Equal(t, "./db.sqlite", cfg.DB.Path)
++	assert.Equal(t, "secret", cfg.JWT.Secret)
++	assert.Equal(t, time.Hour, cfg.JWT.TTL)
++}
++
++func TestLoad_ValidationError(t *testing.T) {
++	t.Setenv("HTTP_PORT", "")
++	t.Setenv("DB_PATH", "./db")
++	t.Setenv("JWT_SECRET", "secret")
++	t.Setenv("JWT_TTL", "1h")
++
++	cfg, err := Load()
++
++	assert.Error(t, err)
++	assert.Nil(t, cfg)
++}
++
++func TestLoadEnvFrom(t *testing.T) {
++    envFile := filepath.Join(t.TempDir(), ".env")
++    os.WriteFile(envFile, []byte("TEST_ENV=hello"), 0644)
++
++    err := loadEnvFromPath(envFile)
++
++    assert.NoError(t, err)
++    assert.Equal(t, "hello", os.Getenv("TEST_ENV"))
++}
+diff --git a/internal/config/env.go b/internal/config/env.go
+index 57ee615..d11400c 100644
+--- a/internal/config/env.go
++++ b/internal/config/env.go
+@@ -8,12 +8,16 @@ import (
+ 	"github.com/joho/godotenv"
+ )
+ 
++func loadEnvFromPath(path string) error {
++	return godotenv.Load(path)
++}
++
+ func loadEnv() {
+ 	_, filename, _, _:= runtime.Caller(0)
+ 	root := filepath.Join(filepath.Dir(filename), "..", "..")
+ 
+ 	envPath := filepath.Join(root, ".env")
+-	err := godotenv.Load(envPath)
++	err := loadEnvFromPath(envPath)
+ 	if err != nil {
+ 		log.Printf("Warning: could not load .env from %s: %v", envPath, err)
+ 	} else {
+-- 
+2.50.1 (Apple Git-155)
+

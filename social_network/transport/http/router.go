@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	httpSwagger "github.com/swaggo/http-swagger"
 
 	"social_network/internal/post"
 	"social_network/transport/http/handlers"
@@ -25,6 +26,7 @@ type Handlers struct {
 	Stats        *handlers.StatsHandler
 	Settings     *handlers.SettingsHandler
 	Upload		 *handlers.UploadHandler
+	WS	 		*handlers.NotificationHandler
 }
 
 type RouterDeps struct {
@@ -79,6 +81,8 @@ POST /api/v1/posts           - создать пост
     `
 		w.Write([]byte(html))
 	})
+
+	r.Get("/swagger/*", httpSwagger.WrapHandler)
 
 	r.Route("/api/v1", func(r chi.Router) {
 		// r.Route("/admin", func(r chi.Router) {
@@ -191,6 +195,9 @@ POST /api/v1/posts           - создать пост
 				r.Post("/avatar", h.Upload.UploadAvatar)
 				r.Post("/post-image", h.Upload.UploadPostImage)
 			})
+
+			// ---- Web Socket ----
+			r.Get("/ws", h.WS.ServeWS)
 		})
 	})
 

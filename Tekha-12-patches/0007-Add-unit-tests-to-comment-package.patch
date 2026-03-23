@@ -1,0 +1,257 @@
+From a397f924965f1443867e1b244c227930fcbc9dcc Mon Sep 17 00:00:00 2001
+From: Tehron Janobilov <tsdzhanobilov@edu.hse.ru>
+Date: Fri, 13 Mar 2026 17:54:07 +0300
+Subject: [PATCH 07/12] Add unit tests to comment package
+
+---
+ internal/comment/errors.go               |   5 +-
+ internal/comment/mock_repository_test.go |  42 ++++++
+ internal/comment/service_test.go         | 174 +++++++++++++++++++++++
+ 3 files changed, 220 insertions(+), 1 deletion(-)
+ create mode 100644 internal/comment/mock_repository_test.go
+ create mode 100644 internal/comment/service_test.go
+
+diff --git a/internal/comment/errors.go b/internal/comment/errors.go
+index b2e58b8..750811a 100644
+--- a/internal/comment/errors.go
++++ b/internal/comment/errors.go
+@@ -2,4 +2,7 @@ package comment
+ 
+ import "errors"
+ 
+-var ErrRepoEmpty = errors.New("comment service: repo is nil")
++var (
++	ErrRepoEmpty 	= errors.New("comment service: repo is nil")
++	ErrDB			= errors.New("db error")
++)
+diff --git a/internal/comment/mock_repository_test.go b/internal/comment/mock_repository_test.go
+new file mode 100644
+index 0000000..0534f33
+--- /dev/null
++++ b/internal/comment/mock_repository_test.go
+@@ -0,0 +1,42 @@
++package comment
++
++import (
++	"context"
++
++	"github.com/google/uuid"
++	"github.com/stretchr/testify/mock"
++)
++
++type MockRepository struct {
++	mock.Mock
++}
++
++func (m *MockRepository) Create(ctx context.Context, comment *Comment) error {
++	args := m.Called(ctx, comment)
++	return args.Error(0)
++}
++
++func (m *MockRepository) GetByID(ctx context.Context, id uuid.UUID) (*Comment, error) {
++	args := m.Called(ctx, id)
++
++	if args.Get(0) == nil {
++		return nil, args.Error(1)
++	}
++
++	return args.Get(0).(*Comment), args.Error(1)
++}
++
++func (m *MockRepository) ListByPostID(ctx context.Context, postID uuid.UUID) ([]Comment, error) {
++	args := m.Called(ctx, postID)
++
++	if args.Get(0) == nil {
++		return nil, args.Error(1)
++	}
++
++	return args.Get(0).([]Comment), args.Error(1)
++}
++
++func (m *MockRepository) Delete(ctx context.Context, userID, commentID uuid.UUID) error {
++	args := m.Called(ctx, userID, commentID)
++	return args.Error(0)
++}
+diff --git a/internal/comment/service_test.go b/internal/comment/service_test.go
+new file mode 100644
+index 0000000..c9ad0d9
+--- /dev/null
++++ b/internal/comment/service_test.go
+@@ -0,0 +1,174 @@
++package comment
++
++import (
++	"context"
++	"testing"
++
++	"github.com/google/uuid"
++	"github.com/stretchr/testify/assert"
++	"github.com/stretchr/testify/mock"
++	"github.com/stretchr/testify/require"
++)
++
++type testEnv struct {
++	service CommentService
++	repo	*MockRepository
++}
++
++func setup(t *testing.T) *testEnv {
++	repo := &MockRepository{}
++
++	service, err := NewService(repo)
++	require.NoError(t, err)
++
++	return &testEnv{
++		service: service,
++		repo: 	 repo,
++	}
++}
++
++func TestNewService(t *testing.T) {
++	env := setup(t)
++	assert.NotNil(t, env.service)
++}
++
++func TestNewService_RepoNil(t *testing.T) {
++	service, err := NewService(nil)
++
++	assert.Error(t, err)
++	assert.Nil(t, service)
++	assert.Equal(t, ErrRepoEmpty, err)
++}
++
++func TestCreate_Success(t *testing.T) {
++	env := setup(t)
++	ctx := context.Background()
++
++	userID := uuid.New()
++	postID := uuid.New()
++
++	env.repo.
++		On("Create", ctx, mock.AnythingOfType("*comment.Comment")).
++		Return(nil)
++
++	err := env.service.Create(ctx, userID, postID, "hello")
++
++	assert.NoError(t, err)
++
++	env.repo.AssertCalled(t, "Create", ctx, mock.Anything)
++}
++
++func TestCreate_RepoError(t *testing.T) {
++	env := setup(t)
++	ctx := context.Background()
++
++	userID := uuid.New()
++	postID := uuid.New()
++
++	env.repo.
++		On("Create", ctx, mock.Anything).
++		Return(ErrDB)
++
++	err := env.service.Create(ctx, userID, postID, "hello")
++	assert.Error(t, err)
++}
++
++func TestGetByID_Success(t *testing.T) {
++	env := setup(t)
++	ctx := context.Background()
++
++	id := uuid.New()
++	comment := &Comment{
++		ID: id,
++		Content: "text",
++	}
++
++	env.repo.
++		On("GetByID", ctx, id).
++		Return(comment, nil)
++
++	result, err := env.service.GetByID(ctx, id)
++
++	assert.NoError(t, err)
++	assert.Equal(t, comment, result)
++}
++
++func TestGetByID_NotFound(t *testing.T) {
++	env := setup(t)
++	ctx := context.Background()
++
++	id := uuid.New()
++	env.repo.
++		On("GetByID", ctx, id).
++		Return(nil, ErrCommentNotFound)
++
++	result, err := env.service.GetByID(ctx, id)
++
++	assert.Error(t, err)
++	assert.Nil(t, result)
++}
++
++func TestListByPostID_Success(t *testing.T) {
++	env := setup(t)
++	ctx := context.Background()
++
++	postID := uuid.New()
++	comments := []Comment{
++		{ID: uuid.New(), Content: "1"},
++		{ID: uuid.New(), Content: "2"},
++	}
++
++	env.repo.
++		On("ListByPostID", ctx, postID).
++		Return(comments, nil)
++
++	result, err := env.service.ListByPostID(ctx, postID)
++
++	assert.NoError(t, err)
++	assert.Len(t, result, 2)
++}
++
++func TestListByPostID_Error(t *testing.T) {
++	env := setup(t)
++	ctx := context.Background()
++
++	postID := uuid.New()
++	env.repo.
++		On("ListByPostID", ctx, postID).
++		Return(nil, ErrDB)
++
++	result, err := env.service.ListByPostID(ctx, postID)
++
++	assert.Error(t, err)
++	assert.Nil(t, result)
++}
++
++func TestDelete_Success(t *testing.T) {
++	env := setup(t)
++	ctx := context.Background()
++
++	userID := uuid.New()
++	commentID := uuid.New()
++
++	env.repo.
++		On("Delete", ctx, userID, commentID).
++		Return(nil)
++
++	err := env.service.Delete(ctx, userID, commentID)
++	assert.NoError(t, err)
++}
++
++func TestDelete_Error(t *testing.T) {
++	env := setup(t)
++	ctx := context.Background()
++
++	userID := uuid.New()
++	commentID := uuid.New()
++
++	env.repo.
++		On("Delete", ctx, userID, commentID).
++		Return(ErrDB)
++
++	err := env.service.Delete(ctx, userID, commentID)
++	assert.Error(t, err)
++}
+-- 
+2.50.1 (Apple Git-155)
+

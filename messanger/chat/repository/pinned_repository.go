@@ -1,9 +1,13 @@
 package repository
 
-import "github.com/google/uuid"
+import (
+	"context"
+
+	"github.com/google/uuid"
+)
 
 type PinnedRepository interface {
-	Pin(chatID, messageID uuid.UUID) error
-	Unpin(chatID, messageID uuid.UUID) error
-	GetByChatID(chatID uuid.UUID) []uuid.UUID
+	Pin(ctx context.Context, chatID, messageID uuid.UUID) error
+	Unpin(ctx context.Context, chatID, messageID uuid.UUID) error
+	GetByChatID(ctx context.Context, chatID uuid.UUID) []uuid.UUID
 }

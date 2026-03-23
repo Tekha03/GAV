@@ -20,4 +20,5 @@ var (
 	ErrUserNil		 	= errors.New("user handler: service is nil")
 	ErrVaccinationNil	= errors.New("vaccination handler: service is nil")
 	ErrMediaNil			= errors.New("upload handler: service is nil")
+	ErrNotificationNil	 = errors.New("notification: service is nil")
 )

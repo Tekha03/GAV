@@ -8,6 +8,7 @@ import (
 	"social_network/internal/follow"
 	"social_network/internal/like"
 	"social_network/internal/media"
+	"social_network/internal/notification"
 	"social_network/internal/post"
 	"social_network/internal/profile"
 	"social_network/internal/settings"
@@ -28,13 +29,14 @@ type Services struct {
 	Comment 	comment.CommentService
 	Like 		like.LikeService
 	Follow 		follow.FollowService
+	Notification notification.NotificationService
 	Dog 		dog.DogService
 	Vaccination vaccination.VaccinationService
 	Stats 		stats.StatsService
 	Settings 	settings.SettingsService
 }
 
-func initServices(repos *Repositories, jwtConfig auth.JWTConfig, storage media.Storage) (*Services, error) {
+func initServices(repos *Repositories, jwtConfig auth.JWTConfig, storage media.Storage, notificationHub *notification.Hub) (*Services, error) {
 	s := &Services{}
 
 	var err error
@@ -48,6 +50,7 @@ func initServices(repos *Repositories, jwtConfig auth.JWTConfig, storage media.S
 	s.Comment, 		err = comment.NewService(repos.Comment); 			if err != nil { return nil, err }
 	s.Like, 		err = like.NewService(repos.Like);					if err != nil { return nil, err }
 	s.Follow, 		err = follow.NewService(repos.Follow);				if err != nil { return nil, err }
+	s.Notification,	 err = notification.NewService(notificationHub);	   if err != nil { return nil, err }
 	s.Dog, 			err = dog.NewService(repos.Dog);					if err != nil { return nil, err }
 	s.Vaccination, 	err = vaccination.NewService(repos.Vaccination);	if err != nil { return nil, err }
 	s.Stats, 		err = stats.NewService(repos.Stats);				if err != nil { return nil, err }

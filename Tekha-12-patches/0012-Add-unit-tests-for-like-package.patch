@@ -1,0 +1,256 @@
+From 4de2e3fbff576b086d67a0515f140c6f8fde648d Mon Sep 17 00:00:00 2001
+From: Tehron Janobilov <tsdzhanobilov@edu.hse.ru>
+Date: Sat, 21 Mar 2026 05:57:32 +0300
+Subject: [PATCH 12/12] Add unit tests for like package
+
+---
+ .DS_Store                             | Bin 12292 -> 12292 bytes
+ internal/.DS_Store                    | Bin 14340 -> 14340 bytes
+ internal/like/errors.go               |   8 +-
+ internal/like/mock_repository_test.go |  26 +++++
+ internal/like/service_impl.go         |   7 --
+ internal/like/service_test.go         | 139 ++++++++++++++++++++++++++
+ 6 files changed, 172 insertions(+), 8 deletions(-)
+ create mode 100644 internal/like/mock_repository_test.go
+ create mode 100644 internal/like/service_test.go
+
+diff --git a/.DS_Store b/.DS_Store
+index 47fda38471f54b9a6c099194e9c05fa298bdbed6..80903b684a8174c904c4a23a985ad460fb05d55d 100644
+GIT binary patch
+delta 175
+zcmZokXi3<>Ey8q5X>y~8h)8a}i%U{Yei8!%0|x^`gQ3Fq<BlMS$(|y7Yz$xIp<Mog
+z48!2${M-VdItB*z1)Cd0mU72&aohy*SQzve(it)tO3=(&BnQ-tDxU(k>;D(V1?ci9
+Nc7$Ho+^o>Z4*=-pFYW*U
+
+delta 175
+zcmZokXi3<>Ey8r>=j28a5s}<{7nh`*{3Hej1`Y;>hHSa*#~nculRZWF*cyajT>gR#
+z!{Frn+ybCF1_t(q%?%<;x#Kur-U9Mi81xv@88R74P|ad^E)6sbRXzo7SLUJ#kJ05(
+N><AUu+^o>Z4*-VkFg5@H
+
+diff --git a/internal/.DS_Store b/internal/.DS_Store
+index 77b283de4e139bb555ddaf537d067deacbfe2426..8087bfdcc862ebcd5c0bfe59e22e50d438cb5c46 100644
+GIT binary patch
+delta 38
+ucmZoEXerphA<QH^VKSGnG_#??_Q@K;GAs;V<hM`u5SC#q*qkanUj+c%=?hQ*
+
+delta 38
+rcmZoEXerphA<V><KAB5cn)&tDWs^08Wmp<O3=d%$#(>SK!t+%C2*3@r
+
+diff --git a/internal/like/errors.go b/internal/like/errors.go
+index 88fca20..73ec34a 100644
+--- a/internal/like/errors.go
++++ b/internal/like/errors.go
+@@ -2,4 +2,10 @@ package like
+ 
+ import "errors"
+ 
+-var ErrRepoNil = errors.New("like service: repo is nil")
++var (
++	ErrRepoNil 			= errors.New("like service: repo is nil")
++	ErrInvalidLike 		= errors.New("invalid like")
++	ErrAlreadyLiked 	= errors.New("already liked")
++	ErrLikeDoesNotExist = errors.New("like does not exist")
++	ErrDBError			= errors.New("db error")
++)
+diff --git a/internal/like/mock_repository_test.go b/internal/like/mock_repository_test.go
+new file mode 100644
+index 0000000..7041ca2
+--- /dev/null
++++ b/internal/like/mock_repository_test.go
+@@ -0,0 +1,26 @@
++package like
++
++import (
++	"context"
++
++	"github.com/stretchr/testify/mock"
++)
++
++type MockRepository struct {
++	mock.Mock
++}
++
++func (m *MockRepository) Add(ctx context.Context, like Like) error {
++	args := m.Called(ctx, like)
++	return args.Error(0)
++}
++
++func (m *MockRepository) Remove(ctx context.Context, like Like) error {
++	args := m.Called(ctx, like)
++	return args.Error(0)
++}
++
++func (m *MockRepository) LikeExists(ctx context.Context, like Like) (bool, error) {
++	args := m.Called(ctx, like)
++	return args.Bool(0), args.Error(1)
++}
+diff --git a/internal/like/service_impl.go b/internal/like/service_impl.go
+index c673004..9a42ee4 100644
+--- a/internal/like/service_impl.go
++++ b/internal/like/service_impl.go
+@@ -2,17 +2,10 @@ package like
+ 
+ import (
+ 	"context"
+-	"errors"
+ 
+ 	"github.com/google/uuid"
+ )
+ 
+-var (
+-	ErrInvalidLike = errors.New("invalid like")
+-	ErrAlreadyLiked = errors.New("already liked")
+-	ErrLikeDoesNotExist = errors.New("like does not exist")
+-)
+-
+ type service struct {
+ 	repo Repository
+ }
+diff --git a/internal/like/service_test.go b/internal/like/service_test.go
+new file mode 100644
+index 0000000..5b9bd07
+--- /dev/null
++++ b/internal/like/service_test.go
+@@ -0,0 +1,139 @@
++package like
++
++import (
++	"context"
++	"testing"
++
++	"github.com/google/uuid"
++	"github.com/stretchr/testify/require"
++)
++
++func TestNewService(t *testing.T) {
++	t.Run("success", func(t *testing.T) {
++		repo := new(MockRepository)
++
++		s, err := NewService(repo)
++
++		require.NoError(t, err)
++		require.NotNil(t, s)
++	})
++
++	t.Run("nil repo", func(t *testing.T) {
++		s, err := NewService(nil)
++
++		require.ErrorIs(t, err, ErrRepoNil)
++		require.Nil(t, s)
++	})
++}
++
++func TestService_Add(t *testing.T) {
++	ctx := context.Background()
++
++	userID := uuid.New()
++	postID := uuid.New()
++
++	t.Run("invalid like", func(t *testing.T) {
++		repo := new(MockRepository)
++		s, _ := NewService(repo)
++
++		err := s.Add(ctx, Like{})
++
++		require.ErrorIs(t, err, ErrInvalidLike)
++	})
++
++	t.Run("repo error on LikeExists", func(t *testing.T) {
++		repo := new(MockRepository)
++		s, _ := NewService(repo)
++
++		like := Like{UserID: userID, PostID: postID}
++
++		repo.On("LikeExists", ctx, like).Return(false, ErrDBError).Once()
++
++		err := s.Add(ctx, like)
++
++		require.Error(t, err)
++	})
++
++	t.Run("already liked", func(t *testing.T) {
++		repo := new(MockRepository)
++		s, _ := NewService(repo)
++
++		like := Like{UserID: userID, PostID: postID}
++
++		repo.On("LikeExists", ctx, like).Return(true, nil).Once()
++
++		err := s.Add(ctx, like)
++
++		require.ErrorIs(t, err, ErrAlreadyLiked)
++	})
++
++	t.Run("success", func(t *testing.T) {
++		repo := new(MockRepository)
++		s, _ := NewService(repo)
++
++		like := Like{UserID: userID, PostID: postID}
++
++		repo.On("LikeExists", ctx, like).Return(false, nil).Once()
++		repo.On("Add", ctx, like).Return(nil).Once()
++
++		err := s.Add(ctx, like)
++
++		require.NoError(t, err)
++	})
++}
++
++func TestService_Remove(t *testing.T) {
++	ctx := context.Background()
++
++	userID := uuid.New()
++	postID := uuid.New()
++
++	t.Run("invalid like", func(t *testing.T) {
++		repo := new(MockRepository)
++		s, _ := NewService(repo)
++
++		err := s.Remove(ctx, Like{})
++
++		require.ErrorIs(t, err, ErrInvalidLike)
++	})
++
++	t.Run("repo error on LikeExists", func(t *testing.T) {
++		repo := new(MockRepository)
++		s, _ := NewService(repo)
++
++		like := Like{UserID: userID, PostID: postID}
++
++		repo.On("LikeExists", ctx, like).Return(false, ErrDBError).Once()
++
++		err := s.Remove(ctx, like)
++
++		require.Error(t, err)
++	})
++
++	t.Run("like does not exist", func(t *testing.T) {
++		repo := new(MockRepository)
++		s, _ := NewService(repo)
++
++		like := Like{UserID: userID, PostID: postID}
++
++		repo.On("LikeExists", ctx, like).Return(false, nil).Once()
++
++		err := s.Remove(ctx, like)
++
++		require.ErrorIs(t, err, ErrLikeDoesNotExist)
++	})
++
++	t.Run("success", func(t *testing.T) {
++		repo := new(MockRepository)
++		s, _ := NewService(repo)
++
++		like := Like{UserID: userID, PostID: postID}
++
++		repo.On("LikeExists", ctx, like).Return(true, nil).Once()
++		repo.On("Remove", ctx, like).Return(nil).Once()
++
++		err := s.Remove(ctx, like)
++
++		require.NoError(t, err)
++	})
++}
+-- 
+2.50.1 (Apple Git-155)
+

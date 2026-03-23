@@ -2,15 +2,8 @@ package like
 
 import (
 	"context"
-	"errors"
 
 	"github.com/google/uuid"
-)
-
-var (
-	ErrInvalidLike = errors.New("invalid like")
-	ErrAlreadyLiked = errors.New("already liked")
-	ErrLikeDoesNotExist = errors.New("like does not exist")
 )
 
 type service struct {

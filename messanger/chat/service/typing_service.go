@@ -24,6 +24,6 @@ func (s *ChatService) SendTyping(ctx context.Context, chatID, userID uuid.UUID) 
         return errors.ErrMemberNotFound
     }
 
-    s.typingRepo.SetTyping(chatID, userID)
+    s.typingRepo.SetTyping(ctx, chatID, userID)
     return nil
 }

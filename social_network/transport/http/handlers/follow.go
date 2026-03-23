@@ -3,7 +3,9 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+
 	"social_network/internal/follow"
+	"social_network/internal/notification"
 	"social_network/internal/validation"
 	"social_network/transport/http/dto"
 	"social_network/transport/http/middleware"
@@ -14,15 +16,19 @@ import (
 )
 
 type FollowHandler struct {
-	service follow.FollowService
+	service 			follow.FollowService
+	notificationService  notification.NotificationService
 }
 
-func NewFollowHandler(service follow.FollowService) (*FollowHandler, error) {
+func NewFollowHandler(service follow.FollowService, notificationService notification.NotificationService) (*FollowHandler, error) {
 	if service == nil {
 		return nil, ErrFollowNil
 	}
+	if notificationService == nil {
+		return nil, ErrNotificationNil
+	}
 
-	return &FollowHandler{service: service}, nil
+	return &FollowHandler{service: service, notificationService: notificationService}, nil
 }
 
 func (h *FollowHandler) Follow(w http.ResponseWriter, r *http.Request) {
@@ -53,6 +59,8 @@ func (h *FollowHandler) Follow(w http.ResponseWriter, r *http.Request) {
 		response.Error(w, err)
 		return
 	}
+
+	go h.notificationService.NotifyFollow(r.Context(), following.UserID, followerID)
 
 	response.JSON(w, http.StatusNoContent, nil)
 }

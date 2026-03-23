@@ -6,8 +6,6 @@ import (
 	"github.com/google/uuid"
 )
 
-type MessageType string
-
 type Message struct {
 	ID       	uuid.UUID 	`gorm:"type:uuid;primaryKey"`
 	ChatID   	uuid.UUID 	`gorm:"type:uuid;index;not null"`
