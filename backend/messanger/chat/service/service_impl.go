@@ -23,7 +23,7 @@ func NewService(
     pinnedRepo repository.PinnedRepository,
     typingRepo repository.TypingRepository,
 ) Service {
-    return &ChatService{
+    s := &ChatService{
         chatRepo:      chatRepo,
         membersRepo:   membersRepo,
         messageRepo:   messageRepo,
@@ -32,4 +32,6 @@ func NewService(
         pinnedRepo:    pinnedRepo,
         typingRepo:    typingRepo,
     }
+
+    return s
 }
