@@ -1,11 +1,12 @@
 package app
 
 import (
-	gavSqlite "social_network/storage/sqlite"
 	"social_network/internal/comment"
+	"social_network/internal/device"
 	"social_network/internal/dog"
 	"social_network/internal/follow"
 	"social_network/internal/like"
+	"social_network/internal/notification"
 	"social_network/internal/post"
 	"social_network/internal/profile"
 	"social_network/internal/settings"
@@ -13,6 +14,7 @@ import (
 	"social_network/internal/token"
 	"social_network/internal/user"
 	"social_network/internal/vaccination"
+	gavSqlite "social_network/storage/sqlite"
 
 	"gorm.io/gorm"
 )
@@ -29,6 +31,8 @@ type Repositories struct {
 	Vaccination vaccination.Repository
 	Stats 		stats.Repository
 	Settings 	settings.Repository
+	Notification notification.Repository
+	Device        device.Repository
 }
 
 func initRepositories(db *gorm.DB) (*Repositories, error) {
@@ -37,7 +41,7 @@ func initRepositories(db *gorm.DB) (*Repositories, error) {
 	var err error
 	r.User, 		err = gavSqlite.NewUserRepository(db);			if err != nil { return nil, err }
 	r.Token,		err = gavSqlite.NewTokenRepository(db);			if err != nil { return nil, err }
-	r.Profile, 	 	 err = gavSqlite.NewProfileRepository(db);	 	  if err != nil { return nil, err }
+	r.Profile, 	 	err = gavSqlite.NewProfileRepository(db);	 	if err != nil { return nil, err }
 	r.Post, 		err = gavSqlite.NewPostRepository(db);			if err != nil { return nil, err }
 	r.Comment, 		err = gavSqlite.NewCommentRepository(db);		if err != nil { return nil, err }
 	r.Like, 		err = gavSqlite.NewLikeRepository(db);			if err != nil { return nil, err }
@@ -46,6 +50,8 @@ func initRepositories(db *gorm.DB) (*Repositories, error) {
 	r.Vaccination, 	err = gavSqlite.NewVaccinationRepository(db);	if err != nil { return nil, err }
 	r.Stats, 		err = gavSqlite.NewStatsRepository(db);			if err != nil { return nil, err }
 	r.Settings, 	err = gavSqlite.NewSettingsRepository(db);		if err != nil { return nil, err }
+	r.Notification, err = gavSqlite.NewNotificationRepository(db); 	if err != nil { return nil, err }
+	r.Device, 		err = gavSqlite.NewDeviceRepo(db);				if err != nil { return nil, err }
 
 	return r, nil
 }

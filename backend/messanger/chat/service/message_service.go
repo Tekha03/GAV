@@ -79,6 +79,39 @@ func (s *ChatService) SendMessage(ctx context.Context, input model.SendMessageIn
         }
     }
 
+    receiverID, err := s.findChatReceiver(ctx, input.ChatID, input.SenderID)
+	if err != nil {
+		return message, nil
+	}
+
+    if s.notClient != nil {
+		var senderName string
+		if s.socialClient != nil {
+			usr, err := s.socialClient.GetUserProfile(ctx, input.SenderID)
+			if err == nil && usr != nil {
+				senderName = usr.Username
+			}
+
+            text := ""
+            if input.Text != nil && len(*input.Text) > 0 {
+                text = *input.Text
+                if len(text) > 100 {
+                    text = text[:100] + "…"
+                }
+            }
+
+            go func() {
+                _ = s.notClient.SendNewMessage(
+                    context.Background(),
+                    receiverID,
+                    senderName,
+                    text,
+                    input.ChatID.String(),
+                )
+            }()
+	    }
+    }
+
     return message, nil
 }
 
@@ -220,4 +253,19 @@ func (s *ChatService) ForwardMessage(ctx context.Context, messageID, targetChatI
     }
 
     return newMsg, nil
+}
+
+func (s *ChatService) findChatReceiver(ctx context.Context, chatID, senderID uuid.UUID) (uuid.UUID, error) {
+	members, err := s.membersRepo.GetMembers(ctx, chatID)
+	if err != nil {
+		return uuid.Nil, err
+	}
+
+	for _, m := range members {
+		if m.UserID != senderID {
+			return m.UserID, nil
+		}
+	}
+
+	return uuid.Nil, errors.ErrNoMembers
 }

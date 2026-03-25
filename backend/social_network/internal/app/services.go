@@ -50,7 +50,7 @@ func initServices(repos *Repositories, jwtConfig auth.JWTConfig, storage media.S
 	s.Comment, 		err = comment.NewService(repos.Comment); 			if err != nil { return nil, err }
 	s.Like, 		err = like.NewService(repos.Like);					if err != nil { return nil, err }
 	s.Follow, 		err = follow.NewService(repos.Follow);				if err != nil { return nil, err }
-	s.Notification,	 err = notification.NewService(notificationHub);	   if err != nil { return nil, err }
+	s.Notification,	 err = notification.NewService(notificationHub, repos.Notification);	   if err != nil { return nil, err }
 	s.Dog, 			err = dog.NewService(repos.Dog);					if err != nil { return nil, err }
 	s.Vaccination, 	err = vaccination.NewService(repos.Vaccination);	if err != nil { return nil, err }
 	s.Stats, 		err = stats.NewService(repos.Stats);				if err != nil { return nil, err }

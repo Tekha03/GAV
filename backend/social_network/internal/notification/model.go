@@ -15,14 +15,14 @@ const (
 )
 
 type Notification struct {
-	ID			uuid.UUID	`json:"id"`
-	UserID		uuid.UUID	`json:"user_id"`		// кому пришло
-	FromUserID	uuid.UUID	`json:"from_user_id"`	// от кого
-	Type		Type		`json:"type"`
-	EntityID	uuid.UUID	`json:"entity_id"`		// ID поста/комментария
-	Message		string		`json:"message"`
-	IsRead		bool		`json:"is_read"`
-	CreatedAt	time.Time	`json:"created_at"`
+    ID          uuid.UUID `json:"id" gorm:"type:uuid;primaryKey"`
+    UserID      uuid.UUID `json:"user_id" gorm:"type:uuid;index"`
+    FromUserID  uuid.UUID `json:"from_user_id" gorm:"type:uuid"`
+    Type        Type      `json:"type" gorm:"type:text"`
+    EntityID    uuid.UUID `json:"entity_id" gorm:"type:uuid"`
+    Message     string    `json:"message" gorm:"type:text"`
+    IsRead      bool      `json:"is_read" gorm:"default:false"`
+    CreatedAt   time.Time `json:"created_at" gorm:"autoCreateTime"`
 }
 
 func NewNotification(userID, fromUserID uuid.UUID, notificationType Type, entityID uuid.UUID, message string) *Notification {

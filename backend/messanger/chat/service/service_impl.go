@@ -1,6 +1,7 @@
 package service
 
 import (
+	"messanger/chat/client"
 	"messanger/chat/repository"
 )
 
@@ -12,6 +13,9 @@ type ChatService struct {
 	reactionRepo  repository.ReactionRepository
     pinnedRepo    repository.PinnedRepository
     typingRepo repository.TypingRepository
+
+    socialClient *client.SocialNetworkClient
+	notClient    *client.NotificationClient
 }
 
 func NewService(
@@ -22,6 +26,10 @@ func NewService(
     reactionRepo repository.ReactionRepository,
     pinnedRepo repository.PinnedRepository,
     typingRepo repository.TypingRepository,
+
+    socialClient *client.SocialNetworkClient,
+	notClient    *client.NotificationClient,
+    
 ) Service {
     s := &ChatService{
         chatRepo:      chatRepo,
@@ -31,6 +39,8 @@ func NewService(
         reactionRepo:  reactionRepo,
         pinnedRepo:    pinnedRepo,
         typingRepo:    typingRepo,
+        socialClient: socialClient,
+        notClient: notClient,
     }
 
     return s
