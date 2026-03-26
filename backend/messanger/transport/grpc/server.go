@@ -83,7 +83,6 @@ func (s *Server) SendMessage(ctx context.Context, req *pb.SendMessageRequest) (*
         SenderID:  uuid.MustParse(req.SenderId),
         Text:      &req.Text,
         ReplyToID: replyTo,
-        // AttachmentIDs: req.AttachmentIds, // если есть в модели
     }
     
     msg, err := s.service.SendMessage(ctx, input)
@@ -152,7 +151,6 @@ func (s *Server) MarkAsRead(ctx context.Context, req *pb.MarkAsReadRequest) (*pb
     return &pb.MarkAsReadResponse{Success: true}, nil
 }
 
-// ========== РЕАКЦИИ ==========
 func (s *Server) AddReaction(ctx context.Context, req *pb.AddReactionRequest) (*pb.AddReactionResponse, error) {
     err := s.service.AddReaction(ctx, uuid.MustParse(req.MessageId), uuid.MustParse(req.UserId), req.Emoji)
     if err != nil {

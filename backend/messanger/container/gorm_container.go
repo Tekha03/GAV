@@ -23,7 +23,6 @@ type HybridContainer struct {
 }
 
 func NewHybridContainer(postgresDSN, redisAddr, socialNetworkAddr string) (*HybridContainer, error) {
-	// GORM
 	pgDB, err := gorm.Open(postgres.Open(postgresDSN))
 	if err != nil {
 		return nil, err
@@ -37,14 +36,12 @@ func NewHybridContainer(postgresDSN, redisAddr, socialNetworkAddr string) (*Hybr
 		return nil, err
 	}
 
-	// SocialNetworkClient
 	socialClient, err := client.NewSocialNetworkClient(socialNetworkAddr)
 	if err != nil {
 		grpcConn.Close()
 		return nil, err
 	}
 
-	// NotificationClient
 	notClient, err := client.NewNotificationClient(socialNetworkAddr)
 	if err != nil {
 		grpcConn.Close()

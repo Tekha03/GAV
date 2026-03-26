@@ -62,7 +62,7 @@ func (s *service) NotifyLike(
 		}
 
 		for _, token := range tokens {
-			// Собираем FCM‑сообщение
+
 			data := map[string]string{
 				"entity_type": "post",
 				"entity_id":   postID.String(),
@@ -78,7 +78,6 @@ func (s *service) NotifyLike(
 				data,
 			)
 			if err != nil {
-				// логгируем, но не ломаем уведомление
 			}
 		}
 	}
@@ -117,7 +116,6 @@ func (s *service) NotifyComment(ctx context.Context, postOwnerID, commenterID, p
 		}
 
 		for _, token := range tokens {
-			// Собираем FCM‑сообщение
 			data := map[string]string{
 				"entity_type": "comment",
 				"entity_id":   postID.String(),
@@ -133,7 +131,6 @@ func (s *service) NotifyComment(ctx context.Context, postOwnerID, commenterID, p
 				data,
 			)
 			if err != nil {
-				// логгируем, но не ломаем уведомление
 			}
 		}
 	}
@@ -171,7 +168,6 @@ func (s *service) NotifyFollow(ctx context.Context, followingID, followerID uuid
 		}
 
 		for _, token := range tokens {
-			// Собираем FCM‑сообщение
 			data := map[string]string{
 				"entity_type": "following",
 				"entity_id":   followingID.String(),
@@ -187,7 +183,6 @@ func (s *service) NotifyFollow(ctx context.Context, followingID, followerID uuid
 				data,
 			)
 			if err != nil {
-				// логгируем, но не ломаем уведомление
 			}
 		}
 	}
