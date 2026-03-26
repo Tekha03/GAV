@@ -2,18 +2,25 @@
 package main
 
 import (
-    "log"
-    "net"
-    "messanger/container"
-    pb "api/chat_gen" 
-    "google.golang.org/grpc"
+	pb "api/chat_gen"
+	"log"
+	"messanger/container"
 	gr "messanger/transport/grpc"
+	"net"
+	"os"
+
+	"google.golang.org/grpc"
 )
 
 func main() {
+    postgresDSN := os.Getenv("POSTGRES_DSN")
+    redisAddr := os.Getenv("REDIS_ADDR")
+    socialNetworkAddr := os.Getenv("SOCIAL_NETWORK_ADDR")
+
     container, err := container.NewHybridContainer(
-        "postgres://postgres:password@localhost:5433/messanger?sslmode=disable",
-        "localhost:6379",
+        postgresDSN,
+        redisAddr,
+        socialNetworkAddr,
     )
     if err != nil {
         log.Fatal(err)

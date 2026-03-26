@@ -5,6 +5,7 @@ import (
 	"social_network/internal/comment"
 	"social_network/internal/dog"
 	"social_network/internal/feed"
+	"social_network/internal/firebase"
 	"social_network/internal/follow"
 	"social_network/internal/like"
 	"social_network/internal/media"
@@ -50,7 +51,7 @@ func initServices(repos *Repositories, jwtConfig auth.JWTConfig, storage media.S
 	s.Comment, 		err = comment.NewService(repos.Comment); 			if err != nil { return nil, err }
 	s.Like, 		err = like.NewService(repos.Like);					if err != nil { return nil, err }
 	s.Follow, 		err = follow.NewService(repos.Follow);				if err != nil { return nil, err }
-	s.Notification,	 err = notification.NewService(notificationHub, repos.Notification);	   if err != nil { return nil, err }
+	s.Notification,	 err = notification.NewService(notificationHub, repos.Notification, repos.Device, &firebase.Client{});	   if err != nil { return nil, err }
 	s.Dog, 			err = dog.NewService(repos.Dog);					if err != nil { return nil, err }
 	s.Vaccination, 	err = vaccination.NewService(repos.Vaccination);	if err != nil { return nil, err }
 	s.Stats, 		err = stats.NewService(repos.Stats);				if err != nil { return nil, err }

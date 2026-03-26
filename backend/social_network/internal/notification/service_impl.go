@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"social_network/internal/device"
+	"social_network/internal/firebase"
 
 	"github.com/google/uuid"
 )
@@ -12,16 +13,19 @@ type service struct {
 	hub *Hub
 	notificationRepo Repository
 	deviceRepo     	 device.Repository
+	firebaseClient   *firebase.Client
 }
 
-func NewService(hub *Hub, notificationRepo Repository, fcmClient *fcm.Client,) (NotificationService, error) {
-	if hub == nil {
-		return nil, ErrEmptyHub
+func NewService(hub *Hub, notificationRepo Repository, deviceRepo device.Repository, firebaseClient *firebase.Client) (NotificationService, error) {
+	if hub == nil || firebaseClient == nil {
+		return nil, ErrFirebaseClientEmpty
 	}
+
 	return &service{
 		hub: hub,
 		notificationRepo: notificationRepo,
-		fcmClient: fcmClient,
+		deviceRepo: deviceRepo,
+		firebaseClient: firebaseClient,
 	}, nil
 }
 
@@ -51,32 +55,35 @@ func (s *service) NotifyLike(
 		s.hub.SendToUser(postOwnerID, data)
 	}
 
-	if s.deviceRepo != nil && s.fcmClient != nil {
+	if s.deviceRepo != nil && s.firebaseClient != nil {
 		tokens, err := s.deviceRepo.GetByUser(ctx, postOwnerID)
 		if err != nil || len(tokens) == 0 {
 			return nil
 		}
 
-		// Собираем FCM‑сообщение
-		msg := &fcm.Message{
-			Data: map[string]string{
+		for _, token := range tokens {
+			// Собираем FCM‑сообщение
+			data := map[string]string{
+				"entity_type": "post",
 				"entity_id":   postID.String(),
 				"notification_id": notification.ID.String(),
-				"type":        "like",
-			},
-			Notification: &fcm.{
-				Title: "Новый лайк",
-				Body:  notification.Message,
-			},
-		}
+				"type":        string(TypeLike),
+			}
 
-		for _, token := range tokens {
-			_, err := s.fcmClient.Send(ctx, msg, token.Token)
+			err := s.firebaseClient.SendPush(
+				ctx,
+				token.Token,
+				LikeMessage,
+				notification.Message,
+				data,
+			)
 			if err != nil {
-				// логгируем, но не ломаем
+				// логгируем, но не ломаем уведомление
 			}
 		}
 	}
+
+	return nil
 }
 
 
@@ -95,12 +102,41 @@ func (s *service) NotifyComment(ctx context.Context, postOwnerID, commenterID, p
 		}
 	}
 
-	data, err := json.Marshal(notification)
-	if err != nil {
-		return ErrFailedToMarshal
+	if s.hub != nil {
+		data, err := json.Marshal(notification)
+		if err != nil {
+			return ErrFailedToMarshal
+		}
+		s.hub.SendToUser(postOwnerID, data)
 	}
 
-	s.hub.SendToUser(postOwnerID, data)
+	if s.deviceRepo != nil && s.firebaseClient != nil {
+		tokens, err := s.deviceRepo.GetByUser(ctx, postOwnerID)
+		if err != nil || len(tokens) == 0 {
+			return nil
+		}
+
+		for _, token := range tokens {
+			// Собираем FCM‑сообщение
+			data := map[string]string{
+				"entity_type": "comment",
+				"entity_id":   postID.String(),
+				"notification_id": notification.ID.String(),
+				"type":        string(TypeLike),
+			}
+
+			err := s.firebaseClient.SendPush(
+				ctx,
+				token.Token,
+				CommentMessage,
+				notification.Message,
+				data,
+			)
+			if err != nil {
+				// логгируем, но не ломаем уведомление
+			}
+		}
+	}
 
 	return nil
 }
@@ -120,12 +156,41 @@ func (s *service) NotifyFollow(ctx context.Context, followingID, followerID uuid
 		}
 	}
 
-	data, err := json.Marshal(notification)
-	if err != nil {
-		return ErrFailedToMarshal
+	if s.hub != nil {
+		data, err := json.Marshal(notification)
+		if err != nil {
+			return ErrFailedToMarshal
+		}
+		s.hub.SendToUser(followingID, data)
 	}
 
-	s.hub.SendToUser(followingID, data)
+	if s.deviceRepo != nil && s.firebaseClient != nil {
+		tokens, err := s.deviceRepo.GetByUser(ctx, followingID)
+		if err != nil || len(tokens) == 0 {
+			return nil
+		}
+
+		for _, token := range tokens {
+			// Собираем FCM‑сообщение
+			data := map[string]string{
+				"entity_type": "following",
+				"entity_id":   followingID.String(),
+				"notification_id": notification.ID.String(),
+				"type":        string(TypeFollow),
+			}
+
+			err := s.firebaseClient.SendPush(
+				ctx,
+				token.Token,
+				FollowMessage,
+				notification.Message,
+				data,
+			)
+			if err != nil {
+				// логгируем, но не ломаем уведомление
+			}
+		}
+	}
 
 	return nil
 }
