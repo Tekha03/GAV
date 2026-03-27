@@ -3,8 +3,8 @@ package memory
 import (
 	"bytes"
 	"context"
-	"messanger/chat/model"
-	"messanger/chat/repository"
+	"messanger/internal/model"
+	"messanger/internal/repository"
 	"sort"
 	"sync"
 	"time"

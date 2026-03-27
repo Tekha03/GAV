@@ -1,7 +1,7 @@
 package dto
 
 import (
-	"messanger/chat/model"
+	"messanger/internal/model"
 
 	"github.com/google/uuid"
 )

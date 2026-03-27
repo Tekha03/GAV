@@ -95,7 +95,7 @@ func (s *service) Delete(ctx context.Context, ownerID, dogID uuid.UUID) error {
 	return s.repo.Delete(ctx, dogID)
 }
 
-func (s *service) UpdateLocation(ctx context.Context, ownerID, dogID uuid.UUID, lat, lon float64) error {
+func (s *service) UpdateLocation(ctx context.Context, ownerID, dogID uuid.UUID, lat, lon float64, status LocationStatus) error {
 	dog, err := s.repo.GetByID(ctx, dogID)
 	if err != nil {
 		return err

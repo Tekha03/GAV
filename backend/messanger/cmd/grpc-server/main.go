@@ -1,41 +1,33 @@
-// cmd/grpc-server/main.go
 package main
 
 import (
-	pb "api/chat_gen"
+	pb "api/chat_gen/chat"
 	"log"
-	"messanger/container"
+	"messanger/internal/config"
+	"messanger/storage/container"
 	gr "messanger/transport/grpc"
+	"messanger/transport/http/gateway"
 	"net"
-	"os"
 
 	"google.golang.org/grpc"
 )
 
 func main() {
-    postgresDSN := os.Getenv("POSTGRES_DSN")
-    redisAddr := os.Getenv("REDIS_ADDR")
-    socialNetworkAddr := os.Getenv("SOCIAL_NETWORK_ADDR")
+    cfg, err := config.Load()
+    if err != nil {
+        log.Fatal("load config:", err)
+    }
 
-    container, err := container.NewHybridContainer(
-        postgresDSN,
-        redisAddr,
-        socialNetworkAddr,
-    )
-    if err != nil {
-        log.Fatal(err)
-    }
-    
-    lis, err := net.Listen("tcp", ":9090")
-    if err != nil {
-        log.Fatal(err)
-    }
-    
-    server := grpc.NewServer()
-    pb.RegisterChatServiceServer(server, gr.NewServer(container.ChatService()))
-    
-    log.Println("gRPC server on :9090")
-    if err := server.Serve(lis); err != nil {
-        log.Fatal(err)
-    }
+    container, err := container.NewHybridContainer(cfg.PostgresDSN, cfg.RedisAddr, cfg.SocialNetworkAddr)
+    if err != nil { log.Fatal(err) }
+
+    grpcLis, err := net.Listen("tcp", cfg.GRPCAddr)
+    if err != nil { log.Fatal(err) }
+    grpcServer := grpc.NewServer()
+    pb.RegisterChatServiceServer(grpcServer, gr.NewServer(container.ChatService()))
+    go func() { log.Printf("gRPC on %s", cfg.GRPCAddr); grpcServer.Serve(grpcLis) }()
+
+    httpServer := gateway.NewHTTPServer(cfg.GRPCAddr)
+    log.Printf("HTTP gateway on :8080")
+    log.Fatal(httpServer.ListenAndServe())
 }

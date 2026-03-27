@@ -2,7 +2,7 @@ package repository
 
 import (
 	"context"
-	"messanger/chat/model"
+	"messanger/internal/model"
 	"time"
 
 	"github.com/google/uuid"

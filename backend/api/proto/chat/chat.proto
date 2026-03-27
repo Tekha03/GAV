@@ -3,20 +3,83 @@ package api.chat.v1;
 option go_package = ".;v1";
 
 import "google/protobuf/timestamp.proto";
+import "google/api/annotations.proto"; 
 
 service ChatService {
-  rpc CreatePrivateChat(CreatePrivateChatRequest) returns (CreatePrivateChatResponse);
-  rpc CreateGroupChat(CreateGroupChatRequest) returns (CreateGroupChatResponse);
-  rpc GetChat(GetChatRequest) returns (GetChatResponse);
-  rpc AddMember(AddMemberRequest) returns (AddMemberResponse);
-  rpc SendMessage(SendMessageRequest) returns (SendMessageResponse);
-  rpc GetMessages(GetMessagesRequest) returns (GetMessagesResponse);
-  rpc EditMessage(EditMessageRequest) returns (EditMessageResponse);
-  rpc DeleteMessage(DeleteMessageRequest) returns (DeleteMessageResponse);
-  rpc MarkAsRead(MarkAsReadRequest) returns (MarkAsReadResponse);
-  rpc PinMessage(PinMessageRequest) returns (PinMessageResponse);
-  rpc AddReaction(AddReactionRequest) returns (AddReactionResponse);
-  rpc RemoveReaction(RemoveReactionRequest) returns (RemoveReactionResponse);
+  rpc CreatePrivateChat(CreatePrivateChatRequest) returns (CreatePrivateChatResponse) {
+    option (google.api.http) = {
+      post: "/v1/chats/private"
+      body: "*"
+    };
+  }
+  rpc CreateGroupChat(CreateGroupChatRequest) returns (CreateGroupChatResponse) {
+    option (google.api.http) = {
+      post: "/v1/chats/group"
+      body: "*"
+    };
+  }
+  rpc GetChat(GetChatRequest) returns (GetChatResponse) {
+    option (google.api.http) = {
+      get: "/v1/chats/{chat_id}"
+    };
+  }
+  rpc AddMember(AddMemberRequest) returns (AddMemberResponse) {
+    option (google.api.http) = {
+      post: "/v1/chats/{chat_id}/members"
+      body: "*"
+      additional_bindings {
+        post: "/v1/chats/{chat_id}/members/{user_id}"
+        body: "*"
+      }
+    };
+  }
+  rpc SendMessage(SendMessageRequest) returns (SendMessageResponse) {
+    option (google.api.http) = {
+      post: "/v1/chats/{chat_id}/messages"
+      body: "*"
+    };
+  }
+  rpc GetMessages(GetMessagesRequest) returns (GetMessagesResponse) {
+    option (google.api.http) = {
+      get: "/v1/chats/{chat_id}/messages"
+      additional_bindings {
+        get: "/v1/chats/{chat_id}/messages/{cursor_id}"
+      }
+    };
+  }
+  rpc EditMessage(EditMessageRequest) returns (EditMessageResponse) {
+    option (google.api.http) = {
+      patch: "/v1/messages/{message_id}"
+      body: "*"
+    };
+  }
+  rpc DeleteMessage(DeleteMessageRequest) returns (DeleteMessageResponse) {
+    option (google.api.http) = {
+      delete: "/v1/messages/{message_id}"
+    };
+  }
+  rpc MarkAsRead(MarkAsReadRequest) returns (MarkAsReadResponse) {
+    option (google.api.http) = {
+      post: "/v1/chats/{chat_id}/read"
+      body: "*"
+    };
+  }
+  rpc PinMessage(PinMessageRequest) returns (PinMessageResponse) {
+    option (google.api.http) = {
+      post: "/v1/chats/{chat_id}/pin/{message_id}"
+    };
+  }
+  rpc AddReaction(AddReactionRequest) returns (AddReactionResponse) {
+    option (google.api.http) = {
+      post: "/v1/messages/{message_id}/reactions"
+      body: "*"
+    };
+  }
+  rpc RemoveReaction(RemoveReactionRequest) returns (RemoveReactionResponse) {
+    option (google.api.http) = {
+      delete: "/v1/messages/{message_id}/reactions/{emoji}"
+    };
+  }
   rpc JoinChat(stream JoinChatRequest) returns (stream ChatEvent);
 }
 

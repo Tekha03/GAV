@@ -2,9 +2,9 @@ package service
 
 import (
 	"context"
-	"messanger/chat/constatnts"
-	"messanger/chat/errors"
-	"messanger/chat/model"
+	"messanger/internal/constatnts"
+	"messanger/internal/errors"
+	"messanger/internal/model"
 	"time"
 
 	"github.com/google/uuid"

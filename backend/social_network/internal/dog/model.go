@@ -16,7 +16,8 @@ type Dog struct {
 
 	Lat         *float64
     Lon         *float64
-    LocationVisible bool
+    LocationStatus  LocationStatus
+    Visibility      LocationVisibility 
 }
 
 func NewDog(

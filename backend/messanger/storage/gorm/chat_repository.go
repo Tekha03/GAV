@@ -3,8 +3,8 @@ package gorm
 import (
 	"context"
 	"errors"
-	"messanger/chat/model"
-	"messanger/chat/repository"
+	"messanger/internal/model"
+	"messanger/internal/repository"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"

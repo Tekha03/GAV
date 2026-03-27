@@ -32,7 +32,7 @@ import (
 
 	"social_network/internal/app"
 	"social_network/internal/config"
-	_ "docs"
+	// "social_network/docs"
 )
 
 func main() {

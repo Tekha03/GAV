@@ -2,8 +2,8 @@ package service
 
 import (
 	"context"
-	"messanger/chat/errors"
-	"messanger/chat/model"
+	"messanger/internal/errors"
+	"messanger/internal/model"
 
 	"github.com/google/uuid"
 )

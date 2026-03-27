@@ -4,8 +4,8 @@ package gorm
 import (
 	"context"
 	"errors"
-	"messanger/chat/model"
-	"messanger/chat/repository"
+	"messanger/internal/model"
+	"messanger/internal/repository"
 	"time"
 
 	"github.com/google/uuid"

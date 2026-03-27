@@ -4,7 +4,7 @@ import (
     "context"
     "github.com/redis/go-redis/v9"
     "github.com/google/uuid"
-    "messanger/chat/repository"
+    "messanger/internal/repository"
 )
 
 type PinnedRepository struct {

@@ -2,7 +2,7 @@ package service
 
 import (
 	"context"
-	"messanger/chat/errors"
+	"messanger/internal/errors"
 
 	"github.com/google/uuid"
 )

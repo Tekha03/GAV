@@ -2,7 +2,7 @@ package redis
 
 import (
 	"context"
-	"messanger/chat/repository"
+	"messanger/internal/repository"
 	"time"
 
 	"github.com/google/uuid"

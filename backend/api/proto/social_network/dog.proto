@@ -1,0 +1,123 @@
+syntax = "proto3";
+package api.social.v1;
+option go_package = "api/dog_gen";
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+import "api/proto/social/social.proto";  // User
+
+service DogService {
+
+  rpc CreateDog(CreateDogRequest) returns (Dog);
+  rpc GetDog(GetDogRequest) returns (Dog);
+  rpc UpdateDog(UpdateDogRequest) returns (Dog);
+  rpc DeleteDog(DeleteDogRequest) returns (Empty);
+
+  rpc UpdateLocation(UpdateLocationRequest) returns (Empty);
+  rpc SetLocationVisibility(SetLocationVisibilityRequest) returns (Empty);
+ 
+  rpc GetPublicDog(GetPublicDogRequest) returns (Dog);
+  rpc GetPrivateDog(GetPrivateDogRequest) returns (Dog);
+  
+  rpc CreateVaccination(CreateVaccinationRequest) returns (Vaccination);
+  rpc ListVaccinations(ListVaccinationsRequest) returns (ListVaccinationsResponse);
+  rpc UpdateVaccination(UpdateVaccinationRequest) returns (Vaccination);
+  rpc DeleteVaccination(DeleteVaccinationRequest) returns (Empty);
+}
+
+message Dog {
+  string id = 1;
+  string owner_id = 2;
+  string name = 3;
+  string breed = 4;
+  string photo_url = 5;
+  Status status = 6;
+  Age age = 7;
+  Gender gender = 8;
+  
+  // LOCATION (твоя фича!)
+  optional float lat = 9;
+  optional float lon = 10;
+  bool location_visible = 11;
+  
+  timestamp created_at = 99;
+  
+  enum Status {
+    STATUS_UNSPECIFIED = 0;
+    ACTIVE = 1;
+    INACTIVE = 2;
+  }
+  enum Age {
+    AGE_UNSPECIFIED = 0;
+    PUPPY = 1;
+    ADULT = 2;
+    ELDERLY = 3;
+  }
+  enum Gender {
+    GENDER_UNSPECIFIED = 0;
+    MALE = 1;
+    FEMALE = 2;
+  }
+}
+
+// ========== VACCINATION ==========
+message Vaccination {
+  string id = 1;
+  string dog_id = 2;
+  string name = 3;           // "rabies", "parvovirus"
+  timestamp done_at = 4;
+  optional timestamp next_due_at = 5;
+  string notes = 6;
+}
+
+// ========== REQUESTS ==========
+message CreateDogRequest {
+  string name = 1;
+  string breed = 2;
+  Gender gender = 3;
+  Age age = 4;
+  Status status = 5;
+  string photo_url = 6;
+  // owner_id из JWT context!
+}
+
+message UpdateDogRequest {
+  string dog_id = 1;
+  optional string name = 2;
+  optional string breed = 3;
+  optional Gender gender = 4;
+  optional Age age = 5;
+  optional Status status = 6;
+  optional string photo_url = 7;
+}
+
+message GetDogRequest { string dog_id = 1; }
+message GetPublicDogRequest { string dog_id = 1; }
+message GetPrivateDogRequest {
+  string dog_id = 1;
+  // owner_id из context!
+}
+
+message UpdateLocationRequest {
+  string dog_id = 1;
+  float lat = 2;
+  float lon = 3;
+}
+
+message SetLocationVisibilityRequest {
+  string dog_id = 1;
+  bool visible = 2;
+}
+
+message CreateVaccinationRequest {
+  string dog_id = 1;
+  string name = 2;
+  timestamp done_at = 3;
+  optional timestamp next_due_at = 4;
+  optional string notes = 5;
+}
+
+message ListVaccinationsRequest { string dog_id = 1; }
+message ListVaccinationsResponse {
+  repeated Vaccination vaccinations = 1;
+}

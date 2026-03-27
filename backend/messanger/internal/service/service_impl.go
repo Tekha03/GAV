@@ -1,8 +1,8 @@
 package service
 
 import (
-	"messanger/chat/client"
-	"messanger/chat/repository"
+	"messanger/internal/client"
+	"messanger/internal/repository"
 )
 
 type ChatService struct {

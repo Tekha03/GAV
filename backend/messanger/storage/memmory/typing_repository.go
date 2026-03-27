@@ -2,7 +2,7 @@ package memory
 
 import (
 	"context"
-	"messanger/chat/repository"
+	"messanger/internal/repository"
 	"sync"
 	"time"
 

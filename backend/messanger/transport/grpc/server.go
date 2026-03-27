@@ -4,9 +4,9 @@ import (
 	"context"
 	"time"
 
-	pb "api/chat_gen"
-	"messanger/chat/model"
-	"messanger/chat/service"
+	pb "api/chat_gen/chat"
+	"messanger/internal/model"
+	"messanger/internal/service"
 
 	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"

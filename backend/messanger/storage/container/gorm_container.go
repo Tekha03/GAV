@@ -2,8 +2,8 @@
 package container
 
 import (
-	"messanger/chat/client"
-	"messanger/chat/service"
+	"messanger/internal/client"
+	"messanger/internal/service"
 	orm "messanger/storage/gorm"
 	rds "messanger/storage/redis"
 	"messanger/transport/websocket"

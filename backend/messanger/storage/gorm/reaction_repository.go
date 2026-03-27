@@ -2,8 +2,8 @@ package gorm
 
 import (
 	"context"
-	"messanger/chat/model"
-	"messanger/chat/repository"
+	"messanger/internal/model"
+	"messanger/internal/repository"
 
 	"github.com/google/uuid"
 )
