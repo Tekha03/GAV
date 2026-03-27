@@ -25,7 +25,7 @@ func (s *service) UploadImage(ctx context.Context, file multipart.File, header *
 	}
 
 	extension := filepath.Ext(header.Filename)
-	if extension != ".jpg" && extension != ".jpeg" && extension != "png" && extension != ".webp" {
+	if extension != ".jpg" && extension != ".jpeg" && extension != ".png" && extension != ".webp" {
 		return "", ErrInvalidFileType
 	}
 
