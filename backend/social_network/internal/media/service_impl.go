@@ -32,4 +32,10 @@ func (s *service) UploadImage(ctx context.Context, file multipart.File, header *
 	return s.storage.Upload(ctx, file, header, folder)
 }
 
+func (s *service) Delete(ctx context.Context, url string) error {
+	if url == "" {
+		return ErrEmptyURL
+	}
 
+	return s.storage.Delete(ctx, url)
+}

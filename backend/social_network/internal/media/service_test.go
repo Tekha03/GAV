@@ -118,3 +118,48 @@ func TestService_UploadImage(t *testing.T) {
 		require.Equal(t, "/uploads/avatars/test.png", url)
 	})
 }
+
+func TestService_Delete(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("empty url", func(t *testing.T) {
+		storage := new(MockStorage)
+		s, _ := NewService(storage)
+
+		err := s.Delete(ctx, "")
+
+		require.Error(t, err)
+	})
+
+	t.Run("storage error", func(t *testing.T) {
+		storage := new(MockStorage)
+		s, _ := NewService(storage)
+
+		url := "/uploads/avatars/test.jpg"
+
+		storage.
+			On("Delete", ctx, url).
+			Return(ErrStorageNil).
+			Once()
+
+		err := s.Delete(ctx, url)
+
+		require.Error(t, err)
+	})
+
+	t.Run("success", func(t *testing.T) {
+		storage := new(MockStorage)
+		s, _ := NewService(storage)
+
+		url := "/uploads/avatars/test.jpg"
+
+		storage.
+			On("Delete", ctx, url).
+			Return(nil).
+			Once()
+
+		err := s.Delete(ctx, url)
+
+		require.NoError(t, err)
+	})
+}

@@ -39,5 +39,21 @@ func (s *LocalStorage) Upload(ctx context.Context, file multipart.File, header *
 }
 
 func (s *LocalStorage) Delete(ctx context.Context, url string) error {
+	const prefix = "/uploads/"
+
+	if len(url) <= len(prefix) || url[:len(prefix)] != prefix {
+		return ErrInvalidURL
+	}
+
+	relativePath := url[len(prefix):]
+	fullPath := filepath.Join(s.basePath, relativePath)
+
+	if err := os.Remove(fullPath); err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
+	}
+
 	return nil
 }
