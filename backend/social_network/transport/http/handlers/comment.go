@@ -40,6 +40,18 @@ func NewCommentHandler(
 	return &CommentHandler{service: service, postService: postService, notificationService: notficationService}, nil
 }
 
+// @Summary      Создать комментарий
+// @Description  Создает комментарий к посту и уведомляет автора поста
+// @Tags         comment
+// @Accept       json
+// @Produce      json
+// @Param        input body dto.CreateCommentRequest true "Comment data"
+// @Success      201   {object} nil
+// @Failure      400   {object} response.ErrorResponse
+// @Failure      401   {object} response.ErrorResponse
+// @Failure      500   {object} response.ErrorResponse
+// @Security     BearerAuth
+// @Router       /comments [post]
 func (h *CommentHandler) Create(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.UserID(r.Context())
 	if !ok {
@@ -77,6 +89,16 @@ func (h *CommentHandler) Create(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusCreated, nil)
 }
 
+// @Summary      Получить комментарий по ID
+// @Description  Возвращает комментарий по его ID
+// @Tags         comment
+// @Produce      json
+// @Param        id path string true "Comment ID"
+// @Success      200   {object} dto.CommentResponse
+// @Failure      400   {object} response.ErrorResponse
+// @Failure      404   {object} response.ErrorResponse
+// @Failure      500   {object} response.ErrorResponse
+// @Router       /comments/{id} [get]
 func (h *CommentHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
 	id, err := uuid.Parse(idStr)
@@ -94,6 +116,15 @@ func (h *CommentHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusOK, comment)
 }
 
+// @Summary      Список комментариев поста
+// @Description  Возвращает список комментариев по ID поста
+// @Tags         comment
+// @Produce      json
+// @Param        postID path string true "Post ID"
+// @Success      200   {array} dto.CommentResponse
+// @Failure      400   {object} response.ErrorResponse
+// @Failure      500   {object} response.ErrorResponse
+// @Router       /posts/{postID}/comments [get]
 func (h *CommentHandler) ListByPostID(w http.ResponseWriter, r *http.Request) {
 	postIDStr := chi.URLParam(r, "postID")
 	postID, err := uuid.Parse(postIDStr)
@@ -111,6 +142,18 @@ func (h *CommentHandler) ListByPostID(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusOK, comments)
 }
 
+// @Summary      Удалить комментарий
+// @Description  Удаляет комментарий текущего пользователя по ID
+// @Tags         comment
+// @Produce      json
+// @Param        id path string true "Comment ID"
+// @Success      204   {object} nil
+// @Failure      400   {object} response.ErrorResponse
+// @Failure      401   {object} response.ErrorResponse
+// @Failure      403   {object} response.ErrorResponse
+// @Failure      500   {object} response.ErrorResponse
+// @Security     BearerAuth
+// @Router       /comments/{id} [delete]
 func (h *CommentHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.UserID(r.Context())
 	if !ok {
