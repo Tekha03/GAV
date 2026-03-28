@@ -6,7 +6,7 @@ import "errors"
 var (
 	ErrInvalidInput 	= errors.New("invalid input")
 	ErrUnauthorized 	= errors.New("unauthorized")
-
+	ErrFail				= errors.New("fail")
 	ErrAuthNil			= errors.New("auth handler: service is nil")
 	ErrCommentNil		= errors.New("comment handler: service is nil")
 	ErrDogNil			= errors.New("dog handler: service is nil")
