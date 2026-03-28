@@ -24,6 +24,20 @@ func NewDogHandler(service dog.DogService) (*DogHandler, error) {
 	return &DogHandler{service: service}, nil
 }
 
+// Create godoc
+// @Summary Create dog
+// @Description Создать собаку
+// @Tags dogs
+// @Accept json
+// @Produce json
+// @Param Authorization header string true "Bearer token"
+// @Param input body dog.CreateDogInput true "Dog data"
+// @Success 200 {object} dog.Dog
+// @Failure 400 {object} response.ErrorResponse
+// @Failure 401 {object} response.ErrorResponse
+// @Failure 500 {object} response.ErrorResponse
+// @Security BearerAuth
+// @Router /dogs [post]
 func (h *DogHandler) Create(w http.ResponseWriter, r *http.Request) {
 	ownerID, ok := middleware.UserID(r.Context())
 	if !ok {
@@ -51,6 +65,20 @@ func (h *DogHandler) Create(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusOK, dog)
 }
 
+// Create godoc
+// @Summary Create dog
+// @Description Создать собаку
+// @Tags dogs
+// @Accept json
+// @Produce json
+// @Param Authorization header string true "Bearer token"
+// @Param input body dog.CreateDogInput true "Dog data"
+// @Success 200 {object} dog.Dog
+// @Failure 400 {object} response.ErrorResponse
+// @Failure 401 {object} response.ErrorResponse
+// @Failure 500 {object} response.ErrorResponse
+// @Security BearerAuth
+// @Router /dogs [post]
 func (h *DogHandler) GetPublic(w http.ResponseWriter, r *http.Request) {
 	dogID, err := uuid.Parse(chi.URLParam(r, "id"))
 	if err != nil {
@@ -67,6 +95,19 @@ func (h *DogHandler) GetPublic(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusOK, dog)
 }
 
+// GetPrivate godoc
+// @Summary Get private dog
+// @Description Получить приватную информацию о собаке (только владелец)
+// @Tags dogs
+// @Produce json
+// @Param Authorization header string true "Bearer token"
+// @Param id path string true "Dog ID"
+// @Success 200 {object} dog.Dog
+// @Failure 400 {object} response.ErrorResponse
+// @Failure 401 {object} response.ErrorResponse
+// @Failure 500 {object} response.ErrorResponse
+// @Security BearerAuth
+// @Router /dogs/{id}/private [get]
 func (h *DogHandler) GetPrivate(w http.ResponseWriter, r *http.Request) {
 	ownerID, ok := middleware.UserID(r.Context())
 	if !ok {
@@ -89,6 +130,19 @@ func (h *DogHandler) GetPrivate(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusOK, dog)
 }
 
+// GetPrivate godoc
+// @Summary Get private dog
+// @Description Получить приватную информацию о собаке (только владелец)
+// @Tags dogs
+// @Produce json
+// @Param Authorization header string true "Bearer token"
+// @Param id path string true "Dog ID"
+// @Success 200 {object} dog.Dog
+// @Failure 400 {object} response.ErrorResponse
+// @Failure 401 {object} response.ErrorResponse
+// @Failure 500 {object} response.ErrorResponse
+// @Security BearerAuth
+// @Router /dogs/{id}/private [get]
 func (h *DogHandler) Update(w http.ResponseWriter, r *http.Request) {
 	ownerID, ok := middleware.UserID(r.Context())
 	if !ok {
@@ -121,6 +175,21 @@ func (h *DogHandler) Update(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusNoContent, nil)
 }
 
+// Update godoc
+// @Summary Update dog
+// @Description Обновить данные собаки
+// @Tags dogs
+// @Accept json
+// @Produce json
+// @Param Authorization header string true "Bearer token"
+// @Param id path string true "Dog ID"
+// @Param input body dog.UpdateDogInput true "Dog data"
+// @Success 204 {object} nil
+// @Failure 400 {object} response.ErrorResponse
+// @Failure 401 {object} response.ErrorResponse
+// @Failure 500 {object} response.ErrorResponse
+// @Security BearerAuth
+// @Router /dogs/{id} [put]
 func (h *DogHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	ownerID, ok := middleware.UserID(r.Context())
 	if !ok {
