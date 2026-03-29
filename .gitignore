@@ -3,4 +3,10 @@
 /*.exe
 *.log
 *.tmp
-**/.DS_Store
+chat_gen/
+*.json
+*.yaml
+Tekha-12-patches/
+Gav_App/
+.DS_Store
+api/proto/external/

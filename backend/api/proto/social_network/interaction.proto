@@ -1,0 +1,90 @@
+syntax = "proto3";
+package api.social.v1;
+option go_package = "api/social_gen";
+
+import "google/protobuf/timestamp.proto";
+import "api/proto/social/social.proto";
+
+service InteractionService {
+
+  rpc CreateComment(CreateCommentRequest) returns (Comment);
+  rpc GetComment(GetCommentRequest) returns (Comment);
+  rpc ListComments(ListCommentsRequest) returns (ListCommentsResponse);
+  rpc DeleteComment(DeleteCommentRequest) returns (Empty);
+
+  rpc LikePost(LikePostRequest) returns (Empty);
+  rpc UnlikePost(UnlikePostRequest) returns (Empty);
+  rpc ListLikes(ListLikesRequest) returns (ListLikesResponse);
+
+  rpc Follow(FollowRequest) returns (Empty);
+  rpc Unfollow(UnfollowRequest) returns (Empty);
+  rpc ListFollowers(ListFollowersRequest) returns (ListFollowersResponse);
+  rpc ListFollowing(ListFollowingRequest) returns (ListFollowingResponse);
+
+  rpc GetFeed(GetFeedRequest) returns (GetFeedResponse);
+}
+
+// ========== MODELS ==========
+message Comment {
+  string id = 1;
+  string post_id = 2;
+  string user_id = 3;  // social.User
+  string content = 4;
+  timestamp created_at = 99;
+}
+
+message Like {
+  string user_id = 1;
+  string post_id = 2;
+}
+
+message Follow {
+  string follower_id = 1;
+  string following_id = 2;
+}
+
+// ========== REQUESTS ==========
+message CreateCommentRequest {
+  string post_id = 1;
+  string content = 2;  // user_id из context!
+}
+
+message GetCommentRequest { string comment_id = 1; }
+message ListCommentsRequest {
+  string post_id = 1;
+  int32 limit = 2;
+  optional string cursor = 3;
+}
+message ListCommentsResponse {
+  repeated Comment comments = 1;
+  optional string next_cursor = 2;
+}
+
+message DeleteCommentRequest { string comment_id = 1; }
+
+message LikePostRequest { string post_id = 1; }     // user_id из context!
+message UnlikePostRequest { string post_id = 1; }
+message ListLikesRequest { string post_id = 1; }
+message ListLikesResponse { repeated Like likes = 1; }
+
+message FollowRequest { string target_user_id = 1; }
+message UnfollowRequest { string target_user_id = 1; }
+message ListFollowersRequest {
+  string user_id = 1;
+  int32 limit = 2;
+}
+message ListFollowingRequest {
+  string user_id = 1;
+  int32 limit = 2;
+}
+message ListFollowersResponse { repeated Follow follows = 1; }
+
+message GetFeedRequest {
+  string user_id = 1;
+  optional timestamp before = 2;
+  int32 limit = 3;
+}
+message GetFeedResponse {
+  repeated social.Post posts = 1;
+  optional timestamp next_before = 2;
+}
