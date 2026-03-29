@@ -24,6 +24,11 @@ func (m *MockNotificationService) NotifyComment(ctx context.Context, toUserID, f
 
 func (m *MockNotificationService) NotifyFollow(ctx context.Context, followingID, followerID uuid.UUID) error {
 	args := m.Called(ctx, followingID, followerID)
+
+	if len(args) == 0 {
+		return nil
+	}
+
 	return args.Error(0)
 }
 

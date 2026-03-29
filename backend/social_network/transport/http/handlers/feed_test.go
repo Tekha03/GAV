@@ -11,104 +11,93 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
 func TestFeedHandler_GetFeed_Success(t *testing.T) {
 	userID := uuid.New()
 
-	mockService := &MockFeedService{
-		GetFeedFn: func(ctx context.Context, uid uuid.UUID, before time.Time, limit int) ([]*post.Post, time.Time, error) {
-			return []*post.Post{
-				{
-					ID:        uuid.New(),
-					UserID:    uid,
-					Content:   "test post",
-					CreatedAt: time.Now(),
-				},
-			}, time.Now().Add(-time.Minute), nil
+	mockService := new(MockFeedService)
+
+	posts := []*post.Post{
+		{
+			ID:        uuid.New(),
+			UserID:    userID,
+			Content:   "test post",
+			CreatedAt: time.Now(),
 		},
 	}
+
+	nextCursor := time.Now().Add(-time.Minute)
+
+	mockService.
+		On("GetFeed", mock.Anything, userID, mock.Anything, mock.Anything).
+		Return(posts, nextCursor, nil)
 
 	handler, _ := NewFeedHandler(mockService)
 
 	req := httptest.NewRequest(http.MethodGet, "/feed", nil)
-
-	ctx := context.WithValue(req.Context(), middleware.UserIDKey, userID)
-	req = req.WithContext(ctx)
+	req = req.WithContext(context.WithValue(req.Context(), middleware.UserIDKey, userID))
 
 	w := httptest.NewRecorder()
 
 	handler.GetFeed(w, req)
 
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d", w.Code)
-	}
+	assert.Equal(t, http.StatusOK, w.Code)
 
 	var resp map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
-	if err != nil {
-		t.Fatalf("invalid json response: %v", err)
-	}
+	assert.NoError(t, err)
 
-	if resp["posts"] == nil {
-		t.Fatal("expected posts in response")
-	}
+	assert.NotNil(t, resp["posts"])
 }
 
 func TestFeedHandler_GetFeed_Unauthorized(t *testing.T) {
-	handler, _ := NewFeedHandler(&MockFeedService{})
+	mockService := new(MockFeedService)
+	handler, _ := NewFeedHandler(mockService)
 
 	req := httptest.NewRequest(http.MethodGet, "/feed", nil)
 	w := httptest.NewRecorder()
 
 	handler.GetFeed(w, req)
 
-	if w.Code != http.StatusUnauthorized {
-		t.Fatalf("expected 401, got %d", w.Code)
-	}
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
 }
 
 func TestFeedHandler_GetFeed_InvalidCursor(t *testing.T) {
 	userID := uuid.New()
 
-	handler, _ := NewFeedHandler(&MockFeedService{})
+	mockService := new(MockFeedService)
+	handler, _ := NewFeedHandler(mockService)
 
 	req := httptest.NewRequest(http.MethodGet, "/feed?cursor=invalid", nil)
-
-	ctx := context.WithValue(req.Context(), middleware.UserIDKey, userID)
-	req = req.WithContext(ctx)
+	req = req.WithContext(context.WithValue(req.Context(), middleware.UserIDKey, userID))
 
 	w := httptest.NewRecorder()
 
 	handler.GetFeed(w, req)
 
-	if w.Code != http.StatusBadRequest {
-		t.Fatalf("expected 400, got %d", w.Code)
-	}
+	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
 func TestFeedHandler_GetFeed_ServiceError(t *testing.T) {
 	userID := uuid.New()
 
-	mockService := &MockFeedService{
-		GetFeedFn: func(ctx context.Context, uid uuid.UUID, before time.Time, limit int) ([]*post.Post, time.Time, error) {
-			return nil, time.Time{}, ErrServiceError
-		},
-	}
+	mockService := new(MockFeedService)
+
+	mockService.
+		On("GetFeed", mock.Anything, userID, mock.Anything, mock.Anything).
+		Return([]*post.Post{}, time.Time{}, ErrServiceError)
 
 	handler, _ := NewFeedHandler(mockService)
 
 	req := httptest.NewRequest(http.MethodGet, "/feed", nil)
-	ctx := context.WithValue(req.Context(), middleware.UserIDKey, userID)
-	req = req.WithContext(ctx)
+	req = req.WithContext(context.WithValue(req.Context(), middleware.UserIDKey, userID))
 
 	w := httptest.NewRecorder()
 
 	handler.GetFeed(w, req)
 
-	if w.Code != http.StatusInternalServerError {
-		t.Fatalf("expected 500, got %d", w.Code)
-	}
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
 }
-
-

@@ -31,6 +31,19 @@ func NewFollowHandler(service follow.FollowService, notificationService notifica
 	return &FollowHandler{service: service, notificationService: notificationService}, nil
 }
 
+// Follow godoc
+// @Summary Follow user
+// @Description Подписаться на пользователя
+// @Tags follow
+// @Accept json
+// @Produce json
+// @Param request body dto.FollowRequest true "User to follow"
+// @Success 204 {object} nil
+// @Failure 400 {object} response.ErrorResponse
+// @Failure 401 {object} response.ErrorResponse
+// @Failure 500 {object} response.ErrorResponse
+// @Router /follow [post]
+// @Security BearerAuth
 func (h *FollowHandler) Follow(w http.ResponseWriter, r *http.Request) {
 	followerID, ok := middleware.UserID(r.Context())
 	if !ok {
@@ -65,10 +78,23 @@ func (h *FollowHandler) Follow(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusNoContent, nil)
 }
 
+// Unfollow godoc
+// @Summary Unfollow user
+// @Description Отписаться от пользователя
+// @Tags follow
+// @Produce json
+// @Param userID path string true "User ID"
+// @Success 204 {object} nil
+// @Failure 400 {object} response.ErrorResponse
+// @Failure 401 {object} response.ErrorResponse
+// @Failure 500 {object} response.ErrorResponse
+// @Router /follow/{userID} [delete]
+// @Security BearerAuth
 func (h *FollowHandler) Unfollow(w http.ResponseWriter, r *http.Request) {
 	followerID, ok := middleware.UserID(r.Context())
 	if !ok {
 		response.Error(w, ErrUnauthorized)
+		return
 	}
 
 	param := chi.URLParam(r, "userID")
@@ -92,6 +118,16 @@ func (h *FollowHandler) Unfollow(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusNoContent, nil)
 }
 
+// GetFollowers godoc
+// @Summary Get followers
+// @Description Получить список подписчиков
+// @Tags follow
+// @Produce json
+// @Success 200 {array} follow.Follow
+// @Failure 401 {object} response.ErrorResponse
+// @Failure 500 {object} response.ErrorResponse
+// @Router /followers [get]
+// @Security BearerAuth
 func (h *FollowHandler) GetFollowers(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.UserID(r.Context())
 	if !ok {
@@ -108,6 +144,16 @@ func (h *FollowHandler) GetFollowers(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusOK, followers)
 }
 
+// GetFollowing godoc
+// @Summary Get following
+// @Description Получить список подписок
+// @Tags follow
+// @Produce json
+// @Success 200 {array} follow.Follow
+// @Failure 401 {object} response.ErrorResponse
+// @Failure 500 {object} response.ErrorResponse
+// @Router /following [get]
+// @Security BearerAuth
 func (h *FollowHandler) GetFollowing(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.UserID(r.Context())
 	if !ok {

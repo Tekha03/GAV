@@ -7,7 +7,6 @@ import (
 
 
 var (
-	ErrInvalidInput 	= errors.New("invalid input")
 	ErrFail				= errors.New("fail")
 	ErrAuthNil			= errors.New("auth handler: service is nil")
 	ErrCommentNil		= errors.New("comment handler: service is nil")
@@ -26,6 +25,7 @@ var (
 	ErrInvalidLimit		= errors.New("invalid limit")
 	ErrServiceError		= errors.New("service error")
 
+	ErrInvalidInput 	= internalErrors.New("VALIDATION_ERROR", "invalid input")
 	ErrUnauthorized 	= internalErrors.New("UNAUTHORIZED", "unauthorized")
 	ErrInvalidCursor	= internalErrors.New("VALIDATION_ERROR", "invalid cursor")
 )

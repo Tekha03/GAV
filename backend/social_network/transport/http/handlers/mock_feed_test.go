@@ -6,12 +6,14 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/stretchr/testify/mock"
 )
 
 type MockFeedService struct {
-	GetFeedFn func(ctx context.Context, userID uuid.UUID, before time.Time, limit int) ([]*post.Post, time.Time, error)
+	mock.Mock
 }
 
 func (m *MockFeedService) GetFeed(ctx context.Context, userID uuid.UUID, before time.Time, limit int) ([]*post.Post, time.Time, error) {
-	return m.GetFeedFn(ctx, userID, before, limit)
+	args := m.Called(ctx, userID, before, limit)
+	return args.Get(0).([]*post.Post), args.Get(1).(time.Time), args.Error(2)
 }
