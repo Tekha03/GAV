@@ -6,6 +6,7 @@ import (
 	"social_network/transport/http/dto"
 	"social_network/transport/http/middleware"
 	"social_network/transport/response"
+	"strconv"
 	"time"
 )
 
@@ -23,6 +24,19 @@ func NewFeedHandler(service feed.FeedService) (*FeedHandler, error) {
 	return &FeedHandler{service: service}, nil
 }
 
+// GetFeed godoc
+// @Summary      Get user feed
+// @Description  Returns paginated feed for authorized user
+// @Tags         feed
+// @Accept       json
+// @Produce      json
+// @Param        cursor query string false "Pagination cursor (RFC3339Nano)"
+// @Param        limit  query int    false "Number of posts (default 20)"
+// @Success      200 {object} dto.FeedResponse
+// @Failure      400 {object} response.ErrorResponse
+// @Failure      401 {object} response.ErrorResponse
+// @Failure      500 {object} response.ErrorResponse
+// @Router       /feed [get]
 func (h *FeedHandler) GetFeed(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.UserID(r.Context())
 	if !ok {
@@ -35,7 +49,12 @@ func (h *FeedHandler) GetFeed(w http.ResponseWriter, r *http.Request) {
 
 	limit := LIMIT_OF_POSTS
 	if limitStr != "" {
-		//
+		newLimit, err := strconv.Atoi(limitStr)
+		if err != nil || newLimit <= 0 {
+			response.Error(w, ErrInvalidLimit)
+			return
+		}
+		limit = newLimit
 	}
 
 	var before time.Time
@@ -43,7 +62,7 @@ func (h *FeedHandler) GetFeed(w http.ResponseWriter, r *http.Request) {
 		var err error
 		before, err = time.Parse(time.RFC3339Nano, cursor)
 		if err != nil {
-			response.Error(w, err)
+			response.Error(w, ErrInvalidCursor)
 			return
 		}
 	}

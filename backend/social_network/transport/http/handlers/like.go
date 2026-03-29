@@ -35,6 +35,18 @@ func NewLikeHandler(
 	return &LikeHandler{service: service, postService: postService, notificationService: notificationService}, nil
 }
 
+// Add
+// @Summary      Добавить лайк
+// @Description  Добавляет лайк к посту текущего пользователя. Если лайк на чужой пост — создается уведомление.
+// @Tags         likes
+// @Accept       json
+// @Produce      json
+// @Param        like  body      like.Like  true  "Данные лайка (PostID)"
+// @Success      204   {object}  nil        "Лайк успешно добавлен"
+// @Failure      400   {object}  response.ErrorResponse  "Некорректный ввод"
+// @Failure      401   {object}  response.ErrorResponse  "Неавторизованный пользователь"
+// @Failure      500   {object}  response.ErrorResponse  "Внутренняя ошибка сервиса"
+// @Router       /likes [post]
 func (h *LikeHandler) Add(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.UserID(r.Context())
 	if !ok {
@@ -68,6 +80,18 @@ func (h *LikeHandler) Add(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusNoContent, nil)
 }
 
+// Remove
+// @Summary      Удалить лайк
+// @Description  Удаляет лайк текущего пользователя с поста.
+// @Tags         likes
+// @Accept       json
+// @Produce      json
+// @Param        like  body      like.Like  true  "Данные лайка (PostID)"
+// @Success      204   {object}  nil        "Лайк успешно удален"
+// @Failure      400   {object}  response.ErrorResponse  "Некорректный ввод"
+// @Failure      401   {object}  response.ErrorResponse  "Неавторизованный пользователь"
+// @Failure      500   {object}  response.ErrorResponse  "Внутренняя ошибка сервиса"
+// @Router       /likes [delete]
 func (h *LikeHandler) Remove(w http.ResponseWriter, r *http.Request) {
 	var like like.Like
 	if err := json.NewDecoder(r.Body).Decode(&like); err != nil {

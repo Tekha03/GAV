@@ -28,6 +28,16 @@ type credentials struct {
 	Password	string	`json:"password"`
 }
 
+// @Summary      Регистрация пользователя
+// @Description  Создает нового пользователя и возвращает JWT-токен
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        input body credentials true "User credentials"
+// @Success      201   {object} dto.AuthResponse
+// @Failure      400   {object} response.ErrorResponse
+// @Failure      500   {object} response.ErrorResponse
+// @Router       /auth/register [post]
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var req credentials
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -50,10 +60,11 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 }
 
 // @Summary      Вход в систему
-// @Description  Аутентификация пользователя и получение JWT-токенов
+// @Description  Аутентификация пользователя и получение JWT-токена
 // @Tags         auth
 // @Accept       json
 // @Produce      json
+// @Param        input body credentials true "User credentials"
 // @Success      200   {object} dto.AuthResponse
 // @Failure      400   {object} response.ErrorResponse
 // @Failure      401   {object} response.ErrorResponse
@@ -80,26 +91,43 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusOK, dto.AuthResponse{Token: token})
 }
 
-// @Summary      Получить информацию о текущем пользователе
-// @Description  Возвращает данные авторизованного пользователя
+// @Summary      Получить текущего пользователя
+// @Description  Возвращает ID авторизованного пользователя
 // @Tags         auth
-// @Accept       json
 // @Produce      json
 // @Security     BearerAuth
-// @Success      200   {object} dto.UserResponse
+// @Success      200   {object} map[string]any
 // @Failure      401   {object} response.ErrorResponse
 // @Router       /auth/me [get]
 func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.UserID(r.Context())
 	if !ok {
 		response.Error(w, ErrUnauthorized)
+		return
 	}
 
-	response.JSON(w, http.StatusOK, map[string]any{
-		"user_id": userID,
-	})
+	userInfo, err := h.service.Me(r.Context(), userID)
+	if err != nil {
+		response.Error(w, err)
+		return
+	}
+
+	if userInfo == nil {
+		response.Error(w, ErrUnauthorized)
+		return
+	}
+
+	response.JSON(w, http.StatusOK, userInfo)
 }
 
+// @Summary      Получить текущего пользователя
+// @Description  Возвращает ID авторизованного пользователя
+// @Tags         auth
+// @Produce      json
+// @Security     BearerAuth
+// @Success      200   {object} map[string]any
+// @Failure      401   {object} response.ErrorResponse
+// @Router       /auth/me [get]
 func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 	type refreshRequest struct {
 		RefreshToken string	`json:"refresh_token" validate:"required"`
@@ -108,6 +136,7 @@ func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 	var req refreshRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		response.Error(w, err)
+		return
 	}
 
 	if err := validation.Validate(&req); err != nil {
@@ -124,7 +153,12 @@ func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusOK, dto.AuthResponse{Token: tokens})
 }
 
-// stateless jwt (пока без blacklist)
+// @Summary      Выход из системы
+// @Description  Logout пользователя (stateless)
+// @Tags         auth
+// @Produce      json
+// @Success      200   {object} map[string]any
+// @Router       /auth/logout [post]
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusOK, map[string]any{
 		"message": "logged out",

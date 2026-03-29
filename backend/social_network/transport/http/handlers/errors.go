@@ -1,12 +1,13 @@
 package handlers
 
-import "errors"
+import (
+	"errors"
+	internalErrors "social_network/internal/errors"
+)
 
 
 var (
-	ErrInvalidInput 	= errors.New("invalid input")
-	ErrUnauthorized 	= errors.New("unauthorized")
-
+	ErrFail				= errors.New("fail")
 	ErrAuthNil			= errors.New("auth handler: service is nil")
 	ErrCommentNil		= errors.New("comment handler: service is nil")
 	ErrDogNil			= errors.New("dog handler: service is nil")
@@ -21,4 +22,10 @@ var (
 	ErrVaccinationNil	= errors.New("vaccination handler: service is nil")
 	ErrMediaNil			= errors.New("upload handler: service is nil")
 	ErrNotificationNil	 = errors.New("notification: service is nil")
+	ErrInvalidLimit		= errors.New("invalid limit")
+	ErrServiceError		= errors.New("service error")
+
+	ErrInvalidInput 	= internalErrors.New("VALIDATION_ERROR", "invalid input")
+	ErrUnauthorized 	= internalErrors.New("UNAUTHORIZED", "unauthorized")
+	ErrInvalidCursor	= internalErrors.New("VALIDATION_ERROR", "invalid cursor")
 )
