@@ -8,9 +8,9 @@ import (
 
 type ctxKey struct{}
 
-var userIDKey = ctxKey{}
+var UserIDKey = ctxKey{}
 
 func UserID(ctx context.Context) (uuid.UUID, bool) {
-	id, ok := ctx.Value(userIDKey).(uuid.UUID)
+	id, ok := ctx.Value(UserIDKey).(uuid.UUID)
 	return id, ok
 }

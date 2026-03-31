@@ -14,19 +14,19 @@ type Client struct {
 }
 
 type Hub struct {
-	clients		map[uuid.UUID]*Client
+	Clients		map[uuid.UUID]*Client
 	Register	chan *Client
 	Unregister	chan *Client
-	broadcast	chan []byte
-	mu			sync.RWMutex
+	Broadcast	chan []byte
+	Mu			sync.RWMutex
 }
 
 func NewHub() *Hub {
 	return &Hub{
-		clients: 	make(map[uuid.UUID]*Client),
+		Clients: 	make(map[uuid.UUID]*Client),
 		Register: 	make(chan *Client),
 		Unregister: make(chan *Client),
-		broadcast: 	make(chan []byte),
+		Broadcast: 	make(chan []byte),
 	}
 }
 
@@ -34,42 +34,42 @@ func (h *Hub) Run() {
 	for {
 		select {
 		case client := <-h.Register:
-			h.mu.Lock()
-			h.clients[client.UserID] = client
-			h.mu.Unlock()
+			h.Mu.Lock()
+			h.Clients[client.UserID] = client
+			h.Mu.Unlock()
 
 		case client := <-h.Unregister:
-			h.mu.Lock()
-			if c, ok := h.clients[client.UserID]; ok && c == client {
-				delete(h.clients, client.UserID)
+			h.Mu.Lock()
+			if c, ok := h.Clients[client.UserID]; ok && c == client {
+				delete(h.Clients, client.UserID)
 				close(client.Send)
 			}
-			h.mu.Unlock()
+			h.Mu.Unlock()
 
-		case message := <-h.broadcast:
-			h.mu.RLock()
-			for _, client := range h.clients {
+		case message := <-h.Broadcast:
+			h.Mu.RLock()
+			for _, client := range h.Clients {
 				select {
 				case client.Send <- message:
 				default:
 					close(client.Send)
-					delete(h.clients, client.UserID)
+					delete(h.Clients, client.UserID)
 				}
 			}
-			h.mu.RUnlock()
+			h.Mu.RUnlock()
 		}
 	}
 }
 
 func (h *Hub) SendToUser(userID uuid.UUID, message []byte) {
-	h.mu.Lock()
-	if client, ok := h.clients[userID]; ok {
+	h.Mu.Lock()
+	if client, ok := h.Clients[userID]; ok {
 		select {
 		case client.Send <- message:
 		default:
 			close(client.Send)
-			delete(h.clients, userID)
+			delete(h.Clients, userID)
 		}
 	}
-	h.mu.Unlock()
+	h.Mu.Unlock()
 }

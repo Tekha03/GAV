@@ -95,7 +95,7 @@ func (s *service) Delete(ctx context.Context, ownerID, dogID uuid.UUID) error {
 	return s.repo.Delete(ctx, dogID)
 }
 
-func (s *service) UpdateLocation(ctx context.Context, ownerID, dogID uuid.UUID, lat, lon float64, status LocationStatus) error {
+func (s *service) UpdateLocation(ctx context.Context, ownerID, dogID uuid.UUID, locationInput UpdateLocationInput) error {
 	dog, err := s.repo.GetByID(ctx, dogID)
 	if err != nil {
 		return err
@@ -105,13 +105,13 @@ func (s *service) UpdateLocation(ctx context.Context, ownerID, dogID uuid.UUID, 
 		return ErrDogAccessDenied
 	}
 
-	dog.Lat = &lat
-	dog.Lon = &lon
+	dog.Lat = &locationInput.Latitude
+	dog.Lon = &locationInput.Longitude
 
 	return s.repo.Update(ctx, dog)
 }
 
-func (s *service) SetLocationVisibility(ctx context.Context, ownerID, dogID uuid.UUID, visible bool) error {
+func (s *service) SetLocationVisibility(ctx context.Context, ownerID, dogID uuid.UUID, visible SetLocationVisibilityInput) error {
 	dog, err := s.repo.GetByID(ctx, dogID)
 	if err != nil {
 		return err
@@ -121,7 +121,7 @@ func (s *service) SetLocationVisibility(ctx context.Context, ownerID, dogID uuid
 		return ErrDogAccessDenied
 	}
 
-	dog.LocationVisible = visible
+	dog.Visibility = 1
 
 	return s.repo.Update(ctx, dog)
 }
@@ -141,4 +141,27 @@ func (s *service) GetPrivate(ctx context.Context, dogID, ownerID uuid.UUID) (*Do
 	}
 
 	return dog, nil
+}
+
+func (s *service) FindDogsNearby(ctx context.Context, userID uuid.UUID, centerLat, centerLon float64, radiusMeters float64) ([]*Dog, error) {
+	dogs, err := s.repo.FindWalkingNearby(ctx, centerLat, centerLon, radiusMeters)
+	if err != nil {
+		return nil, err
+	}
+
+	var result []*Dog
+
+	for _, dog := range dogs {
+		if dog.OwnerID == userID {
+			continue
+		}
+
+		if dog.Visibility == 0 {
+			continue
+		}
+
+		result = append(result, dog)
+	}
+
+	return result, nil
 }

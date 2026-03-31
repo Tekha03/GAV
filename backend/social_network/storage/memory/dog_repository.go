@@ -2,7 +2,6 @@ package memory
 
 import (
 	"context"
-	"errors"
 	"sync"
 
 	"social_network/internal/dog"
@@ -10,10 +9,6 @@ import (
 	"github.com/google/uuid"
 )
 
-var (
-	ErrDogNotFound = errors.New("dog not found")
-	ErrDogExists   = errors.New("dog exists in repository")
-)
 
 type DogRepository struct {
 	mu 		sync.RWMutex

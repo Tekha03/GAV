@@ -3,11 +3,14 @@ package response
 import (
 	"encoding/json"
 	"net/http"
+	"os"
 
 	"social_network/internal/errors"
 
 	"log/slog"
 )
+
+var logg = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{}))
 
 func JSON(writer http.ResponseWriter, code int, data any) {
 	writer.Header().Set("Content-Type", "application/json")
@@ -16,8 +19,6 @@ func JSON(writer http.ResponseWriter, code int, data any) {
 		_ = json.NewEncoder(writer).Encode(data)
 	}
 }
-
-var logg slog.Logger
 
 func Error(w http.ResponseWriter, err error) {
 	if err == nil {
@@ -28,7 +29,7 @@ func Error(w http.ResponseWriter, err error) {
 		if mapped, exists := errorMap[string(e.Code)]; exists {
 			JSON(w, mapped.status, ErrorResponse{
 				Error: ErrorBody{
-					Code: 	 mapped.code,
+					Code:    mapped.code,
 					Message: e.Message,
 				},
 			})
@@ -37,9 +38,10 @@ func Error(w http.ResponseWriter, err error) {
 	}
 
 	logg.Error("handler error", "error", err.Error())
+
 	JSON(w, http.StatusInternalServerError, ErrorResponse{
 		Error: ErrorBody{
-			Code: 	 "INTERNAL_ERROR",
+			Code:    "INTERNAL_ERROR",
 			Message: "internal server error",
 		},
 	})

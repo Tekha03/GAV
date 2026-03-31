@@ -26,6 +26,16 @@ func NewNotificationHandler(hub *notification.Hub) (*NotificationHandler, error)
 	return &NotificationHandler{hub: hub}, nil
 }
 
+// ServeWS
+// @Summary      WebSocket уведомления
+// @Description  Устанавливает WebSocket соединение для получения уведомлений в реальном времени.
+// @Description  После подключения клиент получает уведомления (лайки, комментарии, подписки).
+// @Tags         notifications
+// @Security     BearerAuth
+// @Success      101  {string}  string  "WebSocket соединение установлено"
+// @Failure      401  {object}  response.ErrorResponse  "Unauthorized"
+// @Failure      500  {object}  response.ErrorResponse  "WebSocket upgrade error"
+// @Router       /ws/notifications [get]
 func (h *NotificationHandler) ServeWS(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.UserID(r.Context())
 	if !ok {
