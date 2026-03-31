@@ -28,6 +28,20 @@ func NewUserHandler(service user.UserService) (*UserHandler, error) {
 	return &UserHandler{service: service}, nil
 }
 
+// GetByID godoc
+// @Summary Получить пользователя по ID
+// @Description Возвращает информацию о пользователе по его UUID
+// @Tags users
+// @Produce json
+// @Param id path string true "UUID пользователя"
+// @Param Authorization header string true "Bearer token"
+// @Success 200 {object} dto.UserResponse
+// @Failure 400 {object} response.ErrorResponse "Некорректный UUID"
+// @Failure 401 {object} response.ErrorResponse "Неавторизован"
+// @Failure 404 {object} response.ErrorResponse "Пользователь не найден"
+// @Failure 500 {object} response.ErrorResponse
+// @Security BearerAuth
+// @Router /users/{id} [get]
 func (h *UserHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	idParam := chi.URLParam(r, "id")
 
@@ -46,6 +60,20 @@ func (h *UserHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusOK, dto.UserResponse{ID: userID, Email: user.Email})
 }
 
+// GetByID godoc
+// @Summary Получить пользователя по ID
+// @Description Возвращает информацию о пользователе по его UUID
+// @Tags users
+// @Produce json
+// @Param id path string true "UUID пользователя"
+// @Param Authorization header string true "Bearer token"
+// @Success 200 {object} dto.UserResponse
+// @Failure 400 {object} response.ErrorResponse "Некорректный UUID"
+// @Failure 401 {object} response.ErrorResponse "Неавторизован"
+// @Failure 404 {object} response.ErrorResponse "Пользователь не найден"
+// @Failure 500 {object} response.ErrorResponse
+// @Security BearerAuth
+// @Router /users/{id} [get]
 func (h *UserHandler) Update(w http.ResponseWriter, r *http.Request) {
 	idParam := chi.URLParam(r, "id")
 
@@ -74,12 +102,28 @@ func (h *UserHandler) Update(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusNoContent, nil)
 }
 
+// Update godoc
+// @Summary Обновить данные пользователя
+// @Description Обновляет информацию пользователя по UUID
+// @Tags users
+// @Accept json
+// @Produce json
+// @Param id path string true "UUID пользователя"
+// @Param user body user.UpdateUserInput true "Данные для обновления пользователя"
+// @Param Authorization header string true "Bearer token"
+// @Success 204 "No Content"
+// @Failure 400 {object} response.ErrorResponse "Некорректный UUID или входные данные"
+// @Failure 401 {object} response.ErrorResponse "Неавторизован"
+// @Failure 500 {object} response.ErrorResponse
+// @Security BearerAuth
+// @Router /users/{id} [put]
 func (h *UserHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	idParam := chi.URLParam(r, "id")
 
 	userID, err := uuid.Parse(idParam)
 	if err != nil {
 		response.Error(w, ErrInvalidInput)
+		return
 	}
 
 	if err := h.service.Delete(r.Context(), userID); err != nil {
