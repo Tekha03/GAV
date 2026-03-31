@@ -13,8 +13,8 @@ import (
 )
 
 type UploadHandler struct {
-	mediaService  media.MediaService
-	profileService profile.ProfileService
+	MediaService  media.MediaService
+	ProfileService profile.ProfileService
 }
 
 func NewUploadHandler(mediaService media.MediaService) (*UploadHandler, error) {
@@ -22,7 +22,7 @@ func NewUploadHandler(mediaService media.MediaService) (*UploadHandler, error) {
 		return nil, ErrMediaNil
 	}
 
-	return &UploadHandler{mediaService: mediaService}, nil
+	return &UploadHandler{MediaService: mediaService}, nil
 }
 
 // @Summary      Загрузка аватара пользователя
@@ -55,7 +55,7 @@ func (h *UploadHandler) UploadAvatar(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	url, err := h.mediaService.UploadImage(r.Context(), file, header, "avatars/"+userID.String())
+	url, err := h.MediaService.UploadImage(r.Context(), file, header, "avatars/"+userID.String())
 	if err != nil {
 		response.Error(w, err)
 		return
@@ -67,11 +67,22 @@ func (h *UploadHandler) UploadAvatar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	update := profile.UpdateProfileInput{ProfilePhotoUrl: &url}
-	h.profileService.Update(r.Context(), profileID, update)
+	h.ProfileService.Update(r.Context(), profileID, update)
 
 	response.JSON(w, http.StatusOK, map[string]string{"url": url})
 }
 
+// @Summary      Загрузка изображения для поста
+// @Description  Загружает изображение для поста. Допустимые форматы: jpg, png, webp. Максимальный размер 5MB.
+// @Tags         upload
+// @Accept       multipart/form-data
+// @Produce      json
+// @Param        image  formData  file  true  "Изображение для поста"
+// @Security     BearerAuth
+// @Success      200  {object} map[string]string  "Ссылка на загруженное изображение"
+// @Failure      400  {object} response.ErrorResponse  "Неверный запрос"
+// @Failure      401  {object} response.ErrorResponse  "Неавторизованный"
+// @Router       /upload/post-image [post]
 func (h *UploadHandler) UploadPostImage(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.UserID(r.Context())
 	if !ok {
@@ -91,7 +102,7 @@ func (h *UploadHandler) UploadPostImage(w http.ResponseWriter, r *http.Request) 
 	}
 	defer file.Close()
 
-	url, err := h.mediaService.UploadImage(r.Context(), file, header, "posts/"+userID.String())
+	url, err := h.MediaService.UploadImage(r.Context(), file, header, "posts/"+userID.String())
 	if err != nil {
 		response.Error(w, err)
 		return
