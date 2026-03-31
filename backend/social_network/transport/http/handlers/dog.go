@@ -7,7 +7,6 @@ import (
 	"social_network/internal/validation"
 	"social_network/transport/http/middleware"
 	"social_network/transport/response"
-	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -210,50 +209,4 @@ func (h *DogHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response.JSON(w, http.StatusNoContent, nil)
-}
-
-// FindDogsNearby godoc
-// @Summary Find dogs nearby
-// @Description Найти собак поблизости в заданном радиусе
-// @Tags dogs
-// @Produce json
-// @Param Authorization header string true "Bearer token"
-// @Param lat query number true "Широта (Latitude)"
-// @Param lon query number true "Долгота (Longitude)"
-// @Param radius query number true "Радиус в метрах"
-// @Success 200 {array} dog.Dog
-// @Failure 400 {object} response.ErrorResponse
-// @Failure 401 {object} response.ErrorResponse
-// @Failure 500 {object} response.ErrorResponse
-// @Security BearerAuth
-// @Router /dogs/nearby [get]
-func (h *DogHandler) FindDogsNearby(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.UserID(r.Context())
-	if !ok {
-		response.Error(w, ErrUnauthorized)
-		return
-	}
-
-	q := r.URL.Query()
-
-	lat, errLat := strconv.ParseFloat(q.Get("lat"), 64)
-	lon, errLon := strconv.ParseFloat(q.Get("lon"), 64)
-	radius, errRad := strconv.ParseFloat(q.Get("radius"), 64)
-
-	if errLat != nil || errLon != nil || errRad != nil {
-		response.Error(w, ErrInvalidInput)
-		return
-	}
-
-	dogs, err := h.service.FindDogsNearby(r.Context(), userID, lat, lon, radius)
-	if err != nil {
-		response.Error(w, err)
-		return
-	}
-
-	if dogs == nil {
-		dogs = []*dog.Dog{}
-	}
-
-	response.JSON(w, http.StatusOK, dogs)
 }

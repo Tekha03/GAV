@@ -2,13 +2,8 @@ package dog
 
 import (
 	"context"
-	"errors"
 
 	"github.com/google/uuid"
-)
-
-var (
-	ErrDogAccessDenied = errors.New("dog access denied")
 )
 
 type service struct {
@@ -111,7 +106,7 @@ func (s *service) UpdateLocation(ctx context.Context, ownerID, dogID uuid.UUID, 
 	return s.repo.Update(ctx, dog)
 }
 
-func (s *service) SetLocationVisibility(ctx context.Context, ownerID, dogID uuid.UUID, visible SetLocationVisibilityInput) error {
+func (s *service) SetLocationVisibility(ctx context.Context, ownerID, dogID uuid.UUID, visibility SetLocationVisibilityInput) error {
 	dog, err := s.repo.GetByID(ctx, dogID)
 	if err != nil {
 		return err
@@ -121,7 +116,7 @@ func (s *service) SetLocationVisibility(ctx context.Context, ownerID, dogID uuid
 		return ErrDogAccessDenied
 	}
 
-	dog.Visibility = 1
+	dog.Visibility = visibility.Visibility
 
 	return s.repo.Update(ctx, dog)
 }
@@ -141,27 +136,4 @@ func (s *service) GetPrivate(ctx context.Context, dogID, ownerID uuid.UUID) (*Do
 	}
 
 	return dog, nil
-}
-
-func (s *service) FindDogsNearby(ctx context.Context, userID uuid.UUID, centerLat, centerLon float64, radiusMeters float64) ([]*Dog, error) {
-	dogs, err := s.repo.FindWalkingNearby(ctx, centerLat, centerLon, radiusMeters)
-	if err != nil {
-		return nil, err
-	}
-
-	var result []*Dog
-
-	for _, dog := range dogs {
-		if dog.OwnerID == userID {
-			continue
-		}
-
-		if dog.Visibility == 0 {
-			continue
-		}
-
-		result = append(result, dog)
-	}
-
-	return result, nil
 }

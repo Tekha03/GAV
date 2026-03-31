@@ -45,13 +45,3 @@ func (m *MockRepository) GetByID(ctx context.Context, id uuid.UUID) (*Dog, error
 
 	return args.Get(0).(*Dog), args.Error(1)
 }
-
-func (m *MockRepository) FindWalkingNearby(ctx context.Context, centerLat, centerLon float64, radiusMeters float64) ([]*Dog, error) {
-	args := m.Called(ctx, centerLat, centerLon, radiusMeters)
-
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	
-	return args.Get(0).([]*Dog), args.Error(1)
-}

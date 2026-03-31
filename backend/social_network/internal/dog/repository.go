@@ -12,9 +12,4 @@ type Repository interface {
 	Delete(ctx context.Context, ID uuid.UUID) error
 	GetByOwnerID(ctx context.Context, ownerID uuid.UUID) ([]*Dog, error)
 	GetByID(ctx context.Context, ID uuid.UUID) (*Dog, error)
-	FindWalkingNearby(
-        ctx context.Context,
-        centerLat, centerLon float64,
-        radiusMeters float64,
-    ) ([]*Dog, error)
 }
