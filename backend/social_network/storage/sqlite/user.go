@@ -3,7 +3,9 @@ package sqlite
 import (
 	"context"
 	"errors"
+	"fmt"
 
+	"social_network/internal/dog"
 	"social_network/internal/user"
 
 	"github.com/google/uuid"
@@ -84,4 +86,27 @@ func (r *UserRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	}
 
 	return nil
+}
+
+func (r *UserRepository) FindWalkingNearby(ctx context.Context, centerLat, centerLon float64, radiusMeters float64) ([]*dog.Dog, error) {
+	var dogs []*dog.Dog
+
+	query := `
+	SELECT *, (
+		6371000 * acos(
+			cos(radians(?)) * cos(radians(lat)) * cos(radians(lon) - radians(?)) +
+			sin(radians(?)) * sin(radians(lat))
+		)
+	) AS distance
+	FROM dogs
+	WHERE lat IS NOT NULL AND lon IS NOT NULL
+	  AND location_visible = TRUE
+	HAVING distance <= ?
+	`
+
+	if err := r.DB(ctx).Raw(query, centerLat, centerLon, centerLat, radiusMeters).Scan(&dogs).Error; err != nil {
+		return nil, fmt.Errorf("dog repository: find walking nearby: %w", err)
+	}
+
+	return dogs, nil
 }

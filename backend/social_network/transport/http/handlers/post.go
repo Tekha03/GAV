@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"social_network/internal/media"
@@ -31,6 +30,20 @@ func NewPostHandler(service post.PostService, mediaService media.MediaService) (
 	return &PostHandler{service: service, mediaService: mediaService}, nil
 }
 
+// Create godoc
+// @Summary Create post
+// @Description Create a new post with image
+// @Tags posts
+// @Accept multipart/form-data
+// @Produce json
+// @Param content formData string true "Post content"
+// @Param image formData file true "Post image"
+// @Success 201 {object} dto.PostResponse
+// @Failure 400 {object} response.ErrorResponse
+// @Failure 401 {object} response.ErrorResponse
+// @Failure 500 {object} response.ErrorResponse
+// @Router /posts [post]
+// @Security BearerAuth
 func (h *PostHandler) Create(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.UserID(r.Context())
 	if !ok {
@@ -39,6 +52,16 @@ func (h *PostHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := r.ParseMultipartForm(10 << 20); err != nil {
+		response.Error(w, err)
+		return
+	}
+
+	content := r.FormValue("content")
+	request := dto.PostRequest{
+		Content: content,
+	}
+
+	if err := validation.Validate(&request); err != nil {
 		response.Error(w, err)
 		return
 	}
@@ -52,17 +75,6 @@ func (h *PostHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	imageUrl, err := h.mediaService.UploadImage(r.Context(), file, header, "posts/"+userID.String())
 	if err != nil {
-		response.Error(w, err)
-		return
-	}
-
-	var request dto.PostRequest
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		response.Error(w, err)
-		return
-	}
-
-	if err := validation.Validate(&request); err != nil {
 		response.Error(w, err)
 		return
 	}
@@ -82,6 +94,20 @@ func (h *PostHandler) Create(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// Create godoc
+// @Summary Create post
+// @Description Create a new post with image
+// @Tags posts
+// @Accept multipart/form-data
+// @Produce json
+// @Param content formData string true "Post content"
+// @Param image formData file true "Post image"
+// @Success 201 {object} dto.PostResponse
+// @Failure 400 {object} response.ErrorResponse
+// @Failure 401 {object} response.ErrorResponse
+// @Failure 500 {object} response.ErrorResponse
+// @Router /posts [post]
+// @Security BearerAuth
 func (h *PostHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
 	id, err := uuid.Parse(idStr)
@@ -106,6 +132,17 @@ func (h *PostHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// GetByID godoc
+// @Summary Get post by ID
+// @Description Get a single post by its ID
+// @Tags posts
+// @Produce json
+// @Param id path string true "Post ID"
+// @Success 200 {object} dto.PostResponse
+// @Failure 400 {object} response.ErrorResponse
+// @Failure 404 {object} response.ErrorResponse
+// @Failure 500 {object} response.ErrorResponse
+// @Router /posts/{id} [get]
 func (h *PostHandler) ListByUser(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.UserID(r.Context())
 	if !ok {
@@ -121,6 +158,16 @@ func (h *PostHandler) ListByUser(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusOK, list)
 }
 
+// ListByUser godoc
+// @Summary Get user posts
+// @Description Get all posts of current user
+// @Tags posts
+// @Produce json
+// @Success 200 {array} dto.PostResponse
+// @Failure 401 {object} response.ErrorResponse
+// @Failure 500 {object} response.ErrorResponse
+// @Router /posts [get]
+// @Security BearerAuth
 func (h *PostHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.UserID(r.Context())
 	if !ok {

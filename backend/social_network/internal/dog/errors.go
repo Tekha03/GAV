@@ -11,4 +11,5 @@ var (
 	ErrAgeEmpty			= errors.New("dog model: age is empty")
 	ErrPhotoURLEmpty	= errors.New("dog model: photo url is empty")
 	ErrRepoNil			= errors.New("dog service: repo is nil")
+	ErrDogAccessDenied	= errors.New("dog access denied")
 )

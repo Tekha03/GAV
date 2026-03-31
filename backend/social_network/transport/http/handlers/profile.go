@@ -25,6 +25,19 @@ func NewProfileHandler(service profile.ProfileService) (*ProfileHandler, error) 
 	return &ProfileHandler{service: service}, nil
 }
 
+// Create godoc
+// @Summary Create profile
+// @Description Create profile for current user
+// @Tags profile
+// @Accept json
+// @Produce json
+// @Param input body profile.CreateProfileInput true "Profile data"
+// @Success 201 {object} profile.UserProfile
+// @Failure 400 {object} response.ErrorResponse
+// @Failure 401 {object} response.ErrorResponse
+// @Failure 500 {object} response.ErrorResponse
+// @Router /profile [post]
+// @Security BearerAuth
 func (h *ProfileHandler) Create(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.UserID(r.Context())
 	if !ok {
@@ -52,6 +65,17 @@ func (h *ProfileHandler) Create(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusCreated, profile)
 }
 
+// GetByID godoc
+// @Summary Get profile by ID
+// @Description Get profile by profile ID
+// @Tags profile
+// @Produce json
+// @Param id path string true "Profile ID"
+// @Success 200 {object} profile.UserProfile
+// @Failure 400 {object} response.ErrorResponse
+// @Failure 404 {object} response.ErrorResponse
+// @Failure 500 {object} response.ErrorResponse
+// @Router /profile/{id} [get]
 func (h *ProfileHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	profileID, err := uuid.Parse(chi.URLParam(r, "id"))
 	if err != nil {
@@ -68,6 +92,17 @@ func (h *ProfileHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusOK, profile)
 }
 
+// GetByID godoc
+// @Summary Get profile by ID
+// @Description Get profile by profile ID
+// @Tags profile
+// @Produce json
+// @Param id path string true "Profile ID"
+// @Success 200 {object} profile.UserProfile
+// @Failure 400 {object} response.ErrorResponse
+// @Failure 404 {object} response.ErrorResponse
+// @Failure 500 {object} response.ErrorResponse
+// @Router /profile/{id} [get]
 func (h *ProfileHandler) GetByUserID(w http.ResponseWriter, r *http.Request) {
 	param := chi.URLParam(r, "userID")
 
@@ -86,6 +121,17 @@ func (h *ProfileHandler) GetByUserID(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusOK, profile)
 }
 
+// GetByUserID godoc
+// @Summary Get profile by user ID
+// @Description Get profile by user ID
+// @Tags profile
+// @Produce json
+// @Param userID path string true "User ID"
+// @Success 200 {object} profile.UserProfile
+// @Failure 400 {object} response.ErrorResponse
+// @Failure 404 {object} response.ErrorResponse
+// @Failure 500 {object} response.ErrorResponse
+// @Router /profile/user/{userID} [get]
 func (h *ProfileHandler) Update(w http.ResponseWriter, r *http.Request) {
 	profileID, err := uuid.Parse(chi.URLParam(r, "id"))
 	if err != nil {
@@ -112,6 +158,19 @@ func (h *ProfileHandler) Update(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusNoContent, nil)
 }
 
+// Update godoc
+// @Summary Update profile
+// @Description Update profile by ID
+// @Tags profile
+// @Accept json
+// @Produce json
+// @Param id path string true "Profile ID"
+// @Param input body profile.UpdateProfileInput true "Profile update data"
+// @Success 204 "No Content"
+// @Failure 400 {object} response.ErrorResponse
+// @Failure 404 {object} response.ErrorResponse
+// @Failure 500 {object} response.ErrorResponse
+// @Router /profile/{id} [put]
 func (h *ProfileHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	profileID, err := uuid.Parse(chi.URLParam(r, "id"))
 	if err != nil {

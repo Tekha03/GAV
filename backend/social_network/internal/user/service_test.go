@@ -2,12 +2,31 @@ package user
 
 import (
 	"context"
+	"social_network/internal/dog"
 	"testing"
 
 	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
+
+type testEnv struct {
+	service UserService
+	repo	*MockRepository
+}
+
+func setup(t *testing.T) *testEnv {
+	repo := &MockRepository{}
+
+	service, err := NewService(repo)
+	require.NoError(t, err)
+
+	return &testEnv{
+		service: service,
+		repo: repo,
+	}
+}
 
 func TestNewService(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
@@ -82,8 +101,6 @@ func TestService_Create(t *testing.T) {
 		require.Nil(t, user)
 	})
 }
-
-// --- GetByID / GetByEmail
 
 func TestService_Get(t *testing.T) {
 	ctx := context.Background()
@@ -188,5 +205,84 @@ func TestService_Delete(t *testing.T) {
 		err := s.Delete(ctx, id)
 
 		require.Error(t, err)
+	})
+}
+
+
+func TestFindDogsNearby_Success(t *testing.T) {
+	env := setup(t)
+
+	ctx := context.Background()
+	userID := uuid.New()
+
+	t.Run("success", func(t *testing.T) {
+		otherUserID := uuid.New()
+
+		dogsFromRepo := []*dog.Dog{
+			{
+				ID:              uuid.New(),
+				OwnerID:         otherUserID,
+				Visibility: 	 dog.VisibilityEveryone,
+			},
+		}
+
+		env.repo.
+			On("FindWalkingNearby", ctx, 0.0, 0.0, 1000.0).
+			Return(dogsFromRepo, nil)
+
+		dogs, err := env.service.FindDogsNearby(ctx, userID, 0.0, 0.0, 1000.0)
+
+		require.NoError(t, err)
+		require.Len(t, dogs, 1)
+		assert.Equal(t, otherUserID, dogs[0].OwnerID)
+	})
+
+	t.Run("exclude own dogs", func(t *testing.T) {
+		dogsFromRepo := []*dog.Dog{
+			{
+				ID:              uuid.New(),
+				OwnerID:         userID,
+				Visibility: 	 1,
+			},
+		}
+
+		env.repo.
+			On("FindWalkingNearby", ctx, 0.0, 0.0, 1000.0).
+			Return(dogsFromRepo, nil)
+
+		dogs, err := env.service.FindDogsNearby(ctx, userID, 0, 0, 1000)
+
+		require.NoError(t, err)
+		require.Len(t, dogs, 0)
+	})
+
+	t.Run("filter invisible", func(t *testing.T) {
+		dogsFromRepo := []*dog.Dog{
+			{
+				ID:              uuid.New(),
+				OwnerID:         uuid.New(),
+				Visibility: 	 0,
+			},
+		}
+
+		env.repo.
+			On("FindWalkingNearby", ctx, 0.0, 0.0, 1000.0).
+			Return(dogsFromRepo, nil)
+
+		dogs, err := env.service.FindDogsNearby(ctx, userID, 0, 0, 1000)
+
+		require.NoError(t, err)
+		require.Len(t, dogs, 0)
+	})
+
+	t.Run("repo error", func(t *testing.T) {
+		env.repo.
+			On("FindWalkingNearby", ctx, 0.0, 0.0, 1000.0).
+			Return(nil, assert.AnError)
+
+		dogs, err := env.service.FindDogsNearby(ctx, userID, 0, 0, 1000)
+
+		require.Error(t, err)
+		assert.Nil(t, dogs)
 	})
 }

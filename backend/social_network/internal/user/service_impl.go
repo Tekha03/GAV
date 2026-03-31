@@ -3,6 +3,8 @@ package user
 import (
 	"context"
 
+	"social_network/internal/dog"
+
 	"github.com/google/uuid"
 )
 
@@ -53,4 +55,27 @@ func (s *service) Update(ctx context.Context, id uuid.UUID, input UpdateUserInpu
 
 func (s *service) Delete(ctx context.Context, id uuid.UUID) error {
 	return s.repo.Delete(ctx, id)
+}
+
+func (s *service) FindDogsNearby(ctx context.Context, userID uuid.UUID, centerLat, centerLon float64, radiusMeters float64) ([]*dog.Dog, error) {
+	dogs, err := s.repo.FindWalkingNearby(ctx, centerLat, centerLon, radiusMeters)
+	if err != nil {
+		return nil, err
+	}
+
+	var result []*dog.Dog
+
+	for _, currentDog := range dogs {
+		if currentDog.OwnerID == userID {
+			continue
+		}
+
+		if currentDog.Visibility == dog.VisibilityFollowersOnly {
+			continue
+		}
+
+		result = append(result, currentDog)
+	}
+
+	return result, nil
 }
