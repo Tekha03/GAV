@@ -27,12 +27,12 @@ func (m *MockDogService) Delete(ctx context.Context, ownerID, dogID uuid.UUID) e
 	return args.Error(0)
 }
 
-func (m *MockDogService) UpdateLocation(ctx context.Context, ownerID, dogID uuid.UUID, lat, lon float64) error {
-	args := m.Called(ctx, ownerID, dogID, lat, lon)
+func (m *MockDogService) UpdateLocation(ctx context.Context, ownerID, dogID uuid.UUID, locationInput dog.UpdateLocationInput) error {
+	args := m.Called(ctx, ownerID, dogID, locationInput)
 	return args.Error(0)
 }
 
-func (m *MockDogService) SetLocationVisibility(ctx context.Context, ownerID, dogID uuid.UUID, visible bool) error {
+func (m *MockDogService) SetLocationVisibility(ctx context.Context, ownerID, dogID uuid.UUID, visible dog.SetLocationVisibilityInput) error {
 	args := m.Called(ctx, ownerID, dogID, visible)
 	return args.Error(0)
 }
@@ -45,4 +45,12 @@ func (m *MockDogService) GetPublic(ctx context.Context, dogID uuid.UUID) (*dog.D
 func (m *MockDogService) GetPrivate(ctx context.Context, ownerID, dogID uuid.UUID) (*dog.Dog, error) {
 	args := m.Called(ctx, ownerID, dogID)
 	return args.Get(0).(*dog.Dog), args.Error(1)
+}
+
+func (m *MockDogService) FindDogsNearby(ctx context.Context, userID uuid.UUID, centerLat, centerLon float64, radiusMeters float64) ([]*dog.Dog, error) {
+	args := m.Called(ctx, userID, centerLat, centerLon, radiusMeters)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*dog.Dog), args.Error(1)
 }

@@ -20,7 +20,7 @@ type DogService interface {
         ctx context.Context,
         ownerID, dogID uuid.UUID,
         input SetLocationVisibilityInput,
-    )
+    ) error
 
     GetPublic(ctx context.Context, dogID uuid.UUID) (*Dog, error)
     GetPrivate(ctx context.Context, ownerID, dogID uuid.UUID) (*Dog, error)

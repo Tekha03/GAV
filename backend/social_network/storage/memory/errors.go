@@ -34,4 +34,7 @@ var (
 
 	ErrReactionExists = errors.New("reaction already exists")
 	ErrReactionNotFound = errors.New("reaction not found")
+
+	ErrDogNotFound = errors.New("dog not found")
+	ErrDogExists   = errors.New("dog exists in repository")
 )

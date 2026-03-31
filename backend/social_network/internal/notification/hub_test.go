@@ -17,7 +17,7 @@ func TestHub_SendToUser(t *testing.T) {
 		Send:   make(chan []byte, 1),
 	}
 
-	hub.clients[userID] = client
+	hub.Clients[userID] = client
 
 	message := []byte("hello")
 

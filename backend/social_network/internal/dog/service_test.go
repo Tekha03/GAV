@@ -152,7 +152,7 @@ func TestUpdateLocation(t *testing.T) {
 	env.repo.On("GetByID", ctx, dogID).Return(dog, nil)
 	env.repo.On("Update", ctx, dog).Return(nil)
 
-	err := env.service.UpdateLocation(ctx, ownerID, dogID, 10, 20)
+	err := env.service.UpdateLocation(ctx, ownerID, dogID, UpdateLocationInput{Latitude: 10, Longitude: 20})
 
 	assert.NoError(t, err)
 	assert.NotNil(t, dog.Lat)
@@ -164,15 +164,105 @@ func TestGetPrivate_AccessDenied(t *testing.T) {
 	ctx := context.Background()
 
 	dogID := uuid.New()
+	ownerID := uuid.New()
+
 	dog := &Dog{
 		ID: dogID,
-		OwnerID: uuid.New(),
+		OwnerID: ownerID,
 	}
 
 	env.repo.On("GetByID", ctx, dogID).Return(dog, nil)
-	_, err := env.service.GetPrivate(ctx, uuid.New(), dogID)
+	_, err := env.service.GetPrivate(ctx, dogID, uuid.New())
 
 	assert.Error(t, err)
 	assert.Equal(t, ErrDogAccessDenied, err)
 }
 
+func TestFindDogsNearby_Success(t *testing.T) {
+	env := setup(t)
+
+	ctx := context.Background()
+	userID := uuid.New()
+	otherUserID := uuid.New()
+
+	dogsFromRepo := []*Dog{
+		{
+			ID:              uuid.New(),
+			OwnerID:         otherUserID,
+			Visibility: 	 1,
+		},
+	}
+
+	env.repo.
+		On("FindWalkingNearby", ctx, 0.0, 0.0, 1000.0).
+		Return(dogsFromRepo, nil)
+
+	dogs, err := env.service.FindDogsNearby(ctx, userID, 0.0, 0.0, 1000.0)
+
+	require.NoError(t, err)
+	require.Len(t, dogs, 1)
+	assert.Equal(t, otherUserID, dogs[0].OwnerID)
+}
+
+func TestFindDogsNearby_ExcludeOwnDogs(t *testing.T) {
+	env := setup(t)
+	ctx := context.Background()
+	userID := uuid.New()
+
+	dogsFromRepo := []*Dog{
+		{
+			ID:              uuid.New(),
+			OwnerID:         userID,
+			Visibility: 	 1,
+		},
+	}
+
+	env.repo.
+		On("FindWalkingNearby", ctx, 0.0, 0.0, 1000.0).
+		Return(dogsFromRepo, nil)
+
+	dogs, err := env.service.FindDogsNearby(ctx, userID, 0, 0, 1000)
+
+	require.NoError(t, err)
+	require.Len(t, dogs, 0)
+}
+
+func TestFindDogsNearby_FilterInvisible(t *testing.T) {
+	env := setup(t)
+
+	ctx := context.Background()
+	userID := uuid.New()
+
+	dogsFromRepo := []*Dog{
+		{
+			ID:              uuid.New(),
+			OwnerID:         uuid.New(),
+			Visibility: 	 0,
+		},
+	}
+
+	env.repo.
+		On("FindWalkingNearby", ctx, 0.0, 0.0, 1000.0).
+		Return(dogsFromRepo, nil)
+
+	dogs, err := env.service.FindDogsNearby(ctx, userID, 0, 0, 1000)
+
+	require.NoError(t, err)
+	require.Len(t, dogs, 0)
+}
+
+func TestFindDogsNearby_RepoError(t *testing.T) {
+	env := setup(t)
+
+	ctx := context.Background()
+	userID := uuid.New()
+
+	env.repo.
+		On("FindWalkingNearby", ctx, 0.0, 0.0, 1000.0).
+		Return(nil, assert.AnError)
+
+	dogs, err := env.service.FindDogsNearby(ctx, userID, 0, 0, 1000)
+
+	require.Error(t, err)
+	assert.Nil(t, dogs)
+}
