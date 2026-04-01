@@ -1,28 +1,26 @@
 syntax = "proto3";
 package api.social.v1;
-option go_package = "api/dog_gen";
-
+option go_package = "dog/v1;dogv1";
 import "google/protobuf/empty.proto";
 import "google/protobuf/timestamp.proto";
-import "api/proto/social/social.proto";  // User
-
+import "social_network/social.proto";
 service DogService {
 
   rpc CreateDog(CreateDogRequest) returns (Dog);
   rpc GetDog(GetDogRequest) returns (Dog);
   rpc UpdateDog(UpdateDogRequest) returns (Dog);
-  rpc DeleteDog(DeleteDogRequest) returns (Empty);
+//  rpc DeleteDog(DeleteDogRequest) returns (Empty);
 
-  rpc UpdateLocation(UpdateLocationRequest) returns (Empty);
-  rpc SetLocationVisibility(SetLocationVisibilityRequest) returns (Empty);
+  rpc UpdateLocation(UpdateLocationRequest) returns (google.protobuf.Empty);
+  rpc SetLocationVisibility(SetLocationVisibilityRequest) returns (google.protobuf.Empty);
  
   rpc GetPublicDog(GetPublicDogRequest) returns (Dog);
   rpc GetPrivateDog(GetPrivateDogRequest) returns (Dog);
   
   rpc CreateVaccination(CreateVaccinationRequest) returns (Vaccination);
   rpc ListVaccinations(ListVaccinationsRequest) returns (ListVaccinationsResponse);
-  rpc UpdateVaccination(UpdateVaccinationRequest) returns (Vaccination);
-  rpc DeleteVaccination(DeleteVaccinationRequest) returns (Empty);
+//  rpc UpdateVaccination(UpdateVaccinationRequest) returns (Vaccination);
+//  rpc DeleteVaccination(DeleteVaccinationRequest) returns (google.protobuf.Empty);
 }
 
 message Dog {
@@ -40,24 +38,28 @@ message Dog {
   optional float lon = 10;
   bool location_visible = 11;
   
-  timestamp created_at = 99;
+  google.protobuf.Timestamp created_at = 99;
   
-  enum Status {
-    STATUS_UNSPECIFIED = 0;
-    ACTIVE = 1;
-    INACTIVE = 2;
-  }
-  enum Age {
-    AGE_UNSPECIFIED = 0;
-    PUPPY = 1;
-    ADULT = 2;
-    ELDERLY = 3;
-  }
-  enum Gender {
-    GENDER_UNSPECIFIED = 0;
-    MALE = 1;
-    FEMALE = 2;
-  }
+
+
+}
+
+enum Status {
+  STATUS_UNSPECIFIED = 0;
+  ACTIVE = 1;
+  INACTIVE = 2;
+}
+enum Age {
+  AGE_UNSPECIFIED = 0;
+  PUPPY = 1;
+  ADULT = 2;
+  ELDERLY = 3;
+}
+
+enum Gender {
+  GENDER_UNSPECIFIED = 0;
+  MALE = 1;
+  FEMALE = 2;
 }
 
 // ========== VACCINATION ==========
@@ -65,8 +67,8 @@ message Vaccination {
   string id = 1;
   string dog_id = 2;
   string name = 3;           // "rabies", "parvovirus"
-  timestamp done_at = 4;
-  optional timestamp next_due_at = 5;
+  google.protobuf.Timestamp done_at = 4;
+  optional google.protobuf.Timestamp next_due_at = 5;
   string notes = 6;
 }
 
@@ -112,8 +114,8 @@ message SetLocationVisibilityRequest {
 message CreateVaccinationRequest {
   string dog_id = 1;
   string name = 2;
-  timestamp done_at = 3;
-  optional timestamp next_due_at = 4;
+  google.protobuf.Timestamp done_at = 3;
+  optional google.protobuf.Timestamp next_due_at = 4;
   optional string notes = 5;
 }
 

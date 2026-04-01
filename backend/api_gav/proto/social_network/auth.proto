@@ -1,16 +1,14 @@
 syntax = "proto3";
 package api.auth.v1;
-option go_package = "api/auth_gen";
-
+option go_package = "auth/v1;authv1";
 import "google/protobuf/empty.proto";
-import "api/proto/social/social.proto";
 
 service AuthService {
   rpc Register(RegisterRequest) returns (RegisterResponse);
   rpc Login(LoginRequest) returns (LoginResponse);
-  rpc Me(Empty) returns (MeResponse);
+  rpc Me(google.protobuf.Empty) returns (MeResponse);
   rpc Refresh(RefreshRequest) returns (RefreshResponse);
-  rpc Logout(Empty) returns (Empty);
+  rpc Logout(google.protobuf.Empty) returns (google.protobuf.Empty);
 }
 
 message RegisterRequest {
@@ -30,16 +28,16 @@ message RefreshRequest {
 
 message RegisterResponse {
   AuthTokens tokens = 1;
-  social.User user = 2;
+//  social.User user = 2;
 }
 
 message LoginResponse {
   AuthTokens tokens = 1;
-  social.User user = 2;
+//  social.User user = 2;
 }
 
 message MeResponse {
-  social.User user = 1;
+//  social.User user = 1;
 }
 
 message RefreshResponse {

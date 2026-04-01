@@ -1,25 +1,26 @@
 syntax = "proto3";
 package api.social.v1;
-option go_package = "api/social_gen";
+option go_package = "interaction/v1;interactionv1";
 
 import "google/protobuf/timestamp.proto";
-import "api/proto/social/social.proto";
+import "google/protobuf/empty.proto";
+import "social_network/social.proto";
 
 service InteractionService {
 
   rpc CreateComment(CreateCommentRequest) returns (Comment);
   rpc GetComment(GetCommentRequest) returns (Comment);
   rpc ListComments(ListCommentsRequest) returns (ListCommentsResponse);
-  rpc DeleteComment(DeleteCommentRequest) returns (Empty);
+  rpc DeleteComment(DeleteCommentRequest) returns (google.protobuf.Empty);
 
-  rpc LikePost(LikePostRequest) returns (Empty);
-  rpc UnlikePost(UnlikePostRequest) returns (Empty);
+  rpc LikePost(LikePostRequest) returns (google.protobuf.Empty);
+  rpc UnlikePost(UnlikePostRequest) returns (google.protobuf.Empty);
   rpc ListLikes(ListLikesRequest) returns (ListLikesResponse);
 
-  rpc Follow(FollowRequest) returns (Empty);
-  rpc Unfollow(UnfollowRequest) returns (Empty);
+  rpc Follow(FollowRequest) returns (google.protobuf.Empty);
+  rpc Unfollow(UnfollowRequest) returns (google.protobuf.Empty);
   rpc ListFollowers(ListFollowersRequest) returns (ListFollowersResponse);
-  rpc ListFollowing(ListFollowingRequest) returns (ListFollowingResponse);
+//  rpc ListFollowing(ListFollowingRequest) returns (ListFollowingResponse);
 
   rpc GetFeed(GetFeedRequest) returns (GetFeedResponse);
 }
@@ -30,7 +31,7 @@ message Comment {
   string post_id = 2;
   string user_id = 3;  // social.User
   string content = 4;
-  timestamp created_at = 99;
+  google.protobuf.Timestamp created_at = 99;
 }
 
 message Like {
@@ -81,10 +82,10 @@ message ListFollowersResponse { repeated Follow follows = 1; }
 
 message GetFeedRequest {
   string user_id = 1;
-  optional timestamp before = 2;
+  optional google.protobuf.Timestamp before = 2;
   int32 limit = 3;
 }
 message GetFeedResponse {
-  repeated social.Post posts = 1;
-  optional timestamp next_before = 2;
+//  repeated social.Post posts = 1;
+  optional google.protobuf.Timestamp next_before = 2;
 }

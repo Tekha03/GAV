@@ -1,7 +1,8 @@
 syntax = "proto3";
 
 package api.social_network.v3;
-option go_package = ".;v3";
+option go_package = "notification/v1;notificationv1";
+
 
 message NotificationRequest {
   bytes user_id = 1;

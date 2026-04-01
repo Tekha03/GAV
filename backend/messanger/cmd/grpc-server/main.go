@@ -1,7 +1,7 @@
 package main
 
 import (
-	pb "api/chat_gen/chat"
+    chatv1 "github.com/Tekha03/GAV/api_gav/gen/chat/v1"
 	"log"
 	"messanger/internal/config"
 	"messanger/storage/container"
@@ -24,7 +24,7 @@ func main() {
     grpcLis, err := net.Listen("tcp", cfg.GRPCAddr)
     if err != nil { log.Fatal(err) }
     grpcServer := grpc.NewServer()
-    pb.RegisterChatServiceServer(grpcServer, gr.NewServer(container.ChatService()))
+    chatv1.RegisterChatServiceServer(grpcServer, gr.NewServer(container.ChatService()))
     go func() { log.Printf("gRPC on %s", cfg.GRPCAddr); grpcServer.Serve(grpcLis) }()
 
     httpServer := gateway.NewHTTPServer(cfg.GRPCAddr)

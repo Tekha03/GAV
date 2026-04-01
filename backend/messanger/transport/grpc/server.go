@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	pb "api/chat_gen/chat"
+	pb "github.com/Tekha03/GAV/api_gav/gen/chat/v1"
 	"messanger/internal/model"
 	"messanger/internal/service"
 

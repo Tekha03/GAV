@@ -1,17 +1,16 @@
 syntax = "proto3";
 package api.social.v1;
-option go_package = "api/social_gen";
-
+option go_package = "social/v1;socialv1";
 import "google/protobuf/empty.proto";
 import "google/protobuf/timestamp.proto";
 
 service SocialService {
 
-  rpc Register(RegisterRequest) returns (RegisterResponse);
-  rpc Login(LoginRequest) returns (LoginResponse);
-  rpc Me(Empty) returns (MeResponse);
-  rpc Refresh(RefreshRequest) returns (RefreshResponse);
-  rpc Logout(Empty) returns (Empty);
+//  rpc Register(RegisterRequest) returns (RegisterResponse);
+//  rpc Login(LoginRequest) returns (LoginResponse);
+//  rpc Me(google.protobuf.Empty) returns (MeResponse);
+//  rpc Refresh(RefreshRequest) returns (RefreshResponse);
+//  rpc Logout(google.protobuf.Empty) returns (google.protobuf.Empty);
 
   rpc CreateUser(CreateUserRequest) returns (User);
   rpc GetUser(GetUserRequest) returns (User);
@@ -27,8 +26,8 @@ message User {
   string email = 2;
   string password_hash = 3;
   string role = 4;
-  timestamp created_at = 5;
-  timestamp updated_at = 6;
+  google.protobuf.Timestamp created_at = 5;
+  google.protobuf.Timestamp updated_at = 6;
   UserProfile profile = 7;
 }
 
