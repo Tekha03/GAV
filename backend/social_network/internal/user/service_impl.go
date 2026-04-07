@@ -63,14 +63,10 @@ func (s *service) FindDogsNearby(ctx context.Context, userID uuid.UUID, centerLa
 		return nil, err
 	}
 
-	var result []*dog.Dog
+	result := make([]*dog.Dog, 0)
 
 	for _, currentDog := range dogs {
-		if currentDog.OwnerID == userID {
-			continue
-		}
-
-		if currentDog.Visibility == dog.VisibilityFollowersOnly {
+		if currentDog.OwnerID == userID || currentDog.Visibility != dog.VisibilityEveryone {
 			continue
 		}
 
