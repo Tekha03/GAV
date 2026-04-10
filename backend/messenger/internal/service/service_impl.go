@@ -1,7 +1,7 @@
 package service
 
 import (
-    "messenger/internal/kafka"
+	"messenger/internal/kafka"
 	"messenger/internal/client"
 	"messenger/internal/repository"
 )
@@ -18,32 +18,35 @@ type ChatService struct {
     socialClient    *client.SocialNetworkClient
 	notClient       *client.NotificationClient
 
-    producer        kafka.Producer
+    producer       kafka.EventProducer
 }
 
 func NewService(
-    chatRepo repository.ChatRepository,
-    membersRepo repository.ChatMemberRepository,
-    messageRepo repository.MessageRepository,
-    attachmentRepo repository.AttachmentRepository,
-    reactionRepo repository.ReactionRepository,
-    pinnedRepo repository.PinnedRepository,
-    typingRepo repository.TypingRepository,
+    chatRepo        repository.ChatRepository,
+    membersRepo     repository.ChatMemberRepository,
+    messageRepo     repository.MessageRepository,
+    attachmentRepo  repository.AttachmentRepository,
+    reactionRepo    repository.ReactionRepository,
+    pinnedRepo      repository.PinnedRepository,
+    typingRepo      repository.TypingRepository,
 
-    socialClient *client.SocialNetworkClient,
-	notClient    *client.NotificationClient,
+    socialClient    *client.SocialNetworkClient,
+	notClient       *client.NotificationClient,
+
+    producer        kafka.EventProducer,
 
 ) Service {
     s := &ChatService{
-        chatRepo:      chatRepo,
-        membersRepo:   membersRepo,
-        messageRepo:   messageRepo,
+        chatRepo:       chatRepo,
+        membersRepo:    membersRepo,
+        messageRepo:    messageRepo,
         attachmentRepo: attachmentRepo,
-        reactionRepo:  reactionRepo,
-        pinnedRepo:    pinnedRepo,
-        typingRepo:    typingRepo,
-        socialClient: socialClient,
-        notClient: notClient,
+        reactionRepo:   reactionRepo,
+        pinnedRepo:     pinnedRepo,
+        typingRepo:     typingRepo,
+        socialClient:   socialClient,
+        notClient:      notClient,
+        producer:       producer,
     }
 
     return s

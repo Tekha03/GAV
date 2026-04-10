@@ -2,10 +2,11 @@ package service
 
 import (
 	"context"
-    "shared/events"
+	"encoding/json"
 	"messenger/internal/constatnts"
 	"messenger/internal/errors"
 	"messenger/internal/model"
+	"shared/events"
 	"time"
 
 	"github.com/google/uuid"
@@ -108,30 +109,32 @@ func (s *ChatService) SendMessage(ctx context.Context, input model.SendMessageIn
 	    }
     }
 
+    payload, _ := json.Marshal(events.MessageSentData{
+        MessageID: msgID,
+        ChatID: input.ChatID,
+        SenderID: input.SenderID,
+        Text: *input.Text,
+    })
+
     event := events.Event{
         EventID: uuid.New(),
         EventType: events.EventTypeMessageSent,
         Timestamp: time.Now(),
-        Data: events.MessageSentData{
-            MessageID:  msgID,
-            ChatID:     message.ChatID,
-            SenderID:   message.SenderID,
-            Text:       *message.Text,
-        },
+        Data: payload,
     }
 
-    _ = s.producer.Send(event)
+    if err := s.producer.PublishEvent(event); err != nil {
+        return nil, err
+    }
 
     return message, nil
 }
 
 func (s *ChatService) EditMessage(ctx context.Context, messageID uuid.UUID, newText string) (*model.Message, error) {
     message, err := s.messageRepo.GetByID(ctx, messageID)
-
     if err != nil {
         return nil, err
     }
-
     if message == nil {
         return nil, errors.ErrMessageNotFound
     }
@@ -142,27 +145,55 @@ func (s *ChatService) EditMessage(ctx context.Context, messageID uuid.UUID, newT
     }
 
     message, err = s.messageRepo.GetByID(ctx, messageID)
-
     if err != nil {
         return nil, err
     }
-
     if message == nil {
         return nil, errors.ErrMessageNotFound
     }
 
-    return message, nil
+    payload, _ := json.Marshal(events.MessageEditedData{
+        MessageID: message.ID,
+        ChatID: message.ChatID,
+        Text: *message.Text,
+    })
 
+    event := events.Event{
+        EventID: uuid.New(),
+        EventType: events.EventTypeMessageEdited,
+        Timestamp: time.Now(),
+        Data: payload,
+    }
+
+    if err := s.producer.PublishEvent(event); err != nil {
+        return nil, err
+    }
+
+    return message, nil
 }
 func (s *ChatService) DeleteMessage(ctx context.Context, messageID uuid.UUID) error {
     message, err := s.messageRepo.GetByID(ctx, messageID)
-
     if err != nil {
         return err
     }
-
     if message == nil {
         return errors.ErrMessageNotFound
+    }
+
+    payload, _ := json.Marshal(events.MessageDeletedData{
+        MessageID: message.ID,
+        ChatID: message.ChatID,
+    })
+
+    event := events.Event{
+        EventID: uuid.New(),
+        EventType: events.EventTypeMessageDeleted,
+        Timestamp: time.Now(),
+        Data: payload,
+    }
+
+    if err := s.producer.PublishEvent(event); err != nil {
+        return err
     }
 
     err = s.messageRepo.Delete(ctx, messageID)

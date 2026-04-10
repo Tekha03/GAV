@@ -18,7 +18,6 @@
 // @name                       Authorization
 // @description                JWT Authorization header using the Bearer scheme. Example: "Bearer {token}"
 
-
 package main
 
 import (
@@ -32,6 +31,7 @@ import (
 
 	"social_network/internal/app"
 	"social_network/internal/config"
+	"social_network/internal/kafka"
 	// "social_network/docs"
 )
 
@@ -50,6 +50,11 @@ func main() {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+
+	if err := kafka.LaunchKafka(ctx, cancel); err != nil {
+		logger.Error("failed to launch Kafka", "error", err)
+		os.Exit(1)
+	}
 
 	app, err := app.NewApp(ctx, cfg)
 	if err != nil {

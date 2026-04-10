@@ -1,6 +1,7 @@
 package events
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
@@ -9,25 +10,24 @@ import (
 type EventType string
 
 const (
-	EventTypeChatCreated   EventType = "ChatCreated"
-	EventTypeMessageSent   EventType = "MessageSent"
-	EventTypeUserJoined    EventType = "UserJoined"
-	EventTypeUserLeft      EventType = "UserLeft"
-	EventTypeChatUpdated   EventType = "ChatUpdated"
-	EventTypeMessageEdited  EventType = "MessageEdited"
-	EventTypeMessageDeleted EventType = "MessageDeleted"
+	EventTypeMessageSent   	EventType = "message_sent"
+	EventTypeMessageEdited  EventType = "message_edited"
+	EventTypeMessageDeleted EventType = "message_deleted"
+
+	EventTypeChatCreated   		EventType = "chat_created"
+	EventTypeChatMemberAdded 	EventType = "chat_added_user"
+	EventTypeChatMemberRemoved 	EventType = "chat_removed_user"
+	EventTypeChatUpdated   		EventType = "chat_updated"
+	EventTypeChatDeleted   		EventType = "chat_deleted"
+
+	EventTypeReactionAdded   EventType = "reaction_added"
+	EventTypeReactionRemoved EventType = "reaction_removed"
+
 )
 
 type Event struct {
-	EventID		uuid.UUID 	`json:"event_id"`
-	EventType 	EventType 	`json:"event_type"`
-	Timestamp 	time.Time 	`json:"timestamp"`
-	Data 		interface{} `json:"data"`
-}
-
-type MessageSentData struct {
-	MessageID uuid.UUID `json:"message_id"`
-	ChatID    uuid.UUID `json:"chat_id"`
-	SenderID  uuid.UUID `json:"sender_id"`
-	Text      string    `json:"text"`
+	EventID		uuid.UUID 		`json:"event_id"`
+	EventType 	EventType 		`json:"event_type"`
+	Timestamp 	time.Time 		`json:"timestamp"`
+	Data 		json.RawMessage `json:"data"`
 }

@@ -2,8 +2,10 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"messenger/internal/errors"
 	"messenger/internal/model"
+	"shared/events"
 	"time"
 
 	"github.com/google/uuid"
@@ -38,7 +40,6 @@ func (s *ChatService) CreatePrivateChat(ctx context.Context, userID1, userID2 uu
 }
 
 func (s *ChatService) CreateGroupChat(ctx context.Context, title string, creatorID uuid.UUID, membersIDs []uuid.UUID) (*model.Chat, error) {
-
     chat := &model.Chat{
         ID: uuid.New(),
         IsGroup: true,
@@ -73,6 +74,22 @@ func (s *ChatService) CreateGroupChat(ctx context.Context, title string, creator
 		}
 	}
 
+    payload, _ := json.Marshal(events.ChatCreatedData{
+        ChatID: chat.ID,
+        Members: getMemberIDs(members),
+    })
+
+    event := events.Event{
+        EventID:    uuid.New(),
+        EventType:  events.EventTypeChatCreated,
+        Timestamp:  time.Now(),
+        Data:       payload,
+    }
+
+    if err := s.producer.PublishEvent(event); err != nil {
+        return nil, err
+    }
+
 	return chat, nil
 }
 
@@ -97,10 +114,42 @@ func (s *ChatService) AddMember(ctx context.Context, userID, chatID uuid.UUID) e
 		Role:     "member",
 	}
 
+    payload, _ := json.Marshal(events.ChatMemberAddedData{
+        ChatID: chatID,
+        UserID: userID,
+    })
+
+    event := events.Event{
+        EventID:    uuid.New(),
+        EventType:  events.EventTypeChatMemberAdded,
+        Timestamp:  time.Now(),
+        Data:       payload,
+    }
+
+    if err := s.producer.PublishEvent(event); err != nil {
+        return err
+    }
+
 	return s.membersRepo.AddMember(ctx, member)
 }
 
 func (s *ChatService) RemoveMember(ctx context.Context, userID, chatID uuid.UUID) error {
+    payload, _ := json.Marshal(events.ChatMemberRemovedData{
+        ChatID: chatID,
+        UserID: userID,
+    })
+
+    event := events.Event{
+        EventID:    uuid.New(),
+        EventType:  events.EventTypeChatMemberRemoved,
+        Timestamp:  time.Now(),
+        Data:       payload,
+    }
+
+    if err := s.producer.PublishEvent(event); err != nil {
+        return err
+    }
+
     return s.membersRepo.RemoveMember(ctx, userID, chatID)
 }
 
@@ -159,4 +208,12 @@ func (s *ChatService) UpdateChatPhoto(ctx context.Context, chatID uuid.UUID, new
     }
 
     return nil
+}
+
+func getMemberIDs(members []*model.ChatMember) []uuid.UUID {
+    var ids []uuid.UUID
+    for _, m := range members {
+        ids = append(ids, m.UserID)
+    }
+    return ids
 }
