@@ -1,8 +1,0 @@
-package notification
-
-import "errors"
-
-var (
-	ErrEmptyHub			= errors.New("notification service: empty hub")
-	ErrFailedToMarshal	= errors.New("failed to marshal into json")
-)

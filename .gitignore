@@ -4,3 +4,9 @@
 *.log
 *.tmp
 chat_gen/
+*.json
+*.yaml
+Tekha-12-patches/
+Gav_App/
+.DS_Store
+api/proto/external/

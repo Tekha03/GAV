@@ -1,0 +1,187 @@
+package handlers
+
+import (
+	"encoding/json"
+	"net/http"
+	"social_network/internal/profile"
+
+	"social_network/internal/validation"
+	"social_network/transport/http/middleware"
+	"social_network/transport/response"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
+)
+
+type ProfileHandler struct {
+	service profile.ProfileService
+}
+
+func NewProfileHandler(service profile.ProfileService) (*ProfileHandler, error) {
+	if service == nil {
+		return nil, ErrProfileNil
+	}
+
+	return &ProfileHandler{service: service}, nil
+}
+
+// Create godoc
+// @Summary Create profile
+// @Description Create profile for current user
+// @Tags profile
+// @Accept json
+// @Produce json
+// @Param input body profile.CreateProfileInput true "Profile data"
+// @Success 201 {object} profile.UserProfile
+// @Failure 400 {object} response.ErrorResponse
+// @Failure 401 {object} response.ErrorResponse
+// @Failure 500 {object} response.ErrorResponse
+// @Router /profile [post]
+// @Security BearerAuth
+func (h *ProfileHandler) Create(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.UserID(r.Context())
+	if !ok {
+		response.Error(w, ErrUnauthorized)
+		return
+	}
+
+	var input profile.CreateProfileInput
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		response.Error(w, ErrInvalidInput)
+		return
+	}
+
+	if err := validation.Validate(&input); err != nil {
+		response.Error(w, err)
+		return
+	}
+
+	profile, err := h.service.Create(r.Context(), userID, input)
+	if err != nil {
+		response.Error(w, err)
+		return
+	}
+
+	response.JSON(w, http.StatusCreated, profile)
+}
+
+// GetByID godoc
+// @Summary Get profile by ID
+// @Description Get profile by profile ID
+// @Tags profile
+// @Produce json
+// @Param id path string true "Profile ID"
+// @Success 200 {object} profile.UserProfile
+// @Failure 400 {object} response.ErrorResponse
+// @Failure 404 {object} response.ErrorResponse
+// @Failure 500 {object} response.ErrorResponse
+// @Router /profile/{id} [get]
+func (h *ProfileHandler) GetByID(w http.ResponseWriter, r *http.Request) {
+	profileID, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		response.Error(w, ErrInvalidInput)
+		return
+	}
+
+	profile, err := h.service.GetByID(r.Context(), profileID)
+	if err != nil {
+		response.Error(w, err)
+		return
+	}
+
+	response.JSON(w, http.StatusOK, profile)
+}
+
+// GetByID godoc
+// @Summary Get profile by ID
+// @Description Get profile by profile ID
+// @Tags profile
+// @Produce json
+// @Param id path string true "Profile ID"
+// @Success 200 {object} profile.UserProfile
+// @Failure 400 {object} response.ErrorResponse
+// @Failure 404 {object} response.ErrorResponse
+// @Failure 500 {object} response.ErrorResponse
+// @Router /profile/{id} [get]
+func (h *ProfileHandler) GetByUserID(w http.ResponseWriter, r *http.Request) {
+	param := chi.URLParam(r, "userID")
+
+	userID, err := uuid.Parse(param)
+	if err != nil {
+		response.Error(w, ErrInvalidInput)
+		return
+	}
+
+	profile, err := h.service.GetByUserID(r.Context(), userID)
+	if err != nil {
+		response.Error(w, err)
+		return
+	}
+
+	response.JSON(w, http.StatusOK, profile)
+}
+
+// GetByUserID godoc
+// @Summary Get profile by user ID
+// @Description Get profile by user ID
+// @Tags profile
+// @Produce json
+// @Param userID path string true "User ID"
+// @Success 200 {object} profile.UserProfile
+// @Failure 400 {object} response.ErrorResponse
+// @Failure 404 {object} response.ErrorResponse
+// @Failure 500 {object} response.ErrorResponse
+// @Router /profile/user/{userID} [get]
+func (h *ProfileHandler) Update(w http.ResponseWriter, r *http.Request) {
+	profileID, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		response.Error(w, ErrInvalidInput)
+		return
+	}
+
+	var input profile.UpdateProfileInput
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		response.Error(w, ErrInvalidInput)
+		return
+	}
+
+	if err := validation.Validate(&input); err != nil {
+		response.Error(w, err)
+		return
+	}
+
+	if err := h.service.Update(r.Context(), profileID, input); err != nil {
+		response.Error(w, err)
+		return
+	}
+
+	response.JSON(w, http.StatusNoContent, nil)
+}
+
+// Update godoc
+// @Summary Update profile
+// @Description Update profile by ID
+// @Tags profile
+// @Accept json
+// @Produce json
+// @Param id path string true "Profile ID"
+// @Param input body profile.UpdateProfileInput true "Profile update data"
+// @Success 204 "No Content"
+// @Failure 400 {object} response.ErrorResponse
+// @Failure 404 {object} response.ErrorResponse
+// @Failure 500 {object} response.ErrorResponse
+// @Router /profile/{id} [put]
+func (h *ProfileHandler) Delete(w http.ResponseWriter, r *http.Request) {
+	profileID, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		response.Error(w, ErrInvalidInput)
+		return
+	}
+
+	if err := h.service.Delete(r.Context(), profileID); err != nil {
+		response.Error(w, err)
+		return
+	}
+
+	response.JSON(w, http.StatusNoContent, nil)
+}

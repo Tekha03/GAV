@@ -6,7 +6,7 @@ struct DogDetailView: View {
 
     var body: some View {
         ZStack(alignment: .bottom) { // меняем с .bottomLeading на .bottom
-            Image(dog.photoUrl)
+            Image(dog.photoURL)
                 .resizable()
                 .scaledToFill()
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
