@@ -1,4 +1,4 @@
-package dog
+package user
 
 type LocationStatus uint8
 

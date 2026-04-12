@@ -137,28 +137,6 @@ func TestDelete_Success(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func TestUpdateLocation(t *testing.T) {
-	env := setup(t)
-	ctx := context.Background()
-
-	ownerID := uuid.New()
-	dogID := uuid.New()
-
-	dog := &Dog{
-		ID: dogID,
-		OwnerID: ownerID,
-	}
-
-	env.repo.On("GetByID", ctx, dogID).Return(dog, nil)
-	env.repo.On("Update", ctx, dog).Return(nil)
-
-	err := env.service.UpdateLocation(ctx, ownerID, dogID, UpdateLocationInput{Latitude: 10, Longitude: 20})
-
-	assert.NoError(t, err)
-	assert.NotNil(t, dog.Lat)
-	assert.NotNil(t, dog.Lon)
-}
-
 func TestGetPrivate_AccessDenied(t *testing.T) {
 	env := setup(t)
 	ctx := context.Background()

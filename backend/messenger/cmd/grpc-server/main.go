@@ -1,7 +1,7 @@
 package main
 
 import (
-	pb "api/chat_gen/chat"
+	pb "api/proto/chat"
 	"log"
 	"messenger/internal/config"
 	"messenger/internal/kafka"

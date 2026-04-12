@@ -17,10 +17,3 @@ type UpdateDogInput struct {
 	Status		*Status
 	PhotoUrl	*string
 }
-
-type UpdateLocationInput struct {
-    Latitude       float64
-    Longitude      float64
-    Status         LocationStatus
-    ClearLocation  bool 
-}
