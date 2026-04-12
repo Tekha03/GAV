@@ -1,9 +1,10 @@
 package service
 
 import (
-	"messenger/internal/kafka"
 	"messenger/internal/client"
+	"messenger/internal/kafka"
 	"messenger/internal/repository"
+	"shared/events"
 )
 
 type ChatService struct {
@@ -18,7 +19,7 @@ type ChatService struct {
     socialClient    *client.SocialNetworkClient
 	notClient       *client.NotificationClient
 
-    producer       kafka.EventProducer
+    producer        kafka.EventProducer
 }
 
 func NewService(
@@ -50,4 +51,11 @@ func NewService(
     }
 
     return s
+}
+
+func (s *ChatService) publishEvent(event events.Event) error {
+    if s.producer == nil {
+        return nil
+    }
+    return s.producer.PublishEvent(event)
 }

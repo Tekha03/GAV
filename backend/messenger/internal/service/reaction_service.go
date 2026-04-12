@@ -27,25 +27,27 @@ func (s *ChatService) AddReaction(ctx context.Context, messageID, userID uuid.UU
         Emoji: emoji,
     }
 
-    payload, _ := json.Marshal(events.ReactionAddedData{
+    if err := s.reactionRepo.Add(ctx, reaction); err != nil {
+        return err
+    }
+
+    payload, err := json.Marshal(events.ReactionAddedData{
         MessageID: messageID,
         UserID: userID,
         Reaction: emoji,
     })
-
-    event := events.Event{
-        EventID: uuid.New(),
-        EventType: events.EventTypeReactionAdded,
-        Timestamp: time.Now(),
-        Data: payload,
-    }
-
-    if err := s.producer.PublishEvent(event); err != nil {
+    if err != nil {
         return err
     }
 
-    err = s.reactionRepo.Add(ctx, reaction)
-    return err
+    event := events.Event{
+        EventID:    uuid.New(),
+        EventType:  events.EventTypeReactionAdded,
+        Timestamp:  time.Now(),
+        Data:       payload,
+    }
+
+    return s.publishEvent(event)
 }
 
 func (s *ChatService) RemoveReaction(ctx context.Context, messageID, userID uuid.UUID) error {
@@ -57,11 +59,17 @@ func (s *ChatService) RemoveReaction(ctx context.Context, messageID, userID uuid
         return errors.ErrMessageNotFound
     }
 
-    payload, _ := json.Marshal(events.ReactionRemovedData{
+    if err := s.reactionRepo.Remove(ctx, messageID, userID); err != nil {
+        return err
+    }
+
+    payload, err := json.Marshal(events.ReactionRemovedData{
         MessageID: messageID,
         UserID: userID,
     })
-
+    if err != nil {
+        return err
+    }
 
     event := events.Event{
         EventID: uuid.New(),
@@ -70,10 +78,5 @@ func (s *ChatService) RemoveReaction(ctx context.Context, messageID, userID uuid
         Data: payload,
     }
 
-    if err := s.producer.PublishEvent(event); err != nil {
-        return err
-    }
-
-    err = s.reactionRepo.Remove(ctx, messageID, userID)
-    return err
+    return s.publishEvent(event)
 }

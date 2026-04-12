@@ -32,14 +32,10 @@ import (
 	"social_network/internal/app"
 	"social_network/internal/config"
 	"social_network/internal/kafka"
-	// "social_network/docs"
 )
 
 func main() {
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
-		Level: slog.LevelInfo,
-	}))
-
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
 	logger.Info("starting application")
 
 	cfg, err := config.Load()
@@ -51,20 +47,20 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	if err := kafka.LaunchKafka(ctx, cancel); err != nil {
-		logger.Error("failed to launch Kafka", "error", err)
-		os.Exit(1)
-	}
-
-	app, err := app.NewApp(ctx, cfg)
+	application, err := app.NewApp(ctx, cfg)
 	if err != nil {
 		logger.Error("failed to create application", "error", err)
 		os.Exit(1)
 	}
 
+	if err := kafka.LaunchKafka(ctx, application.Services.Notification); err != nil {
+		logger.Error("failed to launch Kafka", "error", err)
+		os.Exit(1)
+	}
+
 	go func () {
-		logger.Info("starting HTTP server", "addr", app.Server.Addr)
-		if err := app.Run(); err != nil && err != http.ErrServerClosed {
+		logger.Info("starting HTTP server", "addr", application.Server.Addr)
+		if err := application.Run(); err != nil && err != http.ErrServerClosed {
 			logger.Error("http server failed", "error", err)
 			os.Exit(1)
 		}
@@ -79,7 +75,7 @@ func main() {
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10 * time.Second)
 	defer shutdownCancel()
 
-	if err := app.Shutdown(shutdownCtx); err != nil {
+	if err := application.Shutdown(shutdownCtx); err != nil {
 		logger.Error("graceful shutdown failed", "error", err)
 		os.Exit(1)
 	}

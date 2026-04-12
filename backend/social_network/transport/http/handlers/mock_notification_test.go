@@ -32,6 +32,21 @@ func (m *MockNotificationService) NotifyFollow(ctx context.Context, followingID,
 	return args.Error(0)
 }
 
+func (m *MockNotificationService) NotifyNewMessage(ctx context.Context, receiverID, senderID, chatID uuid.UUID) error {
+	args := m.Called(ctx, receiverID, senderID, chatID)
+	return args.Error(0)
+}
+
+func (m *MockNotificationService) NotifyChatInvite(ctx context.Context, receiverID, chatID uuid.UUID) error {
+	args := m.Called(ctx, receiverID, chatID)
+	return args.Error(0)
+}
+
+func (m *MockNotificationService) NotifyMessageReaction(ctx context.Context, receiverID, reactorID, messageID uuid.UUID) error {
+	args := m.Called(ctx, receiverID, reactorID, messageID)
+	return args.Error(0)
+}
+
 func (m *MockNotificationService) GetInAppNotifications(ctx context.Context, userID uuid.UUID) ([]*notification.Notification, error) {
 	args := m.Called(ctx, userID)
 	return args.Get(0).([]*notification.Notification), args.Error(1)

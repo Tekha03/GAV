@@ -32,18 +32,21 @@ func (s *ChatService) SendMessage(ctx context.Context, input model.SendMessageIn
     if input.Text == nil && len(input.Attachments) == 0 {
         return nil, errors.ErrEmptyMessage
     }
+    if input.Text != nil && len(*input.Text) > constatnts.MaxMessageLength {
+        return nil, errors.ErrTextOverLength
+    }
+    if len(input.Attachments) > constatnts.MaxAttachments {
+        return nil, errors.ErrAttachmentsOverLength
+    }
     if input.ReplyToID != nil {
         msg, err := s.messageRepo.GetByID(ctx, *input.ReplyToID)
         if err != nil {
             return nil, err
         }
-        if msg.ChatID != input.ChatID {
+        if msg == nil || msg.ChatID != input.ChatID {
             return nil, errors.ErrInvalidReply
         }
     }
-	if len(*input.Text) > constatnts.MaxMessageLength {
-		return nil, errors.ErrTextOverLength
-	}
 
     message := &model.Message{
 		ChatID:    input.ChatID,
@@ -57,10 +60,7 @@ func (s *ChatService) SendMessage(ctx context.Context, input model.SendMessageIn
 	if err != nil {
         return nil, err
     }
-
-	if len(input.Attachments) > constatnts.MaxAttachments {
-		return nil, errors.ErrAttachmentsOverLength
-	}
+    message.ID = msgID
 
     for _, att := range input.Attachments {
         attachment := model.Attachment {
@@ -77,11 +77,7 @@ func (s *ChatService) SendMessage(ctx context.Context, input model.SendMessageIn
     }
 
     receiverID, err := s.findChatReceiver(ctx, input.ChatID, input.SenderID)
-	if err != nil {
-		return message, nil
-	}
-
-    if s.notClient != nil {
+	if err == nil && s.notClient != nil {
 		var senderName string
 		if s.socialClient != nil {
 			usr, err := s.socialClient.GetUserProfile(ctx, input.SenderID)
@@ -89,13 +85,7 @@ func (s *ChatService) SendMessage(ctx context.Context, input model.SendMessageIn
 				senderName = usr.Username
 			}
 
-            text := ""
-            if input.Text != nil && len(*input.Text) > 0 {
-                text = *input.Text
-                if len(text) > 100 {
-                    text = text[:100] + "…"
-                }
-            }
+            text := messageText(input.Text)
 
             go func() {
                 _ = s.notClient.SendNewMessage(
@@ -109,12 +99,15 @@ func (s *ChatService) SendMessage(ctx context.Context, input model.SendMessageIn
 	    }
     }
 
-    payload, _ := json.Marshal(events.MessageSentData{
-        MessageID: msgID,
-        ChatID: input.ChatID,
-        SenderID: input.SenderID,
-        Text: *input.Text,
+    payload, err := json.Marshal(events.MessageSentData{
+        MessageID:  msgID,
+        ChatID:     input.ChatID,
+        SenderID:   input.SenderID,
+        Text:       messageText(input.Text),
     })
+    if err != nil {
+        return nil, err
+    }
 
     event := events.Event{
         EventID: uuid.New(),
@@ -139,8 +132,7 @@ func (s *ChatService) EditMessage(ctx context.Context, messageID uuid.UUID, newT
         return nil, errors.ErrMessageNotFound
     }
 
-    err = s.messageRepo.UpdateText(ctx, messageID, newText)
-    if err != nil {
+    if err := s.messageRepo.UpdateText(ctx, messageID, newText); err != nil {
         return nil, err
     }
 
@@ -152,11 +144,14 @@ func (s *ChatService) EditMessage(ctx context.Context, messageID uuid.UUID, newT
         return nil, errors.ErrMessageNotFound
     }
 
-    payload, _ := json.Marshal(events.MessageEditedData{
-        MessageID: message.ID,
-        ChatID: message.ChatID,
-        Text: *message.Text,
+    payload, err := json.Marshal(events.MessageEditedData{
+        MessageID:  message.ID,
+        ChatID:     message.ChatID,
+        Text:       messageText(message.Text),
     })
+    if err != nil {
+        return nil, err
+    }
 
     event := events.Event{
         EventID: uuid.New(),
@@ -165,7 +160,7 @@ func (s *ChatService) EditMessage(ctx context.Context, messageID uuid.UUID, newT
         Data: payload,
     }
 
-    if err := s.producer.PublishEvent(event); err != nil {
+    if err := s.publishEvent(event); err != nil {
         return nil, err
     }
 
@@ -180,10 +175,17 @@ func (s *ChatService) DeleteMessage(ctx context.Context, messageID uuid.UUID) er
         return errors.ErrMessageNotFound
     }
 
-    payload, _ := json.Marshal(events.MessageDeletedData{
+    if err := s.messageRepo.Delete(ctx, messageID); err != nil {
+        return err
+    }
+
+    payload, err := json.Marshal(events.MessageDeletedData{
         MessageID: message.ID,
         ChatID: message.ChatID,
     })
+    if err != nil {
+        return err
+    }
 
     event := events.Event{
         EventID: uuid.New(),
@@ -192,30 +194,21 @@ func (s *ChatService) DeleteMessage(ctx context.Context, messageID uuid.UUID) er
         Data: payload,
     }
 
-    if err := s.producer.PublishEvent(event); err != nil {
-        return err
-    }
-
-    err = s.messageRepo.Delete(ctx, messageID)
-    return err
+    return s.publishEvent(event)
 }
 func (s *ChatService) GetMessages(ctx context.Context, chatID uuid.UUID, limit int, cursorID *uuid.UUID) ([]*model.Message, error) {
     chat, err := s.chatRepo.GetByID(ctx, chatID)
-
     if err != nil {
         return nil, err
     }
-
     if chat == nil {
         return nil, errors.ErrChatNotFound
     }
 
     messages, err := s.messageRepo.GetByChatID(ctx, chatID, limit, cursorID)
-
     if err != nil {
         return nil, err
     }
-
     if messages == nil {
         return nil, errors.ErrMessageNotFound
     }
@@ -224,21 +217,14 @@ func (s *ChatService) GetMessages(ctx context.Context, chatID uuid.UUID, limit i
 }
 func (s *ChatService) MarkAsRead(ctx context.Context, chatID, userID uuid.UUID) error {
     chat, err := s.chatRepo.GetByID(ctx, chatID)
-
     if err != nil {
         return err
     }
-
     if chat == nil {
         return errors.ErrChatNotFound
     }
 
-    err = s.messageRepo.UpdateReadAtForChat(ctx, chatID, userID, time.Now())
-    if err != nil {
-        return err
-    }
-
-    return nil
+    return s.messageRepo.UpdateReadAtForChat(ctx, chatID, userID, time.Now())
 }
 
 func (s *ChatService) ForwardMessage(ctx context.Context, messageID, targetChatID, senderID uuid.UUID) (*model.Message, error) {
@@ -288,12 +274,7 @@ func (s *ChatService) ForwardMessage(ctx context.Context, messageID, targetChatI
         })
     }
 
-    newMsg, err := s.SendMessage(ctx, input)
-    if err != nil {
-        return nil, err
-    }
-
-    return newMsg, nil
+    return s.SendMessage(ctx, input)
 }
 
 func (s *ChatService) findChatReceiver(ctx context.Context, chatID, senderID uuid.UUID) (uuid.UUID, error) {
@@ -309,4 +290,17 @@ func (s *ChatService) findChatReceiver(ctx context.Context, chatID, senderID uui
 	}
 
 	return uuid.Nil, errors.ErrNoMembers
+}
+
+func messageText(text *string) string {
+    if text == nil {
+        return ""
+    }
+
+    value := *text
+    if len(value) > 100 {
+        return value[:100] + "..."
+    }
+
+    return value
 }
