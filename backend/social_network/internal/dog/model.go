@@ -13,11 +13,6 @@ type Dog struct {
 	Status		Status
 	Age			Age
 	Gender		Gender
-
-	Lat         *float64
-    Lon         *float64
-    LocationStatus  LocationStatus
-    Visibility      LocationVisibility 
 }
 
 func NewDog(

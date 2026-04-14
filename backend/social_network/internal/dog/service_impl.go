@@ -90,37 +90,6 @@ func (s *service) Delete(ctx context.Context, ownerID, dogID uuid.UUID) error {
 	return s.repo.Delete(ctx, dogID)
 }
 
-func (s *service) UpdateLocation(ctx context.Context, ownerID, dogID uuid.UUID, locationInput UpdateLocationInput) error {
-	dog, err := s.repo.GetByID(ctx, dogID)
-	if err != nil {
-		return err
-	}
-
-	if dog.OwnerID != ownerID {
-		return ErrDogAccessDenied
-	}
-
-	dog.Lat = &locationInput.Latitude
-	dog.Lon = &locationInput.Longitude
-
-	return s.repo.Update(ctx, dog)
-}
-
-func (s *service) SetLocationVisibility(ctx context.Context, ownerID, dogID uuid.UUID, visibility SetLocationVisibilityInput) error {
-	dog, err := s.repo.GetByID(ctx, dogID)
-	if err != nil {
-		return err
-	}
-
-	if dog.OwnerID != ownerID {
-		return ErrDogAccessDenied
-	}
-
-	dog.Visibility = visibility.Visibility
-
-	return s.repo.Update(ctx, dog)
-}
-
 func (s *service) GetPublic(ctx context.Context, dogID uuid.UUID) (*Dog, error) {
 	return s.repo.GetByID(ctx, dogID)
 }

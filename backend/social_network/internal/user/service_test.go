@@ -210,19 +210,17 @@ func TestService_Delete(t *testing.T) {
 
 
 func TestFindDogsNearby_Success(t *testing.T) {
-	env := setup(t)
-
 	ctx := context.Background()
 	userID := uuid.New()
 
 	t.Run("success", func(t *testing.T) {
+		env := setup(t)
 		otherUserID := uuid.New()
 
 		dogsFromRepo := []*dog.Dog{
 			{
 				ID:              uuid.New(),
 				OwnerID:         otherUserID,
-				Visibility: 	 dog.VisibilityEveryone,
 			},
 		}
 
@@ -238,11 +236,11 @@ func TestFindDogsNearby_Success(t *testing.T) {
 	})
 
 	t.Run("exclude own dogs", func(t *testing.T) {
+		env := setup(t)
 		dogsFromRepo := []*dog.Dog{
 			{
 				ID:              uuid.New(),
 				OwnerID:         userID,
-				Visibility: 	 1,
 			},
 		}
 
@@ -250,18 +248,18 @@ func TestFindDogsNearby_Success(t *testing.T) {
 			On("FindWalkingNearby", ctx, 0.0, 0.0, 1000.0).
 			Return(dogsFromRepo, nil)
 
-		dogs, err := env.service.FindDogsNearby(ctx, userID, 0, 0, 1000)
+		dogs, err := env.service.FindDogsNearby(ctx, userID, 0.0, 0.0, 1000.0)
 
 		require.NoError(t, err)
 		require.Len(t, dogs, 0)
 	})
 
 	t.Run("filter invisible", func(t *testing.T) {
+		env := setup(t)
 		dogsFromRepo := []*dog.Dog{
 			{
 				ID:              uuid.New(),
 				OwnerID:         uuid.New(),
-				Visibility: 	 0,
 			},
 		}
 
@@ -276,6 +274,7 @@ func TestFindDogsNearby_Success(t *testing.T) {
 	})
 
 	t.Run("repo error", func(t *testing.T) {
+		env := setup(t)
 		env.repo.
 			On("FindWalkingNearby", ctx, 0.0, 0.0, 1000.0).
 			Return(nil, assert.AnError)

@@ -27,16 +27,6 @@ func (m *MockDogService) Delete(ctx context.Context, ownerID, dogID uuid.UUID) e
 	return args.Error(0)
 }
 
-func (m *MockDogService) UpdateLocation(ctx context.Context, ownerID, dogID uuid.UUID, locationInput dog.UpdateLocationInput) error {
-	args := m.Called(ctx, ownerID, dogID, locationInput)
-	return args.Error(0)
-}
-
-func (m *MockDogService) SetLocationVisibility(ctx context.Context, ownerID, dogID uuid.UUID, visible dog.SetLocationVisibilityInput) error {
-	args := m.Called(ctx, ownerID, dogID, visible)
-	return args.Error(0)
-}
-
 func (m *MockDogService) GetPublic(ctx context.Context, dogID uuid.UUID) (*dog.Dog, error) {
 	args := m.Called(ctx, dogID)
 	return args.Get(0).(*dog.Dog), args.Error(1)

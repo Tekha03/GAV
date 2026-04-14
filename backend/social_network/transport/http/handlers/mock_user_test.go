@@ -42,3 +42,13 @@ func (m *MockUserService) FindDogsNearby(ctx context.Context, id uuid.UUID, cent
 	args := m.Called(ctx, id, centerLat, centerLon, radiusMeters)
 	return args.Get(0).([]*dog.Dog), args.Error(1)
 }
+
+func (m *MockUserService) UpdateLocation(ctx context.Context, userID uuid.UUID, locationInput user.UpdateLocationInput) error {
+	args := m.Called(ctx, userID, locationInput)
+	return args.Error(0)
+}
+
+func (m *MockUserService) SetLocationVisibility(ctx context.Context, userID uuid.UUID, input user.SetLocationVisibilityInput) error {
+	args := m.Called(ctx, userID, input)
+	return args.Error(0)
+}

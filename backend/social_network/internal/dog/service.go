@@ -10,18 +10,6 @@ type DogService interface {
     Update(ctx context.Context, ownerID, dogID uuid.UUID, input UpdateDogInput) error
     Delete(ctx context.Context, ownerID, dogID uuid.UUID) error
 
-    UpdateLocation(
-        ctx context.Context,
-        ownerID, dogID uuid.UUID,
-        input UpdateLocationInput,
-    ) error
-
-    SetLocationVisibility(
-        ctx context.Context,
-        ownerID, dogID uuid.UUID,
-        input SetLocationVisibilityInput,
-    ) error
-
     GetPublic(ctx context.Context, dogID uuid.UUID) (*Dog, error)
     GetPrivate(ctx context.Context, ownerID, dogID uuid.UUID) (*Dog, error)
 
