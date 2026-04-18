@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	pb "api/chat_gen/chat"
+	pb "api/gen/chat/v1"
 	"messenger/internal/model"
 	"messenger/internal/service"
 

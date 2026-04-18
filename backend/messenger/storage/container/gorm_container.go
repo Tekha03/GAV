@@ -72,7 +72,6 @@ func (c *HybridContainer) ChatService() service.Service {
 		orm.NewReactionRepository(c.gormRepo),
 		rds.NewPinnedRepository(c.redis),
 		rds.NewTypingRepository(c.redis),
-
 		c.socialClient,
 		c.notClient,
 		c.producer,

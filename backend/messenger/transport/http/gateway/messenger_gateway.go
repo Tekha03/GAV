@@ -2,7 +2,7 @@
 package gateway
 
 import (
-	pb "api/chat_gen/chat"
+	// pb "github.com/Tekha03/GAV/api_gav/gen/chat/v1"
 	"context"
 	"fmt"
 	"net/http"
@@ -13,7 +13,9 @@ import (
 )
 
 func RegisterHandlers(ctx context.Context, mux *runtime.ServeMux, conn *grpc.ClientConn) error {
-  return pb.RegisterChatServiceHandler(ctx, mux, conn)
+	//TODO
+//   pb.RegisterChatServiceServer(server, pb.NewChatServiceClient(conn))
+  return nil
 }
 
 func NewHTTPServer(grpcAddr string) *http.Server {
@@ -32,7 +34,7 @@ func NewHTTPServer(grpcAddr string) *http.Server {
 	}
 
 	r := chi.NewRouter()
-	r.Use(corsMiddleware()) 
+	r.Use(corsMiddleware())
 	r.Mount("/v1", mux)
 
 	return &http.Server{Addr: ":8080", Handler: r}
