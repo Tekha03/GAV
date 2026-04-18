@@ -4,12 +4,12 @@ package client
 import (
 	"context"
 	"google.golang.org/grpc"
-	pb ""
+	pb "api/gen/social/v1"
 	uuid "github.com/google/uuid"
 )
 
 type SocialNetworkClient struct {
-	socialClient *pb.SocialServiceClient
+	socialClient pb.SocialServiceClient
 	conn          *grpc.ClientConn
 }
 
@@ -19,16 +19,17 @@ func NewSocialNetworkClient(addr string) (*SocialNetworkClient, error) {
 		return nil, err
 	}
 	return &SocialNetworkClient{
-		socialClient: pb.NewSocialNetworkClient(conn),
+		socialClient: pb.NewSocialServiceClient(conn),
 		conn:          conn,
 	}, nil
 }
 
 func (c *SocialNetworkClient) GetUserProfile(ctx context.Context, userID uuid.UUID) (*pb.UserProfile, error) {
 	resp, err := c.socialClient.GetProfile(ctx, &pb.GetProfileRequest{UserId: userID.String()})
-	return resp.Profile, err 
+	return resp, err
   }
-  
+
   func (c *SocialNetworkClient) Login(ctx context.Context, email, password string) (*pb.LoginResponse, error) {
-	return c.socialClient.Login(ctx, &pb.LoginRequest{Email: email, Password: password})
+	// return c.socialClient.Login(ctx, &pb.LoginRequest{Email: email, Password: password})
+	return nil, nil
   }

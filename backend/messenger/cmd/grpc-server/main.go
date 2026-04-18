@@ -1,7 +1,6 @@
 package main
 
 import (
-	pb "api/proto/chat"
 	"log"
 	"messenger/internal/config"
 	"messenger/internal/kafka"
@@ -9,6 +8,8 @@ import (
 	gr "messenger/transport/grpc"
 	"messenger/transport/http/gateway"
 	"net"
+
+	chatv1 "api/gen/chat/v1"
 
 	"google.golang.org/grpc"
 )
@@ -19,7 +20,7 @@ func main() {
         log.Fatal("load config:", err)
     }
 
-    producer, err := kafka.NewProducer(cfg.KafkaBrokers, cfg.KafkaTopic)
+    producer, err := kafka.NewProducer(cfg.KafkaBrokers)
     if err != nil {
         log.Fatal(err)
     }
@@ -35,7 +36,7 @@ func main() {
     }
 
     grpcServer := grpc.NewServer()
-    pb.RegisterChatServiceServer(grpcServer, gr.NewServer(container.ChatService()))
+    chatv1.RegisterChatServiceServer(grpcServer, gr.NewServer(container.ChatService()))
     go func() {
         log.Printf("gRPC on %s", cfg.GRPCAddr);
         grpcServer.Serve(grpcLis)

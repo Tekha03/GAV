@@ -4,7 +4,7 @@ package client
 import (
 	"context"
 	"google.golang.org/grpc"
-	pb "api/notification_gen"
+	pb "api/gen/notification/v1"
 	uuid "github.com/google/uuid"
 )
 
