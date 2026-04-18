@@ -36,7 +36,7 @@ jobs:
 
     - name: Generate protobuf
       run: |
-        cd backend/api_gav; make proto-all
+        cd backend/api; make proto-all
 
     - name: Build messenger
       run: cd backend; go build ./messenger/cmd/grpc-server/main.go
