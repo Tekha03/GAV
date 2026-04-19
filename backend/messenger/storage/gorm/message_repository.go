@@ -76,7 +76,5 @@ func (mr *MessageRepository) GetByChatID(ctx context.Context, chatID uuid.UUID, 
 }
 
 func (mr *MessageRepository) UpdateReadAtForChat(ctx context.Context, chatID, userID uuid.UUID, readAt time.Time) error {
-    // В реальной схеме это в chat_members.last_read_message_id
-    // Memory заглушка
     return nil
 }
