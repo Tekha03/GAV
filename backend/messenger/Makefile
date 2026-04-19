@@ -6,6 +6,5 @@ db-push:
 	atlas schema apply --env dev --url "docker://postgres/15?search_path=messanger"
 
 proto db:
-	make proto
 	make db-migrate
 	make db-push

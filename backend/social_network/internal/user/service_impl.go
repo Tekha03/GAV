@@ -66,7 +66,12 @@ func (s *service) FindDogsNearby(ctx context.Context, userID uuid.UUID, centerLa
 	result := make([]*dog.Dog, 0)
 
 	for _, currentDog := range dogs {
-		if currentDog.OwnerID == userID || currentDog.Visibility != dog.VisibilityEveryone {
+		owner, err := s.GetByID(ctx, currentDog.OwnerID)
+		if err != nil {
+			return nil, err
+		}
+
+		if currentDog.OwnerID == userID || owner.Visibility != VisibilityEveryone {
 			continue
 		}
 
@@ -74,4 +79,27 @@ func (s *service) FindDogsNearby(ctx context.Context, userID uuid.UUID, centerLa
 	}
 
 	return result, nil
+}
+
+func (s *service) UpdateLocation(ctx context.Context, userID uuid.UUID, locationInput UpdateLocationInput) error {
+	user, err := s.repo.GetByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	user.Lat = &locationInput.Latitude
+	user.Lon = &locationInput.Longitude
+
+	return s.repo.Update(ctx, user)
+}
+
+func (s *service) SetLocationVisibility(ctx context.Context, userID uuid.UUID, visibility SetLocationVisibilityInput) error {
+	user, err := s.repo.GetByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	user.Visibility = visibility.Visibility
+
+	return s.repo.Update(ctx, user)
 }

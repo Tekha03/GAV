@@ -221,7 +221,6 @@ func TestFindDogsNearby_Success(t *testing.T) {
 			{
 				ID:              uuid.New(),
 				OwnerID:         otherUserID,
-				Visibility: 	 dog.VisibilityEveryone,
 			},
 		}
 
@@ -242,7 +241,6 @@ func TestFindDogsNearby_Success(t *testing.T) {
 			{
 				ID:              uuid.New(),
 				OwnerID:         userID,
-				Visibility: 	 dog.VisibilityEveryone,
 			},
 		}
 
@@ -262,7 +260,6 @@ func TestFindDogsNearby_Success(t *testing.T) {
 			{
 				ID:              uuid.New(),
 				OwnerID:         uuid.New(),
-				Visibility: 	 dog.VisibilityNoOne,
 			},
 		}
 

@@ -3,6 +3,7 @@ package container
 
 import (
 	"messenger/internal/client"
+	"messenger/internal/kafka"
 	"messenger/internal/service"
 	orm "messenger/storage/gorm"
 	rds "messenger/storage/redis"
@@ -15,14 +16,15 @@ import (
 	"gorm.io/gorm"
 )
 type HybridContainer struct {
-    gormRepo *orm.Repository
-    redis    *redis.Client
-    grpcConn *grpc.ClientConn
+    gormRepo 	 *orm.Repository
+    redis    	 *redis.Client
+    grpcConn 	 *grpc.ClientConn
     socialClient *client.SocialNetworkClient
 	notClient    *client.NotificationClient
+	producer   	 *kafka.Producer
 }
 
-func NewHybridContainer(postgresDSN, redisAddr, socialNetworkAddr string) (*HybridContainer, error) {
+func NewHybridContainer(postgresDSN, redisAddr, socialNetworkAddr string, producer *kafka.Producer) (*HybridContainer, error) {
 	pgDB, err := gorm.Open(postgres.Open(postgresDSN))
 	if err != nil {
 		return nil, err
@@ -54,6 +56,7 @@ func NewHybridContainer(postgresDSN, redisAddr, socialNetworkAddr string) (*Hybr
 		grpcConn:     grpcConn,
 		socialClient: socialClient,
 		notClient:    notClient,
+		producer:     producer,
 	}, nil
 }
 
@@ -69,9 +72,9 @@ func (c *HybridContainer) ChatService() service.Service {
 		orm.NewReactionRepository(c.gormRepo),
 		rds.NewPinnedRepository(c.redis),
 		rds.NewTypingRepository(c.redis),
-
 		c.socialClient,
 		c.notClient,
+		c.producer,
 	)
 }
 

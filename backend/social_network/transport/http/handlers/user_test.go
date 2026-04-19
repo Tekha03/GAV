@@ -151,7 +151,7 @@ func TestDogHandler_FindDogsNearby_Success(t *testing.T) {
 	lat, lon, radius := 55.75, 37.61, 1000.0
 
 	expectedDogs := []*dog.Dog{
-		{ID: uuid.New(), Name: "Rex", LocationStatus: 1},
+		{ID: uuid.New(), Name: "Rex"},
 	}
 
 	mockService.On("FindDogsNearby", mock.Anything, userID, lat, lon, radius).

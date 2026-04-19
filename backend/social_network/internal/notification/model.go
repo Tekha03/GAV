@@ -9,9 +9,12 @@ import (
 type Type string
 
 const (
-	TypeLike	Type = "like"
-	TypeComment	Type = "comment"
-	TypeFollow	Type = "follow"
+	TypeLike			Type = "like"
+	TypeComment			Type = "comment"
+	TypeFollow			Type = "follow"
+	TypeDirectMessage 	Type = "direct_message"
+	TypeChatInvite 		Type = "chat_invite"
+	TypeMessageReaction Type = "message_reaction"
 )
 
 type Notification struct {

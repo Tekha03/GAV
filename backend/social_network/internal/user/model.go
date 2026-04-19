@@ -11,8 +11,14 @@ type User struct {
 	Email		string		`gorm:"unique;not null"`
 	Password	string		`gorm:"not null"`
 	Role		string		`gorm:"type:text;not null;default:'user'"`
+
 	CreatedAt	time.Time
 	UpdatedAt	time.Time
+
+	Lat         *float64
+    Lon         *float64
+    LocationStatus  LocationStatus
+    Visibility      LocationVisibility
 }
 
 func NewUser(email, passwordHash string) (*User, error) {

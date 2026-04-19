@@ -18,9 +18,11 @@ import (
 )
 
 type App struct {
-	Server *http.Server
-	sqlDB  *gorm.DB
-	logger *slog.Logger
+	Server 			*http.Server
+	Services 		*Services
+	NotificationHub	 *notification.Hub
+	sqlDB  			*gorm.DB
+	logger 			*slog.Logger
 }
 
 func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
@@ -73,7 +75,6 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 
 	mediaStorage := media.NewLocalStorage(cfg.Storage.LocalPath)
 
-	// repositories
 	repos, err := initRepositories(db);
 	if err != nil {
 		return nil, err
@@ -82,13 +83,11 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 	notificationHub := notification.NewHub()
 	go notificationHub.Run()
 
-	// services
 	services, err := initServices(repos, jwtConfig, mediaStorage, notificationHub)
 	if err != nil {
 		return nil, err
 	}
 
-	// handlers
 	handlers, err := initHandlers(services, notificationHub)
 	if err != nil {
 		return nil, err
@@ -125,7 +124,13 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 
 	logger.Info("http server configured", "port", cfg.HTTP.Port)
 
-	return &App{Server: server, sqlDB: db, logger: logger}, nil
+	return &App{
+		Server: 		server,
+		Services:		services,
+		NotificationHub: notificationHub,
+		sqlDB: 			db,
+		logger: 		logger,
+	}, nil
 }
 
 func (a *App) Run() error {
@@ -135,7 +140,6 @@ func (a *App) Run() error {
 	}
 
 	a.logger.Info("http server stopped")
-
 	return nil
 }
 

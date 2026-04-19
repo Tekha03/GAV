@@ -22,6 +22,8 @@ type Config struct {
     Env                  string        `yaml:"env"`
     LogLevel             string        `yaml:"log_level"`
     MigrationDir         string        `yaml:"migration_dir"`
+    KafkaBrokers         []string      `yaml:"kafka_brokers"`
+    KafkaTopic           string        `yaml:"kafka_topic"`
 }
 
 func Load() (*Config, error) {
@@ -37,6 +39,8 @@ func Load() (*Config, error) {
         HTTPAddr:       getEnv("HTTP_ADDR", ":8080"),
         WSSAddr:        getEnv("WSS_ADDR", ":8081"),
         MigrationDir:   getEnv("MIGRATION_DIR", "file://migrations"),
+        KafkaBrokers:   strings.Split(getEnv("KAFKA_BROKERS", "localhost:9092"), ","),
+        KafkaTopic:     getEnv("KAFKA_TOPIC", "events"),
     }
 
     if err := cfg.Validate(); err != nil {

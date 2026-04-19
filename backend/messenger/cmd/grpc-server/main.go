@@ -1,13 +1,15 @@
 package main
 
 import (
-	pb "api/chat_gen/chat"
 	"log"
 	"messenger/internal/config"
+	"messenger/internal/kafka"
 	"messenger/storage/container"
 	gr "messenger/transport/grpc"
 	"messenger/transport/http/gateway"
 	"net"
+
+	chatv1 "api/gen/chat/v1"
 
 	"google.golang.org/grpc"
 )
@@ -18,14 +20,27 @@ func main() {
         log.Fatal("load config:", err)
     }
 
-    container, err := container.NewHybridContainer(cfg.PostgresDSN, cfg.RedisAddr, cfg.SocialNetworkAddr)
-    if err != nil { log.Fatal(err) }
+    producer, err := kafka.NewProducer(cfg.KafkaBrokers)
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    container, err := container.NewHybridContainer(cfg.PostgresDSN, cfg.RedisAddr, cfg.SocialNetworkAddr, producer)
+    if err != nil {
+        log.Fatal(err)
+    }
 
     grpcLis, err := net.Listen("tcp", cfg.GRPCAddr)
-    if err != nil { log.Fatal(err) }
+    if err != nil {
+        log.Fatal(err)
+    }
+
     grpcServer := grpc.NewServer()
-    pb.RegisterChatServiceServer(grpcServer, gr.NewServer(container.ChatService()))
-    go func() { log.Printf("gRPC on %s", cfg.GRPCAddr); grpcServer.Serve(grpcLis) }()
+    chatv1.RegisterChatServiceServer(grpcServer, gr.NewServer(container.ChatService()))
+    go func() {
+        log.Printf("gRPC on %s", cfg.GRPCAddr);
+        grpcServer.Serve(grpcLis)
+    }()
 
     httpServer := gateway.NewHTTPServer(cfg.GRPCAddr)
     log.Printf("HTTP gateway on :8080")
