@@ -14,7 +14,7 @@ type MembersRepository struct {
 	members map[uuid.UUID]map[uuid.UUID]*model.ChatMember
 }
 
-func NeMembersRepository() repository.ChatMemberRepository {
+func NewMembersRepository() repository.ChatMemberRepository {
 	return &MembersRepository{members: make(map[uuid.UUID]map[uuid.UUID]*model.ChatMember)}
 }
 

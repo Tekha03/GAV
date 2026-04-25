@@ -1,7 +1,6 @@
 package memory
 
 import (
-	"bytes"
 	"context"
 	"messenger/internal/model"
 	"messenger/internal/repository"
@@ -84,7 +83,7 @@ func (mr *MessageRepository) GetByChatID(ctx context.Context, chatID uuid.UUID, 
 	mr.mu.RLock()
 	defer mr.mu.RUnlock()
 
-	var result []*model.Message
+	result := make([]*model.Message, 0)
 	for _, msg := range mr.messages {
 		if msg.ChatID != chatID || msg.DeletedAt != nil {
 			continue
@@ -98,15 +97,16 @@ func (mr *MessageRepository) GetByChatID(ctx context.Context, chatID uuid.UUID, 
 	}
 
 	sort.Slice(result, func(i, j int) bool {
-		return bytes.Compare(result[i].ID[:], result[j].ID[:]) > 0
+		return result[i].CreatedAt.After(result[j].CreatedAt)
 	})
 
-	if len(result) > limit {
+	if limit > 0 && len(result) > limit {
 		result = result[:limit]
 	}
 
 	return result, nil
 }
+
 func (mr *MessageRepository) UpdateReadAtForChat(ctx context.Context, chatID, userID uuid.UUID, readAt time.Time) error {
     mr.mu.Lock()
     defer mr.mu.Unlock()

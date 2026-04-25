@@ -64,15 +64,30 @@ func (mr *MessageRepository) GetByID(ctx context.Context, messageID uuid.UUID) (
 func (mr *MessageRepository) GetByChatID(ctx context.Context, chatID uuid.UUID, limit int, cursorID *uuid.UUID) ([]*model.Message, error) {
     query := mr.repo.WithContext(ctx).
         Where("chat_id = ? AND deleted_at IS NULL", chatID).
-        Order("created_at DESC").
-        Limit(limit)
+        Order("created_at DESC")
 
     if cursorID != nil {
-        query = query.Where("created_at < ?", *cursorID)
+        var cursorMsg model.Message
+        if err := mr.repo.WithContext(ctx).Where("id = ? AND deleted_at IS NULL", *cursorID).First(&cursorMsg).Error; err != nil {
+            if errors.Is(err, gorm.ErrRecordNotFound) {
+                return []*model.Message{}, nil
+            }
+            return nil, err
+        }
+
+        query = query.Where("created_at < ?", cursorMsg.CreatedAt)
     }
 
-    var messages []*model.Message
-    return messages, query.Find(&messages).Error
+    if limit > 0 {
+        query = query.Limit(limit)
+    }
+
+    messages := make([]*model.Message, 0)
+    if err := query.Find(&messages).Error; err != nil {
+        return nil, err
+    }
+
+    return messages, nil
 }
 
 func (mr *MessageRepository) UpdateReadAtForChat(ctx context.Context, chatID, userID uuid.UUID, readAt time.Time) error {
