@@ -27,8 +27,8 @@ func (c *Config) validate() error {
 	if c.HTTP.Port == "" {
 		return Err("HTTP_PORT is required")
 	}
-	if c.DB.Path == "" {
-		return Err("DB_PATH is required")
+	if c.DB.DSN == "" {
+		return Err("POSTGRES_DSN is required")
 	}
 	if c.JWT.Secret == "" {
 		return Err("JWT_SECRET is required")

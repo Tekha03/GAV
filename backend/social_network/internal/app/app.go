@@ -29,8 +29,8 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 	if cfg == nil {
 		return nil, ErrConfigNil
 	}
-	if cfg.DB.Path == "" {
-		return nil, ErrDBPathEmpty
+	if cfg.DB.DSN == "" {
+		return nil, ErrDBDSNEmpty
 	}
 	if cfg.JWT.Secret == "" {
 		return nil, ErrJWTSecretEmpty
@@ -39,13 +39,13 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	logger.Info("initializing application")
 
-	db, err := dbserver.InitDB(cfg.DB.Path, logger)
+	db, err := dbserver.InitDB(cfg.DB.DSN, logger)
 	if err != nil {
 		logger.Error("failed to open database", "error", err)
 		return nil, err
 	}
 
-	logger.Info("database opened", "path", cfg.DB.Path)
+	logger.Info("database opened")
 
 	if os.Getenv("ENV") != "production" {
 		if err := dbserver.SeedDatabase(db, logger); err != nil {

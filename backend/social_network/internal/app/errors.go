@@ -4,6 +4,6 @@ import "errors"
 
 var (
 	ErrConfigNil 	 	 = errors.New("app: config is nil")
-	ErrDBPathEmpty 		= errors.New("app: db path is empty")
+	ErrDBDSNEmpty 		= errors.New("app: db dsn is empty")
 	ErrJWTSecretEmpty 	= errors.New("app: jwt secret is empty")
 )

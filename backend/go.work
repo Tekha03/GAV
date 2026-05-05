@@ -2,8 +2,8 @@ go 1.25.0
 
 use (
 	./api
+	./docs
 	./messenger
 	./shared/events
 	./social_network
-	./docs
 )

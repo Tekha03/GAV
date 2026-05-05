@@ -3,5 +3,5 @@ package dbserver
 import "errors"
 
 var (
-	ErrCannotOpen = errors.New("cannot open sqlite")
+	ErrCannotOpen = errors.New("cannot open postgres")
 )

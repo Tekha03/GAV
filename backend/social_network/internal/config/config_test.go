@@ -27,7 +27,7 @@ func TestLoadDB(t *testing.T) {
 	t.Setenv("DB_PATH", "./test.db")
 	cfg := loadDB()
 
-	assert.Equal(t, "./test.db", cfg.Path)
+	assert.Equal(t, "./test.db", cfg.DSN)
 }
 
 func TestLoadJWT(t *testing.T) {
@@ -87,7 +87,7 @@ func TestValidate_Success(t *testing.T) {
 			Port: "8080",
 		},
 		DB: DBConfig{
-			Path: "./db.sqlite",
+			DSN: "postgres://user:pass@localhost:5432/gav?sslmode=disable",
 		},
 		JWT: JWTConfig{
 			Secret: "secret",
@@ -103,7 +103,7 @@ func TestValidate_HTTPPortMissing(t *testing.T) {
 	cfg := &Config{
 		HTTP: HTTPConfig{},
 		DB: DBConfig{
-			Path: "./db",
+			DSN: "./db",
 		},
 		JWT: JWTConfig{
 			Secret: "secret",
@@ -133,7 +133,7 @@ func TestValidate_DBPathMissing(t *testing.T) {
 	err := cfg.validate()
 
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "DB_PATH")
+	assert.Contains(t, err.Error(), "POSTGRES_PATH")
 }
 
 func TestValidate_JWTSecretMissing(t *testing.T) {
@@ -142,7 +142,7 @@ func TestValidate_JWTSecretMissing(t *testing.T) {
 			Port: "8080",
 		},
 		DB: DBConfig{
-			Path: "./db",
+			DSN: "./db",
 		},
 		JWT: JWTConfig{
 			TTL: time.Hour,
@@ -161,7 +161,7 @@ func TestValidate_JWTTTLMissing(t *testing.T) {
 			Port: "8080",
 		},
 		DB: DBConfig{
-			Path: "./db",
+			DSN: "./db",
 		},
 		JWT: JWTConfig{
 			Secret: "secret",
@@ -184,7 +184,7 @@ func TestLoad_Success(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Equal(t, "8080", cfg.HTTP.Port)
-	assert.Equal(t, "./db.sqlite", cfg.DB.Path)
+	assert.Equal(t, "postgres://user:pass@localhost:5432/gav?sslmode=disable", cfg.DB.DSN)
 	assert.Equal(t, "secret", cfg.JWT.Secret)
 	assert.Equal(t, time.Hour, cfg.JWT.TTL)
 }

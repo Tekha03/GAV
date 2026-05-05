@@ -1,4 +1,4 @@
-package sqlite
+package postgres
 
 import (
 	"context"
@@ -92,16 +92,20 @@ func (r *UserRepository) FindWalkingNearby(ctx context.Context, centerLat, cente
 	var dogs []*dog.Dog
 
 	query := `
-	SELECT *, (
-		6371000 * acos(
-			cos(radians(?)) * cos(radians(lat)) * cos(radians(lon) - radians(?)) +
-			sin(radians(?)) * sin(radians(lat))
-		)
-	) AS distance
+	SELECT dogs.*
 	FROM dogs
-	WHERE lat IS NOT NULL AND lon IS NOT NULL
-	  AND location_visible = TRUE
-	HAVING distance <= ?
+	JOIN users ON dogs.owner_id = users.id
+	WHERE users.lat IS NOT NULL
+		AND users.lon IS NOT NULL
+		AND users.visibility = ?
+		AND (
+	  		6371000 * acos(
+				LEAST(1.0, GREATEST(-1.0,
+					cos(radians(?)) * cos(radians(users.lat)) * cos(radians(users.lon) - radians(?)) +
+					sin(radians(?)) * sin(radians(users.lat))
+				))
+			)
+		) <= ?
 	`
 
 	if err := r.DB(ctx).Raw(query, centerLat, centerLon, centerLat, radiusMeters).Scan(&dogs).Error; err != nil {

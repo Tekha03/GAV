@@ -3,11 +3,11 @@ package config
 import "os"
 
 type DBConfig struct {
-	Path string
+	DSN string
 }
 
 func loadDB() DBConfig {
 	return DBConfig{
-		Path: os.Getenv("DB_PATH"),
+		DSN: os.Getenv("POSTGRES_DSN"),
 	}
 }

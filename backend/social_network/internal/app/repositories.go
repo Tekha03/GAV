@@ -14,7 +14,7 @@ import (
 	"social_network/internal/token"
 	"social_network/internal/user"
 	"social_network/internal/vaccination"
-	gavSqlite "social_network/storage/sqlite"
+	gavSqlite "social_network/storage/postgres"
 
 	"gorm.io/gorm"
 )

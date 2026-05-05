@@ -16,23 +16,15 @@ import (
 	"social_network/internal/user"
 	"social_network/internal/vaccination"
 
-	"gorm.io/driver/sqlite"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
-func InitDB(path string, logger *slog.Logger) (*gorm.DB, error) {
-	if path == "" {
-		path = "social.db"
-	}
-
-	db, err := gorm.Open(sqlite.Open(path), &gorm.Config{})
+func InitDB(dsn string, logger *slog.Logger) (*gorm.DB, error) {
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
-		return nil, fmt.Errorf("cannot open sqlite: %w", err)
+		return nil, fmt.Errorf("cannot open postgres: %w", err)
 	}
-
-	logger.Info("database opened", "path", path)
-	sqlDB, _ := db.DB()
-	sqlDB.Exec("PRAGMA foreign_keys = ON;")
 
 	models := []interface{}{
 		&user.User{},
