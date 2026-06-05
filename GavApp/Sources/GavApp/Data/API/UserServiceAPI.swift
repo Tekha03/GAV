@@ -58,7 +58,7 @@ final class UserServiceAPI: UserServiceAPIProtocol {
         radiusMeters: Double
     ) async throws -> [DogModel] {
 
-        let path = "/api/v1/users/\(id.uuidString)/dogs/nearby?lat=\(centerLat)&lon=\(centerLon)&radius=\(radiusMeters)"
+        let path = "/api/v1/dogs/nearby?lat=\(centerLat)&lon=\(centerLon)&radius=\(radiusMeters)"
 
         let data = try await base.request(path)
 

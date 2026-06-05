@@ -2,6 +2,7 @@ package profile
 
 import (
 	"context"
+	"strings"
 
 	"github.com/google/uuid"
 )
@@ -24,14 +25,14 @@ func (s *service) Create(ctx context.Context, userID uuid.UUID, input CreateProf
 	}
 
 	profile := &UserProfile{
-		UserID: userID,
-		Name: input.Name,
-		Surname: input.Surname,
-		Username: input.Username,
+		UserID:          userID,
+		Name:            input.Name,
+		Surname:         input.Surname,
+		Username:        input.Username,
 		ProfilePhotoUrl: input.ProfilePhotoUrl,
-		Bio: input.Bio,
-		Address: input.Address,
-		BirthDate: input.BirthDate,
+		Bio:             input.Bio,
+		Address:         input.Address,
+		BirthDate:       input.BirthDate,
 	}
 
 	if err := s.repo.Create(ctx, profile); err != nil {
@@ -61,6 +62,19 @@ func (s *service) GetByUserID(ctx context.Context, userID uuid.UUID) (*UserProfi
 	}
 
 	return profile, nil
+}
+
+func (s *service) Search(ctx context.Context, query string, limit int) ([]*UserProfile, error) {
+	query = strings.TrimSpace(query)
+	if query == "" {
+		return []*UserProfile{}, nil
+	}
+
+	if limit <= 0 || limit > 25 {
+		limit = 10
+	}
+
+	return s.repo.Search(ctx, query, limit)
 }
 
 func (s *service) Update(ctx context.Context, profileID uuid.UUID, input UpdateProfileInput) error {
@@ -95,7 +109,11 @@ func (s *service) Update(ctx context.Context, profileID uuid.UUID, input UpdateP
 		profile.BirthDate = *input.BirthDate
 	}
 
-	return s.repo.Update(ctx, profile)
+	if err := s.repo.Update(ctx, profile); err != nil {
+		return ErrProfileAlreadyExists
+	}
+
+	return nil
 }
 
 func (s *service) Delete(ctx context.Context, profileID uuid.UUID) error {

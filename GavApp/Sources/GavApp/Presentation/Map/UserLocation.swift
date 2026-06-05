@@ -1,12 +1,14 @@
 import CoreLocation
 import Foundation
+import Combine
 
-@available(macOS 12.0, *)
-class UserLocation: NSObject, ObservableObject, CLLocationManagerDelegate {
+@MainActor
+final class UserLocation: NSObject, ObservableObject, CLLocationManagerDelegate {
+
     @Published var location: CLLocation?
     @Published var locationStatus: LocationStatus = .inactive
     @Published var locationVisibility: LocationVisibility = .everyone
-    @Published var isLocationEnabled: Bool = false
+    @Published var isLocationEnabled = false
 
     private let locationManager = CLLocationManager()
 
@@ -26,18 +28,14 @@ class UserLocation: NSObject, ObservableObject, CLLocationManagerDelegate {
         locationManager.stopUpdatingLocation()
     }
 
-    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+    nonisolated func locationManager(
+        _ manager: CLLocationManager,
+        didUpdateLocations locations: [CLLocation]
+    ) {
         guard let location = locations.last else { return }
-        DispatchQueue.main.async {
+
+        Task { @MainActor in
             self.location = location
         }
-    }
-
-    func updateLocationStatus(_ status: LocationStatus) {
-        locationStatus = status
-    }
-
-    func updateLocationVisibility(_ visibility: LocationVisibility) {
-        locationVisibility = visibility
     }
 }

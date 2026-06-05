@@ -13,25 +13,26 @@ import (
 )
 
 type Handlers struct {
-	Auth         *handlers.AuthHandler
-	User         *handlers.UserHandler
-	Profile       *handlers.ProfileHandler
-	Post         *handlers.PostHandler
-	Feed		 *handlers.FeedHandler
-	Comment      *handlers.CommentHandler
-	Like         *handlers.LikeHandler
-	Follow       *handlers.FollowHandler
-	Dog          *handlers.DogHandler
-	Vaccination  *handlers.VaccinationHandler
-	Stats        *handlers.StatsHandler
-	Settings     *handlers.SettingsHandler
-	Upload		 *handlers.UploadHandler
-	WS	 		*handlers.NotificationHandler
+	Auth        *handlers.AuthHandler
+	User        *handlers.UserHandler
+	Profile     *handlers.ProfileHandler
+	Post        *handlers.PostHandler
+	Feed        *handlers.FeedHandler
+	Comment     *handlers.CommentHandler
+	Like        *handlers.LikeHandler
+	Follow      *handlers.FollowHandler
+	Dog         *handlers.DogHandler
+	Vaccination *handlers.VaccinationHandler
+	Stats       *handlers.StatsHandler
+	Settings    *handlers.SettingsHandler
+	Upload      *handlers.UploadHandler
+	WS          *handlers.NotificationHandler
 }
 
 type RouterDeps struct {
-	AuthMW		func(http.Handler) http.Handler
+	AuthMW      func(http.Handler) http.Handler
 	PostService post.PostService
+	StoragePath string
 }
 
 func NewRouter(
@@ -48,9 +49,9 @@ func NewRouter(
 	r.Use(middleware.Recover(logger))
 	r.Use(middleware.Timeout)
 
-	r.Get("/", func (w http.ResponseWriter, r *http.Request)  {
+	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html")
-	html := `
+		html := `
 <!DOCTYPE html>
 <html>
 <head>
@@ -83,6 +84,9 @@ POST /api/v1/posts           - создать пост
 	})
 
 	r.Get("/swagger/*", httpSwagger.WrapHandler)
+	if deps.StoragePath != "" {
+		r.Handle("/uploads/*", http.StripPrefix("/uploads/", http.FileServer(http.Dir(deps.StoragePath))))
+	}
 
 	r.Route("/api/v1", func(r chi.Router) {
 		// r.Route("/admin", func(r chi.Router) {
@@ -111,16 +115,21 @@ POST /api/v1/posts           - создать пост
 			// ---- Users ----
 			r.Route("/users", func(r chi.Router) {
 				r.Get("/{id}", h.User.GetByID)
-				r.Get("/{userID}/profile", h.Profile.GetByUserID)
 				r.Put("/{id}", h.User.Update)
 				r.Delete("/{id}", h.User.Delete)
+				r.Get("/{userID}/profile", h.Profile.GetByUserID)
+
+				r.Post("/{userID}/profile", h.Profile.Create)
+				r.Get("/{userID}/profile", h.Profile.GetByUserID)
+				r.Put("/{userID}/profile", h.Profile.Update)
+				r.Delete("/{userID}/profile", h.Profile.Delete)
+
+				r.Put("/{id}/location", h.User.UpdateLocation)
+				r.Put("/{id}/location-visibility", h.User.SetLocationVisibility)
+				r.Get("/dogs/nearby", h.User.FindDogsNearby)
 			})
 
-			// ---- Profiles ----
-			r.Route("/profiles", func(r chi.Router) {
-				r.Put("/{userID}", h.Profile.Update)
-				r.Delete("/{userID}", h.Profile.Delete)
-			})
+			r.Get("/profiles/search", h.Profile.Search)
 
 			// ---- Posts ----
 			r.Route("/posts", func(r chi.Router) {
@@ -161,7 +170,6 @@ POST /api/v1/posts           - создать пост
 			r.Route("/dogs", func(r chi.Router) {
 				r.Post("/", h.Dog.Create)
 				r.Get("/{id}", h.Dog.GetPrivate)
-				r.Get("/{id}", h.Dog.GetPublic)
 				r.Put("/{id}", h.Dog.Update)
 				r.Delete("/{id}", h.Dog.Delete)
 
@@ -169,6 +177,7 @@ POST /api/v1/posts           - создать пост
 					r.Post("/", h.Vaccination.Create)
 					r.Get("/", h.Vaccination.ListByDogID)
 					r.Put("/{vaccinationID}", h.Vaccination.Update)
+					r.Delete("/{vaccinationID}", h.Vaccination.Delete)
 				})
 			})
 
@@ -194,6 +203,7 @@ POST /api/v1/posts           - создать пост
 			r.Route("/upload", func(r chi.Router) {
 				r.Post("/avatar", h.Upload.UploadAvatar)
 				r.Post("/post-image", h.Upload.UploadPostImage)
+				r.Post("/dog-image", h.Upload.UploadDogImage)
 			})
 
 			// ---- Web Socket ----

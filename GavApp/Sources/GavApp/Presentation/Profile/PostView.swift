@@ -1,93 +1,91 @@
 import SwiftUI
 
-@available(macOS 12.0, *)
 struct PostView: View {
-    let post: Post
+    @EnvironmentObject private var appViewModel: AppViewModel
+    let post: AppPost
     let onLike: () -> Void
-    
+
+    private var isLiked: Bool {
+        appViewModel.likedPostIDs.contains(post.id)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Image(systemName: "person.circle.fill")
-                    .resizable()
-                    .frame(width: 40, height: 40)
-                    .foregroundColor(.gray)
-                
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Вы")
-                        .font(.subheadline.bold())
-                    
-                    Text(post.date.formatted(date: .abbreviated, time: .shortened))
-                        .font(.caption2)
-                        .foregroundColor(.gray)
+                AsyncImage(url: post.authorPhotoURL) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image.resizable().scaledToFill()
+                    default:
+                        Circle()
+                            .fill(.white.opacity(0.12))
+                            .overlay(Image(systemName: "person.fill"))
+                    }
                 }
-                
+                .frame(width: 40, height: 40)
+                .clipShape(Circle())
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(post.authorName)
+                        .font(.subheadline.bold())
+                    Text(post.authorHandle)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
                 Spacer()
+
+                Text(post.createdAt.formatted(date: .abbreviated, time: .shortened))
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
             }
-            
-            // Контент
+
             Text(post.content)
                 .font(.body)
-                .padding(.vertical, 4)
-            
-            // Изображение если есть
-            if let imageUrl = post.imageUrl {
-                AsyncImage(url: URL(string: imageUrl)) { phase in
+
+            if let imageURL = post.imageURL {
+                AsyncImage(url: imageURL) { phase in
                     switch phase {
-                    case .empty:
-                        ProgressView()
-                            .frame(maxWidth: .infinity, minHeight: 200)
                     case .success(let image):
-                        image
-                            .resizable()
-                            .scaledToFill()
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 250)
-                            .clipped()
-                            .cornerRadius(12)
-                    case .failure:
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(Color.gray.opacity(0.2))
-                            .frame(height: 200)
-                            .overlay(
-                                Image(systemName: "photo")
-                                    .foregroundColor(.gray)
-                            )
-                    @unknown default:
-                        EmptyView()
+                        image.resizable().scaledToFill()
+                    default:
+                        RoundedRectangle(cornerRadius: 14)
+                            .fill(.white.opacity(0.08))
+                            .overlay(Image(systemName: "photo"))
                     }
                 }
+                .frame(height: 240)
+                .clipShape(RoundedRectangle(cornerRadius: 14))
             }
-            
-            // Кнопки взаимодействия
-            HStack(spacing: 20) {
-                Button(action: onLike) {
-                    HStack(spacing: 4) {
-                        Image(systemName: post.isLiked ? "heart.fill" : "heart")
-                            .foregroundColor(post.isLiked ? .red : .gray)
-                        Text("\(post.likesCount)")
-                            .font(.caption)
-                            .foregroundColor(.gray)
+
+            HStack(spacing: 18) {
+                Button {
+                    withAnimation(.spring(response: 0.28, dampingFraction: 0.55)) {
+                        appViewModel.toggleLike(postID: post.id)
                     }
+                } label: {
+                    Image(systemName: post.isLiked ? "heart.fill" : "heart")
+                        .foregroundStyle(post.isLiked ? .red : .white.opacity(0.85))
+                        .scaleEffect(post.isLiked ? 1.18 : 1.0)
+                        .contentTransition(.symbolEffect(.replace))
                 }
-                
-                Button(action: {}) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "bubble.right")
-                            .foregroundColor(.gray)
-                        Text("\(post.commentsCount)")
-                            .font(.caption)
-                            .foregroundColor(.gray)
-                    }
+                .buttonStyle(.plain)
+
+                Text("\(post.likes)")
+                .foregroundStyle(.white)
+
+                HStack(spacing: 6) {
+                    Image(systemName: "bubble.right")
+                        .foregroundStyle(.secondary)
+                    Text("\(post.comments)")
+                        .foregroundStyle(.secondary)
                 }
-                
+
                 Spacer()
             }
+            .font(.subheadline)
         }
-        .padding()
-        .background(Color(.secondarySystemBackground))
-        .cornerRadius(16)
-        .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
-        .padding(.horizontal)
+        .padding(14)
+        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 18))
     }
 }

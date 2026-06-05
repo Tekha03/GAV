@@ -1,7 +1,6 @@
 public struct AuthMapper {
     public init() {}
 
-    // user profile
     public func from(model: AuthModel) -> UserInfo {
         UserInfo(
             id: model.id,
@@ -9,7 +8,6 @@ public struct AuthMapper {
         )
     }
 
-    // tokens
     public func from(model: AuthTokensModel) -> AuthTokens {
         AuthTokens(
             accessToken: model.accessToken,

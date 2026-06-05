@@ -53,12 +53,16 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := kafka.LaunchKafka(ctx, application.Services.Notification); err != nil {
-		logger.Error("failed to launch Kafka", "error", err)
-		os.Exit(1)
+	if os.Getenv("KAFKA_ENABLED") == "true" {
+		if err := kafka.LaunchKafka(ctx, application.Services.Notification); err != nil {
+			logger.Error("failed to launch Kafka", "error", err)
+			os.Exit(1)
+		}
+	} else {
+		logger.Info("Kafka consumer disabled", "KAFKA_ENABLED", os.Getenv("KAFKA_ENABLED"))
 	}
 
-	go func () {
+	go func() {
 		logger.Info("starting HTTP server", "addr", application.Server.Addr)
 		if err := application.Run(); err != nil && err != http.ErrServerClosed {
 			logger.Error("http server failed", "error", err)
@@ -72,7 +76,7 @@ func main() {
 
 	logger.Info("received shutdown signal")
 
-	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10 * time.Second)
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer shutdownCancel()
 
 	if err := application.Shutdown(shutdownCtx); err != nil {

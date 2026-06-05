@@ -27,7 +27,7 @@ func NewUserRepository(db *gorm.DB) (user.Repository, error) {
 
 func (r *UserRepository) Create(ctx context.Context, u *user.User) error {
 	var existing user.User
-	err := r.DB(ctx).Where("settings_email = ?", u.Email).First(&existing).Error
+	err := r.DB(ctx).Where("email = ?", u.Email).First(&existing).Error
 
 	if err == nil {
 		return ErrUserExists
@@ -55,7 +55,7 @@ func (r *UserRepository) GetByID(ctx context.Context, id uuid.UUID) (*user.User,
 
 func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*user.User, error) {
 	var u user.User
-	if err := r.DB(ctx).Where("settings_email = ?", email).First(&u).Error; err != nil {
+	if err := r.DB(ctx).Where("email = ?", email).First(&u).Error; err != nil {
 		return nil, err
 	}
 

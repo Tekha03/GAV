@@ -1,6 +1,6 @@
 import Foundation
 
-protocol SettingsServiceAPIProtocol {
+protocol SettingsServiceAPIProtocol: Sendable {
     func getSettings() async throws -> UserSettingsModel
     func updateSettings(input: UpdateUserSettingsInput) async throws
 }

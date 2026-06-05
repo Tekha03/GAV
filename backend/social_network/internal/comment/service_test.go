@@ -12,7 +12,7 @@ import (
 
 type testEnv struct {
 	service CommentService
-	repo	*MockRepository
+	repo    *MockRepository
 }
 
 func setup(t *testing.T) *testEnv {
@@ -23,7 +23,7 @@ func setup(t *testing.T) *testEnv {
 
 	return &testEnv{
 		service: service,
-		repo: 	 repo,
+		repo:    repo,
 	}
 }
 
@@ -79,7 +79,7 @@ func TestGetByID_Success(t *testing.T) {
 
 	id := uuid.New()
 	comment := &Comment{
-		ID: id,
+		ID:      id,
 		Content: "text",
 	}
 
@@ -149,7 +149,12 @@ func TestDelete_Success(t *testing.T) {
 
 	userID := uuid.New()
 	commentID := uuid.New()
+	postID := uuid.New()
+	comment := &Comment{ID: commentID, UserID: userID, PostID: postID}
 
+	env.repo.
+		On("GetByID", ctx, commentID).
+		Return(comment, nil)
 	env.repo.
 		On("Delete", ctx, userID, commentID).
 		Return(nil)
@@ -164,7 +169,12 @@ func TestDelete_Error(t *testing.T) {
 
 	userID := uuid.New()
 	commentID := uuid.New()
+	postID := uuid.New()
+	comment := &Comment{ID: commentID, UserID: userID, PostID: postID}
 
+	env.repo.
+		On("GetByID", ctx, commentID).
+		Return(comment, nil)
 	env.repo.
 		On("Delete", ctx, userID, commentID).
 		Return(ErrDB)

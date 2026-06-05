@@ -11,7 +11,7 @@ public struct AuthUseCase {
         return try await repository.login(email: email, password: password)
     }
 
-    public func register(email: String, password: String) async throws -> AuthModel {
+    public func register(email: String, password: String) async throws -> AuthTokens {
         return try await repository.register(email: email, password: password)
     }
 

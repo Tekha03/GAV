@@ -2,20 +2,22 @@ package dog
 
 import (
 	"context"
+	"social_network/internal/stats"
 
 	"github.com/google/uuid"
 )
 
 type service struct {
-	repo Repository
+	repo        Repository
+	statService stats.StatsService
 }
 
-func NewService(repo Repository) (DogService, error) {
+func NewService(repo Repository, statService ...stats.StatsService) (DogService, error) {
 	if repo == nil {
 		return nil, ErrRepoNil
 	}
 
-	return &service{repo: repo}, nil
+	return &service{repo: repo, statService: stats.ServiceOrNoop(statService...)}, nil
 }
 
 func (s *service) Create(ctx context.Context, ownerID uuid.UUID, input CreateDogInput) (*Dog, error) {
@@ -36,15 +38,19 @@ func (s *service) Create(ctx context.Context, ownerID uuid.UUID, input CreateDog
 		return nil, err
 	}
 
+	if err = s.statService.IncrementDogs(ctx, ownerID); err != nil {
+		return nil, err
+	}
+
 	return dog, nil
 }
 
 func (s *service) Update(ctx context.Context, ownerID, dogID uuid.UUID, input UpdateDogInput) error {
 
 	dog, err := s.repo.GetByID(ctx, dogID)
-    if err != nil {
-        return err
-    }
+	if err != nil {
+		return err
+	}
 
 	if dog.OwnerID != ownerID {
 		return ErrDogAccessDenied
@@ -85,6 +91,10 @@ func (s *service) Delete(ctx context.Context, ownerID, dogID uuid.UUID) error {
 
 	if dog.OwnerID != ownerID {
 		return ErrDogAccessDenied
+	}
+
+	if err = s.statService.DecrementDogs(ctx, ownerID); err != nil {
+		return err
 	}
 
 	return s.repo.Delete(ctx, dogID)

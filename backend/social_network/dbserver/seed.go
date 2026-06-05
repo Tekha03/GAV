@@ -120,7 +120,7 @@ func SeedDatabase(db *gorm.DB, logger *slog.Logger) error {
 
 	for i, post := range posts {
 		if err := db.Create(&post).Error; err != nil {
-			return fmt.Errorf("failed to create post #%d, %w", i + 1, err)
+			return fmt.Errorf("failed to create post #%d, %w", i+1, err)
 		}
 	}
 
@@ -146,7 +146,7 @@ func SeedDatabase(db *gorm.DB, logger *slog.Logger) error {
 	}
 
 	for _, like := range likes {
-		if err := db.Create(&like); err != nil {
+		if err := db.Create(&like).Error; err != nil {
 			return fmt.Errorf("failed to create like: %w", err)
 		}
 	}
@@ -157,8 +157,8 @@ func SeedDatabase(db *gorm.DB, logger *slog.Logger) error {
 	}
 
 	for _, comment := range comments {
-		if err := db.Create(&comment); err != nil {
-			return fmt.Errorf("failed to create comment: %v", err)
+		if err := db.Create(&comment).Error; err != nil {
+			return fmt.Errorf("failed to create comment: %w", err)
 		}
 	}
 

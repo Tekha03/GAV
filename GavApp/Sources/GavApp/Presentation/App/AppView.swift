@@ -1,96 +1,47 @@
 import SwiftUI
-import Combine
 
 enum TabItem: Hashable {
     case profile
     case feed
     case map
-    case vaccination 
+    case vaccination
     case chat
+    case search
 }
 
-@available(macOS 12.0, *)
 struct AppView: View {
-    @State private var selection: TabItem = .profile
+    @EnvironmentObject private var appViewModel: AppViewModel
+    let session: AppSessionViewModel
 
     var body: some View {
-        TabView(selection: $selection) {
+        TabView {
             ProfileView(
-                viewModel: profileViewModel,
-                userId: appViewModel.currentUser?.id ?? UUID()
+                session: session,
+                uploadService: appViewModel.uploadService
             )
-            .tabItem {
-                Label("Профиль", systemImage: "person.crop.circle.fill")
-            }
-            .tag(TabItem.profile)
+                .tabItem {
+                    Label("Профиль", systemImage: "person.crop.circle.fill")
+                }
 
-            FeedView(
-                viewModel: feedViewModel
-            )
-            .tabItem {
-                Label("Лента", systemImage: "house.fill")
-            }
-            .tag(TabItem.feed)
+            FeedView()
+                .tabItem {
+                    Label("Лента", systemImage: "house.fill")
+                }
 
-            MapView(
-                viewModel: mapViewModel
-            )
-            .tabItem {
-                Label("Карта", systemImage: "map.fill")
-            }
-            .tag(TabItem.map)
+            MapView()
+                .tabItem {
+                    Label("Карта", systemImage: "map.fill")
+                }
 
-            VaccinationTabView(
-                viewModel: vaccinationViewModel
-            )
-            .tabItem {
-                Label("Прививки", systemImage: "syringe.fill")
-            }
-            .tag(TabItem.vaccination)
+            VaccinationTabView()
+                .tabItem {
+                    Label("Прививки", systemImage: "syringe.fill")
+                }
 
-            ChatListView(
-                viewModel: chatListViewModel
-            )
-            .tabItem {
-                Label("Чаты", systemImage: "bubble.left.and.bubble.right.fill")
-            }
-            .tag(TabItem.chat)
+            ChatListView()
+                .tabItem {
+                    Label("Чаты", systemImage: "bubble.left.and.bubble.right.fill")
+                }
         }
-    }
-
-    @StateObject private var profileViewModel: ProfileViewModel
-    @StateObject private var feedViewModel: FeedViewModel
-    @StateObject private var mapViewModel: MapViewModel
-    @StateObject private var vaccinationViewModel: VaccinationTabViewModel
-    @StateObject private var chatListViewModel: ChatListViewModel
-
-    @ObservedObject private var appViewModel: AppViewModel
-
-    init(
-        profileViewModel: ProfileViewModel,
-        feedViewModel: FeedViewModel,
-        mapViewModel: MapViewModel,
-        vaccinationViewModel: VaccinationTabViewModel,
-        chatListViewModel: ChatListViewModel,
-        appViewModel: AppViewModel
-    ) {
-        self._profileViewModel = StateObject(
-            wrappedValue: profileViewModel
-        )
-        self._feedViewModel = StateObject(
-            wrappedValue: feedViewModel
-        )
-        self._mapViewModel = StateObject(
-            wrappedValue: mapViewModel
-        )
-        self._vaccinationViewModel = StateObject(
-            wrappedValue: vaccinationViewModel
-        )
-        self._chatListViewModel = StateObject(
-            wrappedValue: chatListViewModel
-        )
-        self._appViewModel = ObservedObject(
-            wrappedValue: appViewModel
-        )
     }
 }

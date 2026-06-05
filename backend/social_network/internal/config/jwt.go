@@ -1,20 +1,17 @@
 package config
 
-import (
-	"os"
-	"time"
-)
+import "time"
 
 type JWTConfig struct {
 	Secret string
-	TTL time.Duration
+	TTL    time.Duration
 }
 
 func loadJWT() JWTConfig {
-	ttl, _ := time.ParseDuration(os.Getenv("JWT_TTL"))
+	ttl, _ := time.ParseDuration(getEnv("JWT_TTL", "24h"))
 
 	return JWTConfig{
-		Secret: os.Getenv("JWT_SECRET"),
-		TTL: ttl,
+		Secret: getEnv("JWT_SECRET", "dev-secret-change-me"),
+		TTL:    ttl,
 	}
 }

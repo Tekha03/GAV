@@ -1,6 +1,6 @@
 import Foundation
 
-protocol DogServiceAPIProtocol {
+protocol DogServiceAPIProtocol: Sendable {
     func create(ownerID: UUID, input: CreateDogInput) async throws -> DogModel
     func getPrivate(dogID: UUID) async throws -> DogModel
     func getPublic(dogID: UUID) async throws -> DogModel
@@ -10,7 +10,7 @@ protocol DogServiceAPIProtocol {
 }
 
 @available(macOS 12.0, *)
-final class DogServiceAPI: DogServiceAPIProtocol {
+final class DogServiceAPI: DogServiceAPIProtocol, @unchecked Sendable {
     private let base: BaseAPI
 
     init(baseURL: URL, session: URLSession = .shared, authManager: AuthManager) {

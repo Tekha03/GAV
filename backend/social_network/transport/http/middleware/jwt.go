@@ -10,7 +10,7 @@ import (
 )
 
 func JWTAuth(cfg auth.JWTConfig) func(http.Handler) http.Handler {
-	return func (next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if r.Method == http.MethodOptions {
 				next.ServeHTTP(w, r)
@@ -38,14 +38,14 @@ func JWTAuth(cfg auth.JWTConfig) func(http.Handler) http.Handler {
 				return
 			}
 
-			userID, err := auth.ParseToken(token, cfg)
+			claims, err := auth.ParseToken(token, cfg)
 			if err != nil {
 				ctx := context.WithValue(r.Context(), errors.CodeAuthError, err.Error())
 				next.ServeHTTP(w, r.WithContext(ctx))
 				return
 			}
 
-			ctx := context.WithValue(r.Context(), UserIDKey, userID)
+			ctx := context.WithValue(r.Context(), UserIDKey, claims.UserID)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}

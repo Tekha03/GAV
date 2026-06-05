@@ -1,6 +1,6 @@
 import Foundation
 
-public struct CreateDogInput: Encodable {
+public struct CreateDogInput: Encodable, Sendable {
     public let name: String
     public let breed: String
     public let age: Int

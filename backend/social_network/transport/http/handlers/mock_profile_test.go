@@ -27,6 +27,11 @@ func (m *MockProfileService) GetByUserID(ctx context.Context, userID uuid.UUID) 
 	return args.Get(0).(*profile.UserProfile), args.Error(1)
 }
 
+func (m *MockProfileService) Search(ctx context.Context, query string, limit int) ([]*profile.UserProfile, error) {
+	args := m.Called(ctx, query, limit)
+	return args.Get(0).([]*profile.UserProfile), args.Error(1)
+}
+
 func (m *MockProfileService) Update(ctx context.Context, profileID uuid.UUID, input profile.UpdateProfileInput) error {
 	args := m.Called(ctx, profileID, input)
 	return args.Error(0)

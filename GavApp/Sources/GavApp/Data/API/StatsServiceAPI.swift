@@ -1,6 +1,6 @@
 import Foundation
 
-protocol StatsServiceAPIProtocol {
+protocol StatsServiceAPIProtocol: Sendable {
     func userStats(userID: UUID) async throws -> UserStatsModel
     func profileStats(userID: UUID) async throws -> ProfileStatsModel
     func postStats(postID: UUID) async throws -> PostStatsModel

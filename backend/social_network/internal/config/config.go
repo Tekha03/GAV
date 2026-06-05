@@ -1,9 +1,9 @@
 package config
 
 type Config struct {
-	HTTP HTTPConfig
-	DB DBConfig
-	JWT JWTConfig
+	HTTP    HTTPConfig
+	DB      DBConfig
+	JWT     JWTConfig
 	Storage StorageConfig
 }
 
@@ -11,9 +11,10 @@ func Load() (*Config, error) {
 	loadEnv()
 
 	cfg := &Config{
-		HTTP: loadHTTP(),
-		DB: loadDB(),
-		JWT: loadJWT(),
+		HTTP:    loadHTTP(),
+		DB:      loadDB(),
+		JWT:     loadJWT(),
+		Storage: loadStorage(),
 	}
 
 	if err := cfg.validate(); err != nil {

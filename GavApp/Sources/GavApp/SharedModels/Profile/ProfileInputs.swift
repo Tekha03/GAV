@@ -1,13 +1,15 @@
 import Foundation
 
-public struct UpdateProfileInput: Encodable {
+public struct UpdateProfileInput: Encodable, Sendable {
     public let name: String?
     public let surname: String?
+    public let username: String?
     public let bio: String?
 
-    public init(name: String? = nil, surname: String? = nil, bio: String? = nil) {
+    public init(name: String? = nil, surname: String? = nil, username: String? = nil, bio: String? = nil) {
         self.name = name
         self.surname = surname
+        self.username = username
         self.bio = bio
     }
 }
@@ -15,11 +17,13 @@ public struct UpdateProfileInput: Encodable {
 public struct CreateProfileInput: Encodable {
     public let name: String
     public let surname: String
+    public let username: String
     public let bio: String
 
-    public init(name: String, surname: String, bio: String) {
+    public init(name: String, surname: String, username: String, bio: String) {
         self.name = name
         self.surname = surname
+        self.username = username
         self.bio = bio
     }
 }
@@ -30,7 +34,7 @@ extension CreateProfileInput {
             userId: userID,
             name: name,
             surname: surname,
-            username: "",
+            username: username,
             profilePhotoUrl: nil,
             bio: bio,
             address: nil,

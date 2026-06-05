@@ -17,9 +17,9 @@ final class AuthRepositoryImpl: AuthRepository {
         return mapper.from(model: model)
     }
 
-    func register(email: String, password: String) async throws -> AuthModel {
+    func register(email: String, password: String) async throws -> AuthTokens {
         let model = try await api.register(email: email, password: password)
-        return model
+        return mapper.from(model: model)
     }
 
     func refreshTokens(refreshToken: String) async throws -> AuthTokens {

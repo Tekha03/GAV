@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -17,6 +18,16 @@ import (
 
 func wsURL(serverURL string) string {
 	return "ws" + serverURL[len("http"):]
+}
+
+func requireLocalListener(t *testing.T) {
+	t.Helper()
+
+	listener, err := net.Listen("tcp", "localhost:0")
+	if err != nil {
+		t.Skipf("local listener unavailable: %v", err)
+	}
+	listener.Close()
 }
 
 func TestNotificationHandler_ServeWS(t *testing.T) {
@@ -37,6 +48,8 @@ func TestNotificationHandler_ServeWS(t *testing.T) {
 	})
 
 	t.Run("successful connection", func(t *testing.T) {
+		requireLocalListener(t)
+
 		hub := notification.NewHub()
 		go hub.Run()
 
@@ -54,6 +67,8 @@ func TestNotificationHandler_ServeWS(t *testing.T) {
 	})
 
 	t.Run("broadcast message received", func(t *testing.T) {
+		requireLocalListener(t)
+
 		hub := notification.NewHub()
 		go hub.Run()
 
@@ -81,6 +96,8 @@ func TestNotificationHandler_ServeWS(t *testing.T) {
 	})
 
 	t.Run("send to specific user", func(t *testing.T) {
+		requireLocalListener(t)
+
 		hub := notification.NewHub()
 		go hub.Run()
 
@@ -108,6 +125,8 @@ func TestNotificationHandler_ServeWS(t *testing.T) {
 	})
 
 	t.Run("client disconnect unregisters", func(t *testing.T) {
+		requireLocalListener(t)
+
 		hub := notification.NewHub()
 		go hub.Run()
 

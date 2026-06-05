@@ -1,6 +1,6 @@
 import Foundation
 
-public protocol ChatUseCase {
+public protocol ChatUseCase: Sendable {
     func createPrivateChat(user1: UUID, user2: UUID) async throws -> Chat
     func createGroupChat(
         title: String,
