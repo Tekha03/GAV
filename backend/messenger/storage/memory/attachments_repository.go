@@ -12,11 +12,11 @@ import (
 
 var (
 	ErrAttachmentNotFound = errors.New("attachment not found")
-	ErrAttachmentExist = errors.New("attachment exist")
+	ErrAttachmentExist    = errors.New("attachment exist")
 )
 
 type AttachmentRepository struct {
-	mu 			sync.RWMutex
+	mu          sync.RWMutex
 	attachments map[uuid.UUID]*model.Attachment
 }
 

@@ -10,8 +10,8 @@ import (
 )
 
 type ReactionRepository struct {
-	mu 			sync.RWMutex
-	reactions 	map[uuid.UUID]map[uuid.UUID]*model.Reaction
+	mu        sync.RWMutex
+	reactions map[uuid.UUID]map[uuid.UUID]*model.Reaction
 }
 
 func NewReactionRepository() repository.ReactionRepository {

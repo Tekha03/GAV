@@ -10,7 +10,7 @@ import (
 )
 
 type MembersRepository struct {
-	mu 		sync.RWMutex
+	mu      sync.RWMutex
 	members map[uuid.UUID]map[uuid.UUID]*model.ChatMember
 }
 
@@ -101,31 +101,46 @@ func (mr *MembersRepository) SetMuted(ctx context.Context, chatID, userID uuid.U
 }
 
 func (mr *MembersRepository) GetLastReadMessageID(ctx context.Context, chatID, userID uuid.UUID) (uuid.UUID, error) {
-    mr.mu.RLock()
-    defer mr.mu.RUnlock()
+	mr.mu.RLock()
+	defer mr.mu.RUnlock()
 
-    membersMap, ok := mr.members[chatID]
-    if !ok {
-        return uuid.Nil, repository.ErrChatNotFound
-    }
+	membersMap, ok := mr.members[chatID]
+	if !ok {
+		return uuid.Nil, repository.ErrChatNotFound
+	}
 
-    member, exists := membersMap[userID]
-    if !exists {
-        return uuid.Nil, repository.ErrMemberNotFound
-    }
+	member, exists := membersMap[userID]
+	if !exists {
+		return uuid.Nil, repository.ErrMemberNotFound
+	}
 
-    return member.LastReadMessageID, nil
+	return member.LastReadMessageID, nil
 }
 
 func (mr *MembersRepository) GetUserChats(ctx context.Context, userID uuid.UUID) ([]uuid.UUID, error) {
-    mr.mu.RLock()
-    defer mr.mu.RUnlock()
+	mr.mu.RLock()
+	defer mr.mu.RUnlock()
 
-    var chats []uuid.UUID
-    for chatID, members := range mr.members {
-        if _, exists := members[userID]; exists {
-            chats = append(chats, chatID)
-        }
-    }
-    return chats, nil
+	var chats []uuid.UUID
+	for chatID, members := range mr.members {
+		if _, exists := members[userID]; exists {
+			chats = append(chats, chatID)
+		}
+	}
+	return chats, nil
+}
+
+func (mr *MembersRepository) FindPrivateChatBetween(ctx context.Context, userID1, userID2 uuid.UUID) (uuid.UUID, error) {
+	mr.mu.RLock()
+	defer mr.mu.RUnlock()
+
+	for chatID, members := range mr.members {
+		_, hasFirst := members[userID1]
+		_, hasSecond := members[userID2]
+		if hasFirst && hasSecond && len(members) == 2 {
+			return chatID, nil
+		}
+	}
+
+	return uuid.Nil, nil
 }

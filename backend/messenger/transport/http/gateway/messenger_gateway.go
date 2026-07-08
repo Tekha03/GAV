@@ -33,6 +33,14 @@ type messageDTO struct {
 	Attachments []attachmentDTO `json:"attachments"`
 }
 
+type chatMemberDTO struct {
+	ChatID            uuid.UUID `json:"chat_id"`
+	UserID            uuid.UUID `json:"user_id"`
+	Role              string    `json:"role"`
+	Muted             bool      `json:"muted"`
+	LastReadMessageID uuid.UUID `json:"last_read_message_id,omitempty"`
+}
+
 type attachmentDTO struct {
 	ID        uuid.UUID `json:"id,omitempty"`
 	MessageID uuid.UUID `json:"message_id,omitempty"`
@@ -69,12 +77,36 @@ func NewHTTPServer(addr string, chatService service.Service) *http.Server {
 		r.Post("/chats/group", createGroupChat(chatService))
 		r.Get("/users/{user_id}/chats", getUserChats(chatService))
 		r.Get("/chats/{chat_id}", getChat(chatService))
+		r.Get("/chats/{chat_id}/members", getChatMembers(chatService))
 		r.Get("/chats/{chat_id}/messages", getMessages(chatService))
 		r.Post("/chats/{chat_id}/messages", sendMessage(chatService))
 		r.Post("/chats/{chat_id}/read", markAsRead(chatService))
 	})
 
 	return &http.Server{Addr: addr, Handler: r}
+}
+
+func getChatMembers(chatService service.Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		chatID, err := parsePathUUID(r, "chat_id")
+		if err != nil {
+			writeError(w, http.StatusBadRequest, err)
+			return
+		}
+
+		members, err := chatService.GetChatMembers(r.Context(), chatID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, err)
+			return
+		}
+
+		items := make([]chatMemberDTO, 0, len(members))
+		for _, member := range members {
+			items = append(items, toChatMemberDTO(member))
+		}
+
+		writeJSON(w, http.StatusOK, map[string][]chatMemberDTO{"members": items})
+	}
 }
 
 func createPrivateChat(chatService service.Service) http.HandlerFunc {
@@ -320,6 +352,16 @@ func toMessageDTO(message *model.Message) messageDTO {
 		CreatedAt:   message.CreatedAt,
 		EditedAt:    message.EditedAt,
 		Attachments: attachments,
+	}
+}
+
+func toChatMemberDTO(member *model.ChatMember) chatMemberDTO {
+	return chatMemberDTO{
+		ChatID:            member.ChatID,
+		UserID:            member.UserID,
+		Role:              string(member.Role),
+		Muted:             member.Muted,
+		LastReadMessageID: member.LastReadMessageID,
 	}
 }
 

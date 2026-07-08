@@ -15,13 +15,14 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
+
 type HybridContainer struct {
-    gormRepo 	 *orm.Repository
-    redis    	 *redis.Client
-    grpcConn 	 *grpc.ClientConn
-    socialClient *client.SocialNetworkClient
+	gormRepo     *orm.Repository
+	redis        *redis.Client
+	grpcConn     *grpc.ClientConn
+	socialClient *client.SocialNetworkClient
 	notClient    *client.NotificationClient
-	producer   	 *kafka.Producer
+	producer     *kafka.Producer
 }
 
 func NewHybridContainer(postgresDSN, redisAddr, socialNetworkAddr string, producer *kafka.Producer) (*HybridContainer, error) {
@@ -61,7 +62,7 @@ func NewHybridContainer(postgresDSN, redisAddr, socialNetworkAddr string, produc
 }
 
 func (c *HybridContainer) ChatService() service.Service {
-    websocketHub := websocket.NewHub()
+	websocketHub := websocket.NewHub()
 	go websocketHub.Run()
 
 	return service.NewService(

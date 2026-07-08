@@ -8,54 +8,54 @@ import (
 )
 
 type ChatService struct {
-	chatRepo        repository.ChatRepository
-	membersRepo     repository.ChatMemberRepository
-	messageRepo     repository.MessageRepository
-	attachmentRepo  repository.AttachmentRepository
-	reactionRepo    repository.ReactionRepository
-    pinnedRepo      repository.PinnedRepository
-    typingRepo      repository.TypingRepository
+	chatRepo       repository.ChatRepository
+	membersRepo    repository.ChatMemberRepository
+	messageRepo    repository.MessageRepository
+	attachmentRepo repository.AttachmentRepository
+	reactionRepo   repository.ReactionRepository
+	pinnedRepo     repository.PinnedRepository
+	typingRepo     repository.TypingRepository
 
-    socialClient    *client.SocialNetworkClient
-	notClient       *client.NotificationClient
+	socialClient *client.SocialNetworkClient
+	notClient    *client.NotificationClient
 
-    producer        kafka.EventProducer
+	producer kafka.EventProducer
 }
 
 func NewService(
-    chatRepo        repository.ChatRepository,
-    membersRepo     repository.ChatMemberRepository,
-    messageRepo     repository.MessageRepository,
-    attachmentRepo  repository.AttachmentRepository,
-    reactionRepo    repository.ReactionRepository,
-    pinnedRepo      repository.PinnedRepository,
-    typingRepo      repository.TypingRepository,
+	chatRepo repository.ChatRepository,
+	membersRepo repository.ChatMemberRepository,
+	messageRepo repository.MessageRepository,
+	attachmentRepo repository.AttachmentRepository,
+	reactionRepo repository.ReactionRepository,
+	pinnedRepo repository.PinnedRepository,
+	typingRepo repository.TypingRepository,
 
-    socialClient    *client.SocialNetworkClient,
-	notClient       *client.NotificationClient,
+	socialClient *client.SocialNetworkClient,
+	notClient *client.NotificationClient,
 
-    producer        kafka.EventProducer,
+	producer kafka.EventProducer,
 
 ) Service {
-    s := &ChatService{
-        chatRepo:       chatRepo,
-        membersRepo:    membersRepo,
-        messageRepo:    messageRepo,
-        attachmentRepo: attachmentRepo,
-        reactionRepo:   reactionRepo,
-        pinnedRepo:     pinnedRepo,
-        typingRepo:     typingRepo,
-        socialClient:   socialClient,
-        notClient:      notClient,
-        producer:       producer,
-    }
+	s := &ChatService{
+		chatRepo:       chatRepo,
+		membersRepo:    membersRepo,
+		messageRepo:    messageRepo,
+		attachmentRepo: attachmentRepo,
+		reactionRepo:   reactionRepo,
+		pinnedRepo:     pinnedRepo,
+		typingRepo:     typingRepo,
+		socialClient:   socialClient,
+		notClient:      notClient,
+		producer:       producer,
+	}
 
-    return s
+	return s
 }
 
 func (s *ChatService) publishEvent(event events.Event) error {
-    if s.producer == nil {
-        return nil
-    }
-    return s.producer.PublishEvent(event)
+	if s.producer == nil {
+		return nil
+	}
+	return s.producer.PublishEvent(event)
 }

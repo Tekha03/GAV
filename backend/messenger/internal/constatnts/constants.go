@@ -1,6 +1,6 @@
 package constatnts
 
 const (
-	MaxAttachments = 10
-	MaxMessageLength = 4000 
+	MaxAttachments   = 10
+	MaxMessageLength = 4000
 )
