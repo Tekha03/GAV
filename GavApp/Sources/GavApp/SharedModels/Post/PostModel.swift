@@ -44,4 +44,4 @@ extension PostModel {
         case imageUrl = "image_url"
         case createdAt = "created_at"
     }
-} 
+}
