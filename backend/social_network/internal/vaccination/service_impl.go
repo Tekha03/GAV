@@ -15,16 +15,16 @@ func NewService(repo Repository) (VaccinationService, error) {
 		return nil, ErrRepoNil
 	}
 
-	return &service{repo: repo,}, nil
+	return &service{repo: repo}, nil
 }
 
 func (s *service) Create(ctx context.Context, dogID uuid.UUID, input CreateVaccinationInput) (*Vaccination, error) {
 	vaccination := Vaccination{
-		DogID: dogID,
-		Name: input.Name,
-		DoneAt: input.DoneAt,
+		DogID:     dogID,
+		Name:      input.Name,
+		DoneAt:    input.DoneAt,
 		NextDueAt: input.NextDueAt,
-		Notes: input.Notes,
+		Notes:     input.Notes,
 	}
 
 	if err := s.repo.Create(ctx, &vaccination); err != nil {

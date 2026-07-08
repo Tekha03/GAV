@@ -13,7 +13,7 @@ func loadEnvFromPath(path string) error {
 }
 
 func loadEnv() {
-	_, filename, _, _:= runtime.Caller(0)
+	_, filename, _, _ := runtime.Caller(0)
 	root := filepath.Join(filepath.Dir(filename), "..", "..")
 
 	envPath := filepath.Join(root, ".env")

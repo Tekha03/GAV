@@ -34,11 +34,11 @@ func (s *service) Follow(ctx context.Context, follow Follow) error {
 		return ErrAlreadyFollowing
 	}
 
-	if err = s.statService.IncrementFollowings(ctx, follow.FollowingID); err != nil {
+	if err = s.statService.IncrementFollowings(ctx, follow.FollowerID); err != nil {
 		return err
 	}
 
-	if err = s.statService.IncrementFollowers(ctx, follow.FollowerID); err != nil {
+	if err = s.statService.IncrementFollowers(ctx, follow.FollowingID); err != nil {
 		return err
 	}
 
@@ -46,11 +46,11 @@ func (s *service) Follow(ctx context.Context, follow Follow) error {
 }
 
 func (s *service) Unfollow(ctx context.Context, follow Follow) error {
-	if err := s.statService.DecrementFollowings(ctx, follow.FollowingID); err != nil {
+	if err := s.statService.DecrementFollowings(ctx, follow.FollowerID); err != nil {
 		return err
 	}
 
-	if err := s.statService.DecrementFollowers(ctx, follow.FollowerID); err != nil {
+	if err := s.statService.DecrementFollowers(ctx, follow.FollowingID); err != nil {
 		return err
 	}
 	return s.repo.Unfollow(ctx, follow)

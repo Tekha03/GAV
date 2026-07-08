@@ -11,11 +11,11 @@ const (
 type LocationVisibility uint8
 
 const (
-    VisibilityEveryone LocationVisibility = iota
-    VisibilityFollowersOnly
-    VisibilityNoOne
+	VisibilityEveryone LocationVisibility = iota
+	VisibilityFollowersOnly
+	VisibilityNoOne
 )
 
 type SetLocationVisibilityInput struct {
-    Visibility LocationVisibility
+	Visibility LocationVisibility `json:"visibility"`
 }

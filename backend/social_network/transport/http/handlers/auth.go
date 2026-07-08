@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"social_network/internal/auth"
@@ -24,8 +25,8 @@ func NewAuthHandler(service auth.AuthService) (*AuthHandler, error) {
 }
 
 type credentials struct {
-	Email		string	`json:"email"`
-	Password	string	`json:"password"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }
 
 // @Summary      Регистрация пользователя
@@ -84,6 +85,11 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 	token, err := h.service.Login(r.Context(), req.Email, req.Password)
 	if err != nil {
+		if errors.Is(err, auth.ErrInvalidCredentials) {
+			response.Error(w, ErrUnauthorized)
+			return
+		}
+
 		response.Error(w, err)
 		return
 	}
@@ -130,7 +136,7 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 // @Router       /auth/me [get]
 func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 	type refreshRequest struct {
-		RefreshToken string	`json:"refresh_token" validate:"required"`
+		RefreshToken string `json:"refresh_token" validate:"required"`
 	}
 
 	var req refreshRequest

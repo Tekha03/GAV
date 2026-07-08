@@ -8,7 +8,6 @@ import (
 	"github.com/google/uuid"
 )
 
-
 type service struct {
 	repo Repository
 }
@@ -44,10 +43,10 @@ func (s *service) GetByEmail(ctx context.Context, email string) (*User, error) {
 
 func (s *service) Update(ctx context.Context, id uuid.UUID, input UpdateUserInput) error {
 	user := &User{
-		ID: id,
-		Email: *input.Email,
+		ID:       id,
+		Email:    *input.Email,
 		Password: *input.Password,
-		Role: *input.Role,
+		Role:     *input.Role,
 	}
 
 	return s.repo.Update(ctx, user)
@@ -89,6 +88,15 @@ func (s *service) UpdateLocation(ctx context.Context, userID uuid.UUID, location
 
 	user.Lat = &locationInput.Latitude
 	user.Lon = &locationInput.Longitude
+	user.LocationStatus = locationInput.Status
+	user.Visibility = locationInput.Visibility
+
+	if locationInput.ClearLocation {
+		user.Lat = nil
+		user.Lon = nil
+		user.LocationStatus = Inactive
+		user.Visibility = VisibilityNoOne
+	}
 
 	return s.repo.Update(ctx, user)
 }

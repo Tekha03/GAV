@@ -12,7 +12,7 @@ import (
 
 type testEnv struct {
 	service DogService
-	repo	*MockRepository
+	repo    *MockRepository
 }
 
 func setup(t *testing.T) *testEnv {
@@ -23,7 +23,7 @@ func setup(t *testing.T) *testEnv {
 
 	return &testEnv{
 		service: service,
-		repo: repo,
+		repo:    repo,
 	}
 }
 
@@ -47,11 +47,11 @@ func TestCreate_Success(t *testing.T) {
 	ownerID := uuid.New()
 
 	input := CreateDogInput{
-		Name: "Buddy",
-		Breed: "Labrador",
-		Gender: Male,
-		Status: StatusFriendly,
-		Age: AdultAge,
+		Name:     "Buddy",
+		Breed:    "Labrador",
+		Gender:   Male,
+		Status:   StatusFriendly,
+		Age:      AdultAge,
 		PhotoUrl: "url",
 	}
 
@@ -75,9 +75,9 @@ func TestUpdate_Success(t *testing.T) {
 	name := "NewName"
 
 	dog := &Dog{
-		ID: dogID,
+		ID:      dogID,
 		OwnerID: ownerID,
-		Name: "Old",
+		Name:    "Old",
 	}
 
 	env.repo.
@@ -104,7 +104,7 @@ func TestUpdate_AccessDenied(t *testing.T) {
 
 	dogID := uuid.New()
 	dog := &Dog{
-		ID: dogID,
+		ID:      dogID,
 		OwnerID: uuid.New(),
 	}
 
@@ -126,7 +126,7 @@ func TestDelete_Success(t *testing.T) {
 	dogID := uuid.New()
 
 	dog := &Dog{
-		ID: dogID,
+		ID:      dogID,
 		OwnerID: ownerID,
 	}
 
@@ -145,13 +145,28 @@ func TestGetPrivate_AccessDenied(t *testing.T) {
 	ownerID := uuid.New()
 
 	dog := &Dog{
-		ID: dogID,
+		ID:      dogID,
 		OwnerID: ownerID,
 	}
 
 	env.repo.On("GetByID", ctx, dogID).Return(dog, nil)
-	_, err := env.service.GetPrivate(ctx, dogID, uuid.New())
+	_, err := env.service.GetPrivate(ctx, uuid.New(), dogID)
 
 	assert.Error(t, err)
 	assert.Equal(t, ErrDogAccessDenied, err)
+}
+
+func TestListByOwnerID_Success(t *testing.T) {
+	env := setup(t)
+	ctx := context.Background()
+
+	ownerID := uuid.New()
+	expected := []*Dog{{ID: uuid.New(), OwnerID: ownerID}}
+
+	env.repo.On("GetByOwnerID", ctx, ownerID).Return(expected, nil)
+
+	dogs, err := env.service.ListByOwnerID(ctx, ownerID)
+
+	assert.NoError(t, err)
+	assert.Equal(t, expected, dogs)
 }

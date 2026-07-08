@@ -10,10 +10,10 @@ import (
 )
 
 type service struct {
-	userService 	user.UserService
-	tokenService	token.TokenService
-	jwtConfig 	 	 JWTConfig
-	hasher			*PasswordHasher
+	userService  user.UserService
+	tokenService token.TokenService
+	jwtConfig    JWTConfig
+	hasher       *PasswordHasher
 }
 
 func NewService(userService user.UserService, tokenService token.TokenService, jwtConfig JWTConfig, hasher *PasswordHasher) (AuthService, error) {
@@ -60,7 +60,7 @@ func (s *service) Register(ctx context.Context, email, password string) (*AuthTo
 	}
 
 	return &AuthTokens{
-		AccessToken: accessToken,
+		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 	}, nil
 }
@@ -79,7 +79,7 @@ func (s *service) Login(ctx context.Context, email, password string) (*AuthToken
 	refreshStr, err := s.tokenService.CreateRefresh(ctx, authorizedUser.ID)
 
 	return &AuthTokens{
-		AccessToken: access,
+		AccessToken:  access,
 		RefreshToken: refreshStr,
 	}, nil
 }

@@ -33,6 +33,10 @@ func (c *Client) SendPush(
 	title, body string,
 	data map[string]string,
 ) error {
+	if c == nil || c.messaging == nil {
+		return nil
+	}
+
 	msg := &messaging.Message{
 		Token: token,
 		Notification: &messaging.Notification{

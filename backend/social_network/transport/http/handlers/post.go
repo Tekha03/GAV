@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"encoding/json"
 	"net/http"
+	"strings"
 
 	"social_network/internal/media"
 	"social_network/internal/post"
@@ -15,8 +17,8 @@ import (
 )
 
 type PostHandler struct {
-	service 	 		post.PostService
-	mediaService 		media.MediaService
+	service      post.PostService
+	mediaService media.MediaService
 }
 
 func NewPostHandler(service post.PostService, mediaService media.MediaService) (*PostHandler, error) {
@@ -48,6 +50,34 @@ func (h *PostHandler) Create(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.UserID(r.Context())
 	if !ok {
 		response.Error(w, ErrUnauthorized)
+		return
+	}
+
+	if strings.HasPrefix(r.Header.Get("Content-Type"), "application/json") {
+		var request dto.PostRequest
+		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+			response.Error(w, ErrInvalidInput)
+			return
+		}
+
+		if err := validation.Validate(&request); err != nil {
+			response.Error(w, err)
+			return
+		}
+
+		post, err := h.service.Create(r.Context(), userID, request.Content, request.ImageUrl)
+		if err != nil {
+			response.Error(w, err)
+			return
+		}
+
+		response.JSON(w, http.StatusCreated, dto.PostResponse{
+			ID:        post.ID,
+			AuthorID:  post.UserID,
+			Content:   post.Content,
+			ImageUrl:  post.ImageUrl,
+			CreatedAt: post.CreatedAt,
+		})
 		return
 	}
 
@@ -86,10 +116,10 @@ func (h *PostHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response.JSON(w, http.StatusCreated, dto.PostResponse{
-		ID: post.ID,
-		AuthorID: post.UserID,
-		Content: post.Content,
-		ImageUrl: post.ImageUrl,
+		ID:        post.ID,
+		AuthorID:  post.UserID,
+		Content:   post.Content,
+		ImageUrl:  post.ImageUrl,
 		CreatedAt: post.CreatedAt,
 	})
 }
@@ -124,10 +154,10 @@ func (h *PostHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response.JSON(w, http.StatusOK, dto.PostResponse{
-		ID: post.ID,
-		AuthorID:
-		post.UserID,
-		Content: post.Content,
+		ID:        post.ID,
+		AuthorID:  post.UserID,
+		Content:   post.Content,
+		ImageUrl:  post.ImageUrl,
 		CreatedAt: post.CreatedAt,
 	})
 }
@@ -150,9 +180,19 @@ func (h *PostHandler) ListByUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if queryUserID := r.URL.Query().Get("user_id"); queryUserID != "" {
+		parsedUserID, err := uuid.Parse(queryUserID)
+		if err != nil {
+			response.Error(w, err)
+			return
+		}
+		userID = parsedUserID
+	}
+
 	list, err := h.service.ListByUser(r.Context(), userID)
 	if err != nil {
 		response.Error(w, err)
+		return
 	}
 
 	response.JSON(w, http.StatusOK, list)

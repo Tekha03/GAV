@@ -35,10 +35,10 @@ func TestSettingsHandler_Get_Success(t *testing.T) {
 	userID := uuid.New()
 
 	expected := &settings.UserSettings{
-		UserID:        userID,
+		UserID:         userID,
 		ProfilePrivacy: true,
-		ShowLocation:  false,
-		AllowMessages: true,
+		ShowLocation:   false,
+		AllowMessages:  true,
 	}
 
 	service.
@@ -77,7 +77,7 @@ func TestSettingsHandler_Update_Success(t *testing.T) {
 	allowMessages := false
 
 	input := settings.UpdateSettingsInput{
-		ProfilePrivacy:  &profilePrivacy,
+		ProfilePrivacy: &profilePrivacy,
 		ShowLocation:   &showLocation,
 		AllowMessages:  &allowMessages,
 	}

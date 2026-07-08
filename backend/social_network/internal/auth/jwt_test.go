@@ -12,7 +12,7 @@ import (
 func setupConfig() JWTConfig {
 	return JWTConfig{
 		Secret: []byte("secret"),
-		TTL: time.Hour,
+		TTL:    time.Hour,
 	}
 }
 
@@ -122,7 +122,7 @@ func TestParseToken_UnexpectedSigningMethod(t *testing.T) {
 
 	claims := &Claims{
 		UserID: uuid.New(),
-		Role: "user",
+		Role:   "user",
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodNone, claims)

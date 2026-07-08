@@ -32,6 +32,8 @@ import (
 	"social_network/internal/app"
 	"social_network/internal/config"
 	"social_network/internal/kafka"
+
+	_ "docs"
 )
 
 func main() {

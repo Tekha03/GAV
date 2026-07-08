@@ -87,7 +87,7 @@ func TestVaccinationHandler_Update_Success(t *testing.T) {
 	dogID := uuid.New()
 	vaccID := uuid.New()
 	name := "Distemper"
-	input := vaccination.UpdateVaccinationInput{ Name: &name }
+	input := vaccination.UpdateVaccinationInput{Name: &name}
 
 	mockService.On("Update", mock.Anything, vaccID, dogID, input).Return(nil)
 

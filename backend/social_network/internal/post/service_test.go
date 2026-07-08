@@ -39,6 +39,7 @@ func TestService_Create(t *testing.T) {
 		post, err := s.Create(ctx, userID, content, image)
 
 		require.NoError(t, err)
+		require.NotEqual(t, uuid.Nil, post.ID)
 		require.Equal(t, userID, post.UserID)
 		require.Equal(t, content, post.Content)
 		require.Equal(t, image, post.ImageUrl)

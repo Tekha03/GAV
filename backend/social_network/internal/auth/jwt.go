@@ -1,14 +1,14 @@
 package auth
 
 import (
-	"time"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"time"
 )
 
 type JWTConfig struct {
 	Secret []byte
-	TTL time.Duration
+	TTL    time.Duration
 }
 
 func GenerateAccessToken(userID uuid.UUID, role string, cfg JWTConfig) (string, error) {
@@ -35,5 +35,5 @@ func ParseToken(tokenString string, cfg JWTConfig) (*Claims, error) {
 		return nil, ErrInvalidToken
 	}
 
-	return  claims, nil
+	return claims, nil
 }

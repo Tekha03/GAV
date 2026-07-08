@@ -37,6 +37,14 @@ func (m *MockDogService) GetPrivate(ctx context.Context, ownerID, dogID uuid.UUI
 	return args.Get(0).(*dog.Dog), args.Error(1)
 }
 
+func (m *MockDogService) ListByOwnerID(ctx context.Context, ownerID uuid.UUID) ([]*dog.Dog, error) {
+	args := m.Called(ctx, ownerID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*dog.Dog), args.Error(1)
+}
+
 func (m *MockDogService) FindDogsNearby(ctx context.Context, userID uuid.UUID, centerLat, centerLon float64, radiusMeters float64) ([]*dog.Dog, error) {
 	args := m.Called(ctx, userID, centerLat, centerLon, radiusMeters)
 	if args.Get(0) == nil {

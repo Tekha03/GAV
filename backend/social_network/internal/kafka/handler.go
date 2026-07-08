@@ -9,9 +9,9 @@ import (
 )
 
 type Handler struct {
-	message		MessageUseCase
-	chat		ChatUseCase
-	reaction	ReactionUseCase
+	message  MessageUseCase
+	chat     ChatUseCase
+	reaction ReactionUseCase
 }
 
 func NewHandler(message MessageUseCase, chat ChatUseCase, reaction ReactionUseCase) (*Handler, error) {
@@ -26,12 +26,11 @@ func NewHandler(message MessageUseCase, chat ChatUseCase, reaction ReactionUseCa
 	}
 
 	return &Handler{
-		message:	message,
-		chat:		chat,
-		reaction:	reaction,
+		message:  message,
+		chat:     chat,
+		reaction: reaction,
 	}, nil
 }
-
 
 func (h *Handler) Setup(_ sarama.ConsumerGroupSession) error {
 	return nil

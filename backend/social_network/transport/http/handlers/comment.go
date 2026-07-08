@@ -17,9 +17,9 @@ import (
 )
 
 type CommentHandler struct {
-	service 			comment.CommentService
-	postService 		post.PostService
-	notificationService	 notification.NotificationService
+	service             comment.CommentService
+	postService         post.PostService
+	notificationService notification.NotificationService
 }
 
 func NewCommentHandler(
@@ -127,6 +127,9 @@ func (h *CommentHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 // @Router       /posts/{postID}/comments [get]
 func (h *CommentHandler) ListByPostID(w http.ResponseWriter, r *http.Request) {
 	postIDStr := chi.URLParam(r, "postID")
+	if postIDStr == "" {
+		postIDStr = chi.URLParam(r, "id")
+	}
 	postID, err := uuid.Parse(postIDStr)
 	if err != nil {
 		response.Error(w, err)

@@ -34,10 +34,10 @@ func (s *service) CreateRefresh(ctx context.Context, userID uuid.UUID) (string, 
 	}
 
 	token := &RefreshToken{
-		ID: uuid.New(),
-		UserID: userID,
+		ID:        uuid.New(),
+		UserID:    userID,
 		TokenHash: string(hash),
-		ExpiresAt: time.Now().Add(7 * 24 + time.Hour),
+		ExpiresAt: time.Now().Add(7*24 + time.Hour),
 		CreatedAt: time.Now(),
 	}
 
@@ -82,7 +82,7 @@ func (s *service) RevokeAllForUser(ctx context.Context, userID uuid.UUID) error 
 }
 
 func generateRandomRefresh() (string, error) {
-		b := make([]byte, 32)
+	b := make([]byte, 32)
 	if _, err := rand.Read(b); err != nil {
 		return "", err
 	}

@@ -24,7 +24,7 @@ func (s *service) GetFeed(ctx context.Context, userID uuid.UUID, before time.Tim
 	limit = max(limit, 20)
 	limit = min(limit, 100)
 
-	posts, err := s.postRepo.ListFeed(ctx, userID, before, limit + 1)
+	posts, err := s.postRepo.ListFeed(ctx, userID, before, limit+1)
 	if err != nil {
 		return nil, time.Time{}, err
 	}

@@ -54,7 +54,7 @@ func (h *VaccinationHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	vaccination, err :=  h.service.Create(r.Context(), dogID, input);
+	vaccination, err := h.service.Create(r.Context(), dogID, input)
 	if err != nil {
 		response.Error(w, err)
 		return

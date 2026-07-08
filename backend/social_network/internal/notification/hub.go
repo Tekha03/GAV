@@ -8,25 +8,25 @@ import (
 )
 
 type Client struct {
-	UserID	uuid.UUID
-	Conn	*websocket.Conn
-	Send 	chan []byte
+	UserID uuid.UUID
+	Conn   *websocket.Conn
+	Send   chan []byte
 }
 
 type Hub struct {
-	Clients		map[uuid.UUID]*Client
-	Register	chan *Client
-	Unregister	chan *Client
-	Broadcast	chan []byte
-	Mu			sync.RWMutex
+	Clients    map[uuid.UUID]*Client
+	Register   chan *Client
+	Unregister chan *Client
+	Broadcast  chan []byte
+	Mu         sync.RWMutex
 }
 
 func NewHub() *Hub {
 	return &Hub{
-		Clients: 	make(map[uuid.UUID]*Client),
-		Register: 	make(chan *Client),
+		Clients:    make(map[uuid.UUID]*Client),
+		Register:   make(chan *Client),
 		Unregister: make(chan *Client),
-		Broadcast: 	make(chan []byte),
+		Broadcast:  make(chan []byte),
 	}
 }
 
@@ -47,7 +47,7 @@ func (h *Hub) Run() {
 			h.Mu.Unlock()
 
 		case message := <-h.Broadcast:
-			h.Mu.RLock()
+			h.Mu.Lock()
 			for _, client := range h.Clients {
 				select {
 				case client.Send <- message:
@@ -56,7 +56,7 @@ func (h *Hub) Run() {
 					delete(h.Clients, client.UserID)
 				}
 			}
-			h.Mu.RUnlock()
+			h.Mu.Unlock()
 		}
 	}
 }

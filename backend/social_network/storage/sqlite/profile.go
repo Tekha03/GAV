@@ -64,10 +64,13 @@ func (r *ProfileRepository) GetByUserID(ctx context.Context, userID uuid.UUID) (
 
 func (r *ProfileRepository) Search(ctx context.Context, query string, limit int) ([]*profile.UserProfile, error) {
 	var profiles []*profile.UserProfile
-	term := "%" + strings.ToLower(strings.TrimSpace(query)) + "%"
+	normalizedQuery := strings.TrimSpace(query)
+	usernameQuery := strings.TrimPrefix(normalizedQuery, "@")
+	term := "%" + strings.ToLower(normalizedQuery) + "%"
+	usernameTerm := "%" + strings.ToLower(usernameQuery) + "%"
 
 	err := r.DB(ctx).
-		Where("lower(username) LIKE ? OR lower(name) LIKE ? OR lower(surname) LIKE ?", term, term, term).
+		Where("lower(username) LIKE ? OR lower(username) LIKE ? OR lower(name) LIKE ? OR lower(surname) LIKE ?", term, usernameTerm, term, term).
 		Order("username ASC").
 		Limit(limit).
 		Find(&profiles).Error

@@ -10,32 +10,32 @@ import (
 
 func TestNewClaims(t *testing.T) {
 	tests := []struct {
-		name 		string
-		userID 		uuid.UUID
-		role 		string
-		ttl 		time.Duration
-		wantError 	error
+		name      string
+		userID    uuid.UUID
+		role      string
+		ttl       time.Duration
+		wantError error
 	}{
 		{
-			name: 		"success",
-			userID:	 	uuid.New(),
-			role:		"user",
-			ttl:		time.Hour,
-			wantError: 	nil,
+			name:      "success",
+			userID:    uuid.New(),
+			role:      "user",
+			ttl:       time.Hour,
+			wantError: nil,
 		},
 		{
-			name: 		"empty user id",
-			userID: 	uuid.Nil,
-			role: 		"user",
-			ttl: 		time.Hour,
-			wantError: 	ErrUserIDNil,
+			name:      "empty user id",
+			userID:    uuid.Nil,
+			role:      "user",
+			ttl:       time.Hour,
+			wantError: ErrUserIDNil,
 		},
 		{
-			name:		"empty role",
-			userID:		uuid.New(),
-			role: 		"",
-			ttl:		time.Hour,
-			wantError: 	ErrEmptyRole,
+			name:      "empty role",
+			userID:    uuid.New(),
+			role:      "",
+			ttl:       time.Hour,
+			wantError: ErrEmptyRole,
 		},
 	}
 

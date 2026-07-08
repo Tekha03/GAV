@@ -59,11 +59,11 @@ func TestService_ValidateAndRotate(t *testing.T) {
 	hash, _ := bcrypt.GenerateFromPassword([]byte(refreshPlain), bcrypt.DefaultCost)
 
 	mockToken := &RefreshToken{
-		ID: uuid.New(),
-		UserID: userID,
+		ID:        uuid.New(),
+		UserID:    userID,
 		TokenHash: string(hash),
 		ExpiresAt: time.Now().Add(time.Hour),
-		Revoked: false,
+		Revoked:   false,
 	}
 
 	t.Run("success", func(t *testing.T) {

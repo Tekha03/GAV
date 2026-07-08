@@ -28,11 +28,11 @@ func TestService_UserStats(t *testing.T) {
 	ctx := context.Background()
 	userID := uuid.New()
 	mockStats := &UserStats{
-		UserID: userID,
-		PostCount: 5,
-		Followers: 10,
+		UserID:     userID,
+		PostCount:  5,
+		Followers:  10,
 		Followings: 3,
-		DogsCount: 2,
+		DogsCount:  2,
 	}
 
 	t.Run("success", func(t *testing.T) {
@@ -60,9 +60,9 @@ func TestService_ProfileStats(t *testing.T) {
 	ctx := context.Background()
 	userID := uuid.New()
 	mockStats := &UserStats{
-		UserID: userID,
-		PostCount: 3,
-		Followers: 5,
+		UserID:     userID,
+		PostCount:  3,
+		Followers:  5,
 		Followings: 2,
 	}
 
@@ -98,9 +98,9 @@ func TestService_IncrementDecrement(t *testing.T) {
 	repo := new(MockRepository)
 	s, _ := NewService(repo)
 
-	methods := []struct{
-		name string
-		call func() error
+	methods := []struct {
+		name     string
+		call     func() error
 		mockCall func()
 	}{
 		{
@@ -226,8 +226,8 @@ func TestService_PostStats(t *testing.T) {
 	ctx := context.Background()
 	postID := uuid.New()
 	mockPostStats := &PostStats{
-		PostID: postID,
-		LikesCount: 10,
+		PostID:        postID,
+		LikesCount:    10,
 		CommentsCount: 5,
 	}
 

@@ -13,7 +13,7 @@ import (
 
 type testEnv struct {
 	service FeedService
-	repo	*MockPostRepository
+	repo    *MockPostRepository
 }
 
 func setup(t *testing.T) *testEnv {

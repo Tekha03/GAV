@@ -7,6 +7,6 @@ import (
 )
 
 type SettingsService interface {
-    Get(ctx context.Context, userID uuid.UUID) (*UserSettings, error)
-    Update(ctx context.Context, userID uuid.UUID, input UpdateSettingsInput) error
+	Get(ctx context.Context, userID uuid.UUID) (*UserSettings, error)
+	Update(ctx context.Context, userID uuid.UUID, input UpdateSettingsInput) error
 }

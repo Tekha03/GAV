@@ -27,6 +27,7 @@ func (s *service) Create(ctx context.Context, userID uuid.UUID, content string, 
 	}
 
 	post := &Post{
+		ID:        uuid.New(),
 		UserID:    userID,
 		Content:   content,
 		ImageUrl:  imageUrl,

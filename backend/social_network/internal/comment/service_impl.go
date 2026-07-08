@@ -28,6 +28,7 @@ func NewService(repo Repository, statService ...stats.StatsService) (CommentServ
 
 func (s *service) Create(ctx context.Context, userID, postID uuid.UUID, content string) error {
 	comment := &Comment{
+		ID:      uuid.New(),
 		UserID:  userID,
 		PostID:  postID,
 		Content: content,

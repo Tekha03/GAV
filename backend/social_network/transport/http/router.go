@@ -169,6 +169,8 @@ POST /api/v1/posts           - создать пост
 			// ---- Dogs ----
 			r.Route("/dogs", func(r chi.Router) {
 				r.Post("/", h.Dog.Create)
+				r.Get("/", h.Dog.ListMine)
+				r.Get("/nearby", h.User.FindDogsNearby)
 				r.Get("/{id}", h.Dog.GetPrivate)
 				r.Put("/{id}", h.Dog.Update)
 				r.Delete("/{id}", h.Dog.Delete)

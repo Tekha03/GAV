@@ -28,7 +28,7 @@ func (r *SettingsRepository) Create(ctx context.Context, settins *settings.UserS
 		return fmt.Errorf("settings repository: create: %w", err)
 	}
 
-	return  nil
+	return nil
 }
 
 func (r *SettingsRepository) GetByUserID(ctx context.Context, userID uuid.UUID) (*settings.UserSettings, error) {
@@ -57,4 +57,3 @@ func (r *SettingsRepository) Update(ctx context.Context, userSettings *settings.
 
 	return nil
 }
-

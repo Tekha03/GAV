@@ -7,27 +7,27 @@ import (
 )
 
 type UserStats struct {
-	UserID		uuid.UUID	`gorm:"primaryKey"`
-	PostCount	uint
-	Followers	uint
-	Followings	uint
-	DogsCount	uint
-	CreatedAt	time.Time
-	UpdatedAt	time.Time
+	UserID     uuid.UUID `gorm:"primaryKey" json:"user_id"`
+	PostCount  uint      `json:"post_count"`
+	Followers  uint      `json:"followers_count"`
+	Followings uint      `json:"followings_count"`
+	DogsCount  uint      `json:"dogs_count"`
+	CreatedAt  time.Time `json:"created_at"`
+	UpdatedAt  time.Time `json:"updated_at"`
 }
 
 type PostStats struct {
-	PostID			uuid.UUID	`gorm:"primaryKey"`
-	AuthorID		uuid.UUID	`gorm:"index"`
-	LikesCount		uint
-	CommentsCount	uint
-	CreatedAt		time.Time
-	UpdatedAt		time.Time
+	PostID        uuid.UUID `gorm:"primaryKey" json:"post_id"`
+	AuthorID      uuid.UUID `gorm:"index" json:"author_id"`
+	LikesCount    uint      `json:"likes_count"`
+	CommentsCount uint      `json:"comments_count"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
 }
 
 type ProfileStats struct {
-	UserID		uuid.UUID
-	PostCount	uint
-	Followers	uint
-	Followings	uint
+	UserID     uuid.UUID `json:"user_id"`
+	PostCount  uint      `json:"post_count"`
+	Followers  uint      `json:"followers_count"`
+	Followings uint      `json:"followings_count"`
 }

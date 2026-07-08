@@ -28,13 +28,13 @@ func TestService_Create(t *testing.T) {
 	ctx := context.Background()
 	userID := uuid.New()
 	input := CreateProfileInput{
-		Name: "John",
-		Surname: "Doe",
-		Username: "johndoe",
+		Name:            "John",
+		Surname:         "Doe",
+		Username:        "johndoe",
 		ProfilePhotoUrl: "url",
-		Bio: "bio",
-		Address: "addr",
-		BirthDate: "2000-01-01",
+		Bio:             "bio",
+		Address:         "addr",
+		BirthDate:       "2000-01-01",
 	}
 
 	t.Run("success", func(t *testing.T) {

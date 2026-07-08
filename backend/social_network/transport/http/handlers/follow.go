@@ -1,13 +1,10 @@
 package handlers
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"social_network/internal/follow"
 	"social_network/internal/notification"
-	"social_network/internal/validation"
-	"social_network/transport/http/dto"
 	"social_network/transport/http/middleware"
 	"social_network/transport/response"
 
@@ -16,8 +13,8 @@ import (
 )
 
 type FollowHandler struct {
-	service 			follow.FollowService
-	notificationService  notification.NotificationService
+	service             follow.FollowService
+	notificationService notification.NotificationService
 }
 
 func NewFollowHandler(service follow.FollowService, notificationService notification.NotificationService) (*FollowHandler, error) {
@@ -51,18 +48,14 @@ func (h *FollowHandler) Follow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var following dto.FollowRequest
-	if err := json.NewDecoder(r.Body).Decode(&following); err != nil {
+	param := chi.URLParam(r, "userID")
+	followingID, err := uuid.Parse(param)
+	if err != nil {
 		response.Error(w, err)
 		return
 	}
 
-	if err := validation.Validate(&following); err != nil {
-		response.Error(w, err)
-		return
-	}
-
-	newFollow, err := follow.NewFollow(followerID, following.UserID)
+	newFollow, err := follow.NewFollow(followerID, followingID)
 	if err != nil {
 		response.Error(w, err)
 		return
@@ -73,7 +66,7 @@ func (h *FollowHandler) Follow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	go h.notificationService.NotifyFollow(r.Context(), following.UserID, followerID)
+	go h.notificationService.NotifyFollow(r.Context(), followingID, followerID)
 
 	response.JSON(w, http.StatusNoContent, nil)
 }

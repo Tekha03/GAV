@@ -45,7 +45,7 @@ func (r *PostRepository) GetByID(ctx context.Context, id uuid.UUID) (*post.Post,
 func (r *PostRepository) ListByUser(ctx context.Context, userID uuid.UUID) ([]*post.Post, error) {
 	var posts []*post.Post
 
-	if err := r.DB(ctx).Where("user id = ?", userID).Find(&posts).Error; err != nil {
+	if err := r.DB(ctx).Where("user_id = ?", userID).Find(&posts).Error; err != nil {
 		return nil, err
 	}
 
@@ -57,8 +57,8 @@ func (r *PostRepository) ListFeed(ctx context.Context, userID uuid.UUID, before 
 
 	query := r.DB(ctx).
 		Table("posts").
-		Joins("JOIN follows ON posts.user_id = follows.following_id").
-		Where("follows.following_id = ?", userID)
+		Joins("LEFT JOIN follows ON posts.user_id = follows.following_id AND follows.follower_id = ?", userID).
+		Where("posts.user_id = ? OR follows.follower_id IS NOT NULL", userID)
 
 	if !before.IsZero() {
 		query = query.Where("posts.created_at < ?", before)

@@ -17,7 +17,7 @@ import (
 )
 
 type UserHandler struct {
-	service 	user.UserService
+	service user.UserService
 }
 
 func NewUserHandler(service user.UserService) (*UserHandler, error) {
@@ -181,57 +181,79 @@ func (h *UserHandler) FindDogsNearby(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UserHandler) UpdateLocation(w http.ResponseWriter, r *http.Request) {
-    idParam := chi.URLParam(r, "id")
+	authUserID, ok := middleware.UserID(r.Context())
+	if !ok {
+		response.Error(w, ErrUnauthorized)
+		return
+	}
 
-    userID, err := uuid.Parse(idParam)
-    if err != nil {
-        response.Error(w, ErrInvalidInput)
-        return
-    }
+	idParam := chi.URLParam(r, "id")
 
-    var input user.UpdateLocationInput
-    if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-        response.Error(w, ErrInvalidInput)
-        return
-    }
+	userID, err := uuid.Parse(idParam)
+	if err != nil {
+		response.Error(w, ErrInvalidInput)
+		return
+	}
 
-    if err := validation.Validate(&input); err != nil {
-        response.Error(w, err)
-        return
-    }
+	if userID != authUserID {
+		response.Error(w, ErrForbidden)
+		return
+	}
 
-    if err := h.service.UpdateLocation(r.Context(), userID, input); err != nil {
-        response.Error(w, err)
-        return
-    }
+	var input user.UpdateLocationInput
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		response.Error(w, ErrInvalidInput)
+		return
+	}
 
-    response.JSON(w, http.StatusNoContent, nil)
+	if err := validation.Validate(&input); err != nil {
+		response.Error(w, err)
+		return
+	}
+
+	if err := h.service.UpdateLocation(r.Context(), userID, input); err != nil {
+		response.Error(w, err)
+		return
+	}
+
+	response.JSON(w, http.StatusNoContent, nil)
 }
 
 func (h *UserHandler) SetLocationVisibility(w http.ResponseWriter, r *http.Request) {
-    idParam := chi.URLParam(r, "id")
+	authUserID, ok := middleware.UserID(r.Context())
+	if !ok {
+		response.Error(w, ErrUnauthorized)
+		return
+	}
 
-    userID, err := uuid.Parse(idParam)
-    if err != nil {
-        response.Error(w, ErrInvalidInput)
-        return
-    }
+	idParam := chi.URLParam(r, "id")
 
-    var input user.SetLocationVisibilityInput
-    if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-        response.Error(w, ErrInvalidInput)
-        return
-    }
+	userID, err := uuid.Parse(idParam)
+	if err != nil {
+		response.Error(w, ErrInvalidInput)
+		return
+	}
 
-    if err := validation.Validate(&input); err != nil {
-        response.Error(w, err)
-        return
-    }
+	if userID != authUserID {
+		response.Error(w, ErrForbidden)
+		return
+	}
 
-    if err := h.service.SetLocationVisibility(r.Context(), userID, input); err != nil {
-        response.Error(w, err)
-        return
-    }
+	var input user.SetLocationVisibilityInput
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		response.Error(w, ErrInvalidInput)
+		return
+	}
 
-    response.JSON(w, http.StatusNoContent, nil)
+	if err := validation.Validate(&input); err != nil {
+		response.Error(w, err)
+		return
+	}
+
+	if err := h.service.SetLocationVisibility(r.Context(), userID, input); err != nil {
+		response.Error(w, err)
+		return
+	}
+
+	response.JSON(w, http.StatusNoContent, nil)
 }

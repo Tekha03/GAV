@@ -152,6 +152,37 @@ func TestDogHandler_GetPrivate(t *testing.T) {
 	})
 }
 
+func TestDogHandler_ListMine(t *testing.T) {
+	userID := uuid.New()
+
+	t.Run("success", func(t *testing.T) {
+		mockSvc := new(MockDogService)
+		h, _ := NewDogHandler(mockSvc)
+
+		expected := []*dog.Dog{{ID: uuid.New(), OwnerID: userID, Name: "Bob"}}
+		mockSvc.On("ListByOwnerID", mock.Anything, userID).Return(expected, nil)
+
+		req := httptest.NewRequest(http.MethodGet, "/dogs", nil)
+		req = req.WithContext(context.WithValue(req.Context(), middleware.UserIDKey, userID))
+
+		w := httptest.NewRecorder()
+		h.ListMine(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+	})
+
+	t.Run("unauthorized", func(t *testing.T) {
+		mockSvc := new(MockDogService)
+		h, _ := NewDogHandler(mockSvc)
+
+		req := httptest.NewRequest(http.MethodGet, "/dogs", nil)
+		w := httptest.NewRecorder()
+
+		h.ListMine(w, req)
+		assert.NotEqual(t, http.StatusOK, w.Code)
+	})
+}
+
 func TestDogHandler_Update(t *testing.T) {
 	userID := uuid.New()
 	dogID := uuid.New()

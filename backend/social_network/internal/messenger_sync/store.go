@@ -8,35 +8,35 @@ import (
 )
 
 type ChatSnapshot struct {
-	ID 			uuid.UUID
-	Members 	map[uuid.UUID]struct{}
-	Deleted 	bool
-	CreatedAt 	time.Time
-	UpdatedAt 	time.Time
+	ID        uuid.UUID
+	Members   map[uuid.UUID]struct{}
+	Deleted   bool
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 type MessageSnapshot struct {
-	ID 			uuid.UUID
-	ChatID 		uuid.UUID
-	SenderID 	uuid.UUID
-	Text 		string
-	Deleted 	bool
-	CreatedAt 	time.Time
-	UpdatedAt 	time.Time
+	ID        uuid.UUID
+	ChatID    uuid.UUID
+	SenderID  uuid.UUID
+	Text      string
+	Deleted   bool
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 type Store struct {
-	mu 			sync.RWMutex
-	chats 		map[uuid.UUID]*ChatSnapshot
-	messages 	map[uuid.UUID]*MessageSnapshot
-	reactions 	map[uuid.UUID]map[uuid.UUID]string
+	mu        sync.RWMutex
+	chats     map[uuid.UUID]*ChatSnapshot
+	messages  map[uuid.UUID]*MessageSnapshot
+	reactions map[uuid.UUID]map[uuid.UUID]string
 }
 
 func NewStore() *Store {
 	return &Store{
-		chats: 		make(map[uuid.UUID]*ChatSnapshot),
-		messages: 	make(map[uuid.UUID]*MessageSnapshot),
-		reactions: 	make(map[uuid.UUID]map[uuid.UUID]string),
+		chats:     make(map[uuid.UUID]*ChatSnapshot),
+		messages:  make(map[uuid.UUID]*MessageSnapshot),
+		reactions: make(map[uuid.UUID]map[uuid.UUID]string),
 	}
 }
 
@@ -45,10 +45,10 @@ func (s *Store) CreateChat(chatID uuid.UUID, members []uuid.UUID) {
 	defer s.mu.Unlock()
 
 	chat := &ChatSnapshot{
-		ID: 		chatID,
-		Members: 	make(map[uuid.UUID]struct{}, len(members)),
-		CreatedAt: 	time.Now(),
-		UpdatedAt:	time.Now(),
+		ID:        chatID,
+		Members:   make(map[uuid.UUID]struct{}, len(members)),
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
 	}
 	for _, memberID := range members {
 		chat.Members[memberID] = struct{}{}
@@ -64,7 +64,7 @@ func (s *Store) AddMember(chatID, userID uuid.UUID) {
 	chat, ok := s.chats[chatID]
 	if !ok {
 		chat = &ChatSnapshot{
-			ID: chatID,
+			ID:      chatID,
 			Members: make(map[uuid.UUID]struct{}),
 		}
 		s.chats[chatID] = chat
@@ -119,12 +119,12 @@ func (s *Store) SaveMessage(messageID, chatID, senderID uuid.UUID, text string) 
 	defer s.mu.Unlock()
 
 	s.messages[messageID] = &MessageSnapshot{
-		ID: 		messageID,
-		ChatID: 	chatID,
-		SenderID: 	senderID,
-		Text: 		text,
-		CreatedAt: 	time.Now(),
-		UpdatedAt: 	time.Now(),
+		ID:        messageID,
+		ChatID:    chatID,
+		SenderID:  senderID,
+		Text:      text,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
 	}
 }
 

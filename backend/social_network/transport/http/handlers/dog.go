@@ -130,6 +130,38 @@ func (h *DogHandler) GetPrivate(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusOK, dog)
 }
 
+func (h *DogHandler) ListMine(w http.ResponseWriter, r *http.Request) {
+	ownerID, ok := middleware.UserID(r.Context())
+	if !ok {
+		response.Error(w, ErrUnauthorized)
+		return
+	}
+
+	if queryOwnerID := r.URL.Query().Get("owner_id"); queryOwnerID != "" {
+		parsedOwnerID, err := uuid.Parse(queryOwnerID)
+		if err != nil {
+			response.Error(w, ErrInvalidInput)
+			return
+		}
+		ownerID = parsedOwnerID
+	} else if queryUserID := r.URL.Query().Get("user_id"); queryUserID != "" {
+		parsedUserID, err := uuid.Parse(queryUserID)
+		if err != nil {
+			response.Error(w, ErrInvalidInput)
+			return
+		}
+		ownerID = parsedUserID
+	}
+
+	dogs, err := h.service.ListByOwnerID(r.Context(), ownerID)
+	if err != nil {
+		response.Error(w, err)
+		return
+	}
+
+	response.JSON(w, http.StatusOK, dogs)
+}
+
 // GetPrivate godoc
 // @Summary Get private dog
 // @Description Получить приватную информацию о собаке (только владелец)

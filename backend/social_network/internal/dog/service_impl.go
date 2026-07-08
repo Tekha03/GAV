@@ -29,6 +29,7 @@ func (s *service) Create(ctx context.Context, ownerID uuid.UUID, input CreateDog
 		input.Status,
 		input.Age,
 		input.PhotoUrl,
+		input.Notes,
 	)
 	if err != nil {
 		return nil, err
@@ -80,6 +81,10 @@ func (s *service) Update(ctx context.Context, ownerID, dogID uuid.UUID, input Up
 		dog.Status = *input.Status
 	}
 
+	if input.Notes != nil {
+		dog.Notes = *input.Notes
+	}
+
 	return s.repo.Update(ctx, dog)
 }
 
@@ -104,7 +109,7 @@ func (s *service) GetPublic(ctx context.Context, dogID uuid.UUID) (*Dog, error) 
 	return s.repo.GetByID(ctx, dogID)
 }
 
-func (s *service) GetPrivate(ctx context.Context, dogID, ownerID uuid.UUID) (*Dog, error) {
+func (s *service) GetPrivate(ctx context.Context, ownerID, dogID uuid.UUID) (*Dog, error) {
 	dog, err := s.repo.GetByID(ctx, dogID)
 	if err != nil {
 		return nil, err
@@ -115,4 +120,12 @@ func (s *service) GetPrivate(ctx context.Context, dogID, ownerID uuid.UUID) (*Do
 	}
 
 	return dog, nil
+}
+
+func (s *service) ListByOwnerID(ctx context.Context, ownerID uuid.UUID) ([]*Dog, error) {
+	if ownerID == uuid.Nil {
+		return nil, ErrOwnerIDNil
+	}
+
+	return s.repo.GetByOwnerID(ctx, ownerID)
 }

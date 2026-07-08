@@ -3,6 +3,6 @@ package dog
 type Gender string
 
 const (
-	Female 	Gender = "female"
-	Male	Gender = "male"
+	Female Gender = "female"
+	Male   Gender = "male"
 )
