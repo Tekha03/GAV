@@ -21,3 +21,6 @@ DerivedData/
 bin/
 vendor/
 coverage.out
+
+# VSCode
+.vscode/
