@@ -144,11 +144,14 @@ struct ProfileSettingsView: View {
             return
         }
 
-        let avatarURL = await uploadAvatarIfNeeded()
+        let uploadedAvatar = await uploadAvatarIfNeeded()
         if errorMessage != nil { return }
 
         do {
-            try await saveRemoteProfile(username: cleanUsername)
+            try await saveRemoteProfile(
+                username: cleanUsername,
+                profilePhotoUrl: uploadedAvatar?.rawURL
+            )
         } catch APIError.invalidResponse(let statusCode) where statusCode == 409 {
             errorMessage = "Этот никнейм уже занят"
             return
@@ -160,15 +163,15 @@ struct ProfileSettingsView: View {
         if !fullName.isEmpty {
             appViewModel.profile.fullName = fullName
         }
-        if let avatarURL {
-            appViewModel.profile.avatarURL = avatarURL
+        if let uploadedAvatar {
+            appViewModel.profile.avatarURL = uploadedAvatar.resolvedURL
         }
         appViewModel.profile.handle = "@\(cleanUsername)"
         appViewModel.profile.bio = bio
         dismiss()
     }
 
-    private func uploadAvatarIfNeeded() async -> URL? {
+    private func uploadAvatarIfNeeded() async -> UploadedMedia? {
         guard let selectedAvatarData else { return nil }
 
         do {
@@ -176,20 +179,24 @@ struct ProfileSettingsView: View {
                 selectedAvatarData,
                 mimeType: "image/jpeg"
             )
-            return MediaURLResolver.resolve(media.url)
+            return UploadedMedia(
+                rawURL: media.url,
+                resolvedURL: MediaURLResolver.resolve(media.url)
+            )
         } catch {
             errorMessage = "Не удалось загрузить аватар"
             return nil
         }
     }
 
-    private func saveRemoteProfile(username: String) async throws {
+    private func saveRemoteProfile(username: String, profilePhotoUrl: String?) async throws {
         let cleanFirstName = firstName.trimmingCharacters(in: .whitespacesAndNewlines)
         let cleanLastName = lastName.trimmingCharacters(in: .whitespacesAndNewlines)
         let input = UpdateProfileInput(
             name: cleanFirstName,
             surname: cleanLastName,
             username: username,
+            profilePhotoUrl: profilePhotoUrl,
             bio: bio
         )
 
@@ -203,6 +210,7 @@ struct ProfileSettingsView: View {
                 name: cleanFirstName,
                 surname: cleanLastName,
                 username: username,
+                profilePhotoUrl: profilePhotoUrl,
                 bio: bio
             ).toModel(userID: appViewModel.currentUserId)
             _ = try await appViewModel.profileService.create(
@@ -218,4 +226,9 @@ struct ProfileSettingsView: View {
             .trimmingCharacters(in: CharacterSet(charactersIn: "@"))
             .lowercased()
     }
+}
+
+private struct UploadedMedia {
+    let rawURL: String
+    let resolvedURL: URL?
 }

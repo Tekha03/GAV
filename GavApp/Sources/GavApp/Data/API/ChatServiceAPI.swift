@@ -64,7 +64,8 @@ final class ChatServiceAPI: ChatUseCase {
     }
 
     func getChatMembers(chatID: UUID) async throws -> [ChatMember] {
-        throw ChatAPIError.notImplemented
+        let data = try await base.request("/api/v1/chats/\(chatID.uuidString)/members", requiresAuth: false)
+        return try chatDecoder.decode(ChatMemberListEnvelope.self, from: data).members.map(\.domain)
     }
 
     func addMember(userID: UUID, chatID: UUID) async throws {
@@ -171,6 +172,10 @@ private struct MessageListEnvelope: Decodable {
     let messages: [MessageDTO]
 }
 
+private struct ChatMemberListEnvelope: Decodable {
+    let members: [ChatMemberDTO]
+}
+
 private struct ChatDTO: Decodable {
     let id: UUID
     let isGroup: Bool
@@ -259,6 +264,32 @@ private struct AttachmentDTO: Decodable {
         case type
         case fileName = "file_name"
         case fileSize = "file_size"
+    }
+}
+
+private struct ChatMemberDTO: Decodable {
+    let chatId: UUID
+    let userId: UUID
+    let role: MemberRole
+    let muted: Bool
+    let lastReadMessageId: UUID?
+
+    var domain: ChatMember {
+        ChatMember(
+            userId: userId,
+            chatId: chatId,
+            role: role,
+            muted: muted,
+            lastReadMessageId: lastReadMessageId
+        )
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case chatId = "chat_id"
+        case userId = "user_id"
+        case role
+        case muted
+        case lastReadMessageId = "last_read_message_id"
     }
 }
 

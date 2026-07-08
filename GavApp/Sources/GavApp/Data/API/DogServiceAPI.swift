@@ -25,7 +25,9 @@ final class DogServiceAPI: DogServiceAPIProtocol, @unchecked Sendable {
             breed: input.breed,
             status: input.status,
             age: input.age,
-            gender: input.gender
+            gender: input.gender,
+            photoUrl: input.photoUrl,
+            notes: input.notes
         )
         let body = try JSONEncoder().encode(model)
         let data = try await base.request(path, method: "POST", body: body)
@@ -51,7 +53,8 @@ final class DogServiceAPI: DogServiceAPIProtocol, @unchecked Sendable {
             breed: input.breed,
             status: input.status,
             age: input.age,
-            gender: input.gender
+            gender: input.gender,
+            notes: input.notes
         )
         let body = try JSONEncoder().encode(model)
         _ = try await base.request(path, method: "PUT", body: body)
@@ -63,7 +66,12 @@ final class DogServiceAPI: DogServiceAPIProtocol, @unchecked Sendable {
     }
 
     func listByOwnerID(ownerID: UUID) async throws -> [DogModel] {
-        let path = "/api/v1/dogs/owner/\(ownerID.uuidString)"
+        var components = URLComponents()
+        components.queryItems = [
+            URLQueryItem(name: "owner_id", value: ownerID.uuidString)
+        ]
+        let query = components.percentEncodedQuery ?? ""
+        let path = "/api/v1/dogs" + (query.isEmpty ? "" : "?\(query)")
         let data = try await base.request(path)
         return try JSONDecoder().decode([DogModel].self, from: data)
     }

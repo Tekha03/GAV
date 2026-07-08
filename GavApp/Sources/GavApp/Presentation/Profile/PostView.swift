@@ -4,9 +4,10 @@ struct PostView: View {
     @EnvironmentObject private var appViewModel: AppViewModel
     let post: AppPost
     let onLike: () -> Void
+    let onComment: () -> Void
 
     private var isLiked: Bool {
-        appViewModel.likedPostIDs.contains(post.id)
+        post.isLiked || appViewModel.likedPostIDs.contains(post.id)
     }
 
     var body: some View {
@@ -61,12 +62,12 @@ struct PostView: View {
             HStack(spacing: 18) {
                 Button {
                     withAnimation(.spring(response: 0.28, dampingFraction: 0.55)) {
-                        appViewModel.toggleLike(postID: post.id)
+                        onLike()
                     }
                 } label: {
-                    Image(systemName: post.isLiked ? "heart.fill" : "heart")
-                        .foregroundStyle(post.isLiked ? .red : .white.opacity(0.85))
-                        .scaleEffect(post.isLiked ? 1.18 : 1.0)
+                    Image(systemName: isLiked ? "heart.fill" : "heart")
+                        .foregroundStyle(isLiked ? .red : .white.opacity(0.85))
+                        .scaleEffect(isLiked ? 1.18 : 1.0)
                         .contentTransition(.symbolEffect(.replace))
                 }
                 .buttonStyle(.plain)
@@ -74,12 +75,16 @@ struct PostView: View {
                 Text("\(post.likes)")
                 .foregroundStyle(.white)
 
-                HStack(spacing: 6) {
-                    Image(systemName: "bubble.right")
-                        .foregroundStyle(.secondary)
-                    Text("\(post.comments)")
-                        .foregroundStyle(.secondary)
+                Button {
+                    onComment()
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "bubble.right")
+                        Text("\(post.comments)")
+                    }
+                    .foregroundStyle(.secondary)
                 }
+                .buttonStyle(.plain)
 
                 Spacer()
             }

@@ -55,6 +55,14 @@ struct AppPost: Identifiable, Hashable {
     var isLiked: Bool = false
 }
 
+struct AppComment: Identifiable, Hashable {
+    let id: UUID
+    let postID: UUID
+    let authorName: String
+    let content: String
+    let createdAt: Date
+}
+
 public struct AppChat: Identifiable, Hashable {
     public let id: UUID
     public var title: String
@@ -141,6 +149,12 @@ final class AppViewModel: ObservableObject {
     var chatUseCase: ChatUseCase
     var profileService: UserProfileServiceAPIProtocol
     var uploadService: UploadServiceAPIProtocol
+    var dogService: DogServiceAPIProtocol
+    var postService: PostServiceAPIProtocol
+    var feedService: FeedServiceAPIProtocol
+    var userService: UserServiceAPIProtocol
+    var followService: FollowServiceAPIProtocol
+    var statsService: StatsServiceAPIProtocol
     let canEditProfile: Bool
 
     init(
@@ -155,6 +169,12 @@ final class AppViewModel: ObservableObject {
         chatUseCase: ChatUseCase,
         profileService: UserProfileServiceAPIProtocol,
         uploadService: UploadServiceAPIProtocol,
+        dogService: DogServiceAPIProtocol,
+        postService: PostServiceAPIProtocol,
+        feedService: FeedServiceAPIProtocol,
+        userService: UserServiceAPIProtocol,
+        followService: FollowServiceAPIProtocol,
+        statsService: StatsServiceAPIProtocol,
         canEditProfile: Bool
     ) {
         self.profile = profile
@@ -168,6 +188,12 @@ final class AppViewModel: ObservableObject {
         self.chatUseCase = chatUseCase
         self.profileService = profileService
         self.uploadService = uploadService
+        self.dogService = dogService
+        self.postService = postService
+        self.feedService = feedService
+        self.userService = userService
+        self.followService = followService
+        self.statsService = statsService
         self.canEditProfile = canEditProfile
     }
 
@@ -202,17 +228,23 @@ final class AppViewModel: ObservableObject {
         feed.insert(post, at: 0)
     }
 
-    func toggleLike(postID: UUID) {
-        if let index = posts.firstIndex(where: { $0.id == postID }) {
-            posts[index].isLiked.toggle()
-            posts[index].likes += posts[index].isLiked ? 1 : -1
-            posts[index].likes = max(0, posts[index].likes)
-        }
+    func toggleLike(postID: UUID) async {
+        let wasLiked = likedPostIDs.contains(postID) ||
+            posts.first(where: { $0.id == postID })?.isLiked == true ||
+            feed.first(where: { $0.id == postID })?.isLiked == true
+        let shouldLike = !wasLiked
 
-        if let index = feed.firstIndex(where: { $0.id == postID }) {
-            feed[index].isLiked.toggle()
-            feed[index].likes += feed[index].isLiked ? 1 : -1
-            feed[index].likes = max(0, feed[index].likes)
+        setLikeState(postID: postID, isLiked: shouldLike)
+
+        do {
+            if shouldLike {
+                try await postService.addLike(postID: postID)
+            } else {
+                try await postService.removeLike(postID: postID)
+            }
+            _ = await refreshPostStats(postID: postID)
+        } catch {
+            setLikeState(postID: postID, isLiked: wasLiked)
         }
     }
 
@@ -223,14 +255,21 @@ final class AppViewModel: ObservableObject {
     func loadChats() async {
         do {
             let userChats = try await chatUseCase.getUserChats(userID: currentUserId)
-            chats = userChats.map {
-                AppChat(
-                    id: $0.id,
-                    title: $0.title,
-                    lastMessage: "Откройте чат",
-                    unreadCount: 0
+            var loadedChats: [AppChat] = []
+
+            for chat in userChats {
+                let title = await displayTitle(for: chat)
+                loadedChats.append(
+                    AppChat(
+                        id: chat.id,
+                        title: title,
+                        lastMessage: "Откройте чат",
+                        unreadCount: 0
+                    )
                 )
             }
+
+            chats = loadedChats
         } catch {
             if chats.isEmpty {
                 chats = []
@@ -243,12 +282,210 @@ final class AppViewModel: ObservableObject {
             user1: currentUserId,
             user2: participantID
         )
-        upsertChat(chat)
+        let title = await profileDisplayTitle(userID: participantID) ?? chat.title
+        upsertChat(chat, title: title)
+    }
+
+    func isFollowing(_ userID: UUID) async -> Bool {
+        do {
+            let following = try await followService.getFollowing(userID: currentUserId)
+            return following.contains { $0.followingId == userID }
+        } catch {
+            return false
+        }
+    }
+
+    func follow(_ userID: UUID) async throws {
+        profile.following += 1
+        do {
+            try await followService.follow(userID: userID)
+            await loadAuthenticatedStats()
+            await loadFeed()
+        } catch {
+            profile.following = max(0, profile.following - 1)
+            throw error
+        }
+    }
+
+    func unfollow(_ userID: UUID) async throws {
+        profile.following = max(0, profile.following - 1)
+        do {
+            try await followService.unfollow(userID: userID)
+            await loadAuthenticatedStats()
+            await loadFeed()
+        } catch {
+            profile.following += 1
+            throw error
+        }
     }
 
     func searchProfiles(query: String) async throws -> [UserProfileModel] {
         try await profileService.search(query: query, limit: 10)
             .filter { $0.userId != currentUserId }
+    }
+
+    func loadAuthenticatedProfile() async {
+        do {
+            let profileModel = try await profileService.getByUserID(userID: currentUserId)
+            applyProfile(profileModel)
+        } catch {
+            // Keep the authenticated user fallback if a profile has not been created yet.
+        }
+
+        await loadAuthenticatedStats()
+    }
+
+    func loadAuthenticatedContent() async {
+        async let dogsTask: Void = loadDogs()
+        async let postsTask: Void = loadPosts()
+        async let feedTask: Void = loadFeed()
+        _ = await (dogsTask, postsTask, feedTask)
+    }
+
+    func loadProfileContent(for profile: UserProfileModel) async throws -> (dogs: [AppDog], posts: [AppPost]) {
+        let dogModels = try await dogService.listByOwnerID(ownerID: profile.userId)
+        let postModels = try await postService.listByUser(userID: profile.userId)
+        var profilePosts = postModels
+            .map { appPost(from: $0, authorProfile: profile) }
+            .sorted { $0.createdAt > $1.createdAt }
+        await hydratePostStats(&profilePosts)
+
+        return (
+            dogs: dogModels.map { appDog(from: $0) },
+            posts: profilePosts
+        )
+    }
+
+    func loadProfileStats(for userID: UUID) async throws -> ProfileStatsModel {
+        try await statsService.profileStats(userID: userID)
+    }
+
+    func refreshPostStats(postID: UUID) async -> PostStatsModel? {
+        guard let stats = try? await statsService.postStats(postID: postID) else {
+            return nil
+        }
+
+        setPostStats(postID: postID, stats: stats)
+        return stats
+    }
+
+    func createDog(
+        name: String,
+        breed: String,
+        ageText: String,
+        mood: DogMood,
+        photoUrl: String,
+        notes: String
+    ) async throws {
+        let model = try await dogService.create(
+            ownerID: currentUserId,
+            input: CreateDogInput(
+                name: name,
+                breed: breed,
+                age: dogAgeValue(from: ageText),
+                status: mood.rawValue,
+                gender: "female",
+                photoUrl: photoUrl,
+                notes: notes
+            )
+        )
+        dogs.insert(appDog(from: model, notes: notes), at: 0)
+    }
+
+    func deleteDog(_ dog: AppDog) async throws {
+        try await dogService.delete(dogID: dog.id)
+        dogs.removeAll { $0.id == dog.id }
+        vaccinations.removeAll { $0.dogID == dog.id }
+    }
+
+    func updateDog(_ dog: AppDog) async throws {
+        try await dogService.update(
+            dogID: dog.id,
+            input: UpdateDogInput(
+                name: dog.name,
+                breed: dog.breed,
+                age: dogAgeValue(from: dog.ageText),
+                status: dog.mood.rawValue,
+                gender: "female",
+                notes: dog.notes
+            )
+        )
+
+        if let index = dogs.firstIndex(where: { $0.id == dog.id }) {
+            dogs[index] = dog
+        }
+    }
+
+    func createPost(content: String, imageUrl: String?) async throws {
+        let model = try await postService.create(
+            userID: currentUserId,
+            content: content,
+            imageUrl: imageUrl
+        )
+        let post = appPost(from: model)
+        posts.insert(post, at: 0)
+        feed.insert(post, at: 0)
+    }
+
+    func loadComments(for postID: UUID) async throws -> [AppComment] {
+        let models = try await postService.listCommentsByPostID(postID: postID)
+        return models.map { appComment(from: $0) }
+    }
+
+    func addComment(to postID: UUID, content: String) async throws -> [AppComment] {
+        _ = try await postService.createComment(
+            postID: postID,
+            userID: currentUserId,
+            content: content
+        )
+        let comments = try await loadComments(for: postID)
+        setCommentCount(postID: postID, count: comments.count)
+        return comments
+    }
+
+    func setCommentCount(postID: UUID, count: Int) {
+        let normalizedCount = max(0, count)
+        if let index = posts.firstIndex(where: { $0.id == postID }) {
+            posts[index].comments = normalizedCount
+        }
+        if let index = feed.firstIndex(where: { $0.id == postID }) {
+            feed[index].comments = normalizedCount
+        }
+    }
+
+    func shareLocationAndLoadNearby(
+        latitude: Double,
+        longitude: Double,
+        radiusMeters: Double = 1_000
+    ) async throws {
+        try await userService.updateLocation(
+            id: currentUserId,
+            input: UpdateLocationInput(
+                lat: latitude,
+                lon: longitude,
+                locationStatus: .walking,
+                visibility: .everyone
+            )
+        )
+
+        let nearbyDogs = try await userService.findDogsNearby(
+            id: currentUserId,
+            centerLat: latitude,
+            centerLon: longitude,
+            radiusMeters: radiusMeters
+        )
+
+        walkers = nearbyDogs.compactMap { model in
+            guard let lat = model.lat, let lon = model.lon else { return nil }
+            return AppWalker(
+                id: model.id,
+                ownerName: "Поблизости",
+                dogName: model.name,
+                mood: DogMood(rawValue: model.status) ?? .friendly,
+                latitude: lat,
+                longitude: lon
+            )
+        }
     }
 
     func createGroupChat(title: String, memberIDs: [UUID]) async throws {
@@ -298,6 +535,225 @@ final class AppViewModel: ObservableObject {
         likedPostIDs = []
     }
 
+    private func applyProfile(_ model: UserProfileModel) {
+        let fullName = [model.name, model.surname]
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+        let username = model.username.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        profile = AppProfile(
+            fullName: fullName.isEmpty ? "Мой профиль" : fullName,
+            handle: username.isEmpty ? "@me" : "@\(username)",
+            bio: model.bio,
+            avatarURL: model.profilePhotoUrl.flatMap { MediaURLResolver.resolve($0) },
+            followers: profile.followers,
+            following: profile.following
+        )
+    }
+
+    private func loadDogs() async {
+        do {
+            let models = try await dogService.listByOwnerID(ownerID: currentUserId)
+            dogs = models.map { appDog(from: $0) }
+        } catch {
+            if dogs.isEmpty {
+                dogs = []
+            }
+        }
+    }
+
+    private func loadPosts() async {
+        do {
+            let models = try await postService.listByUser(userID: currentUserId)
+            var loadedPosts = models
+                .map { appPost(from: $0) }
+                .sorted { $0.createdAt > $1.createdAt }
+            await hydratePostStats(&loadedPosts)
+            posts = loadedPosts
+        } catch {
+            if posts.isEmpty {
+                posts = []
+            }
+        }
+    }
+
+    private func loadAuthenticatedStats() async {
+        do {
+            let stats = try await statsService.profileStats(userID: currentUserId)
+            profile.followers = Int(stats.followersCount)
+            profile.following = Int(stats.followingsCount)
+        } catch {
+            // Keep local counters if stats are not available yet.
+        }
+    }
+
+    private func loadFeed() async {
+        do {
+            let models = try await feedService.getFeed(userID: currentUserId, before: nil, limit: 50)
+            var loadedFeed = models
+                .map { appPost(from: $0) }
+                .sorted { $0.createdAt > $1.createdAt }
+            await hydratePostAuthors(&loadedFeed)
+            await hydratePostStats(&loadedFeed)
+            feed = loadedFeed
+        } catch {
+            if feed.isEmpty {
+                feed = posts
+            }
+        }
+    }
+
+    private func appDog(from model: DogModel, notes: String = "") -> AppDog {
+        AppDog(
+            id: model.id,
+            name: model.name,
+            breed: model.breed,
+            ageText: dogAgeText(from: model.age),
+            mood: DogMood(rawValue: model.status) ?? .friendly,
+            photoURL: MediaURLResolver.resolve(model.photoUrl),
+            notes: notes.isEmpty ? model.notes : notes
+        )
+    }
+
+    private func appPost(from model: PostModel, authorProfile: UserProfileModel? = nil) -> AppPost {
+        let authorName: String
+        let authorHandle: String
+        let authorPhotoURL: URL?
+
+        if let authorProfile {
+            let fullName = [authorProfile.name, authorProfile.surname]
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+                .joined(separator: " ")
+            authorName = fullName.isEmpty ? "@\(authorProfile.username)" : fullName
+            authorHandle = "@\(authorProfile.username)"
+            authorPhotoURL = authorProfile.profilePhotoUrl.flatMap { MediaURLResolver.resolve($0) }
+        } else if model.userId == currentUserId {
+            authorName = profile.fullName
+            authorHandle = profile.handle
+            authorPhotoURL = profile.avatarURL
+        } else {
+            authorName = "Пользователь"
+            authorHandle = "@user"
+            authorPhotoURL = nil
+        }
+
+        return AppPost(
+            id: model.id,
+            authorName: authorName,
+            authorHandle: authorHandle,
+            authorPhotoURL: authorPhotoURL,
+            content: model.content,
+            imageURL: model.imageUrl.flatMap { MediaURLResolver.resolve($0) },
+            likes: 0,
+            comments: 0,
+            createdAt: model.createdAt
+        )
+    }
+
+    private func hydratePostStats(_ posts: inout [AppPost]) async {
+        for index in posts.indices {
+            if let stats = try? await statsService.postStats(postID: posts[index].id) {
+                posts[index].likes = Int(stats.likesCount)
+                posts[index].comments = Int(stats.commentsCount)
+            }
+        }
+    }
+
+    private func hydratePostAuthors(_ posts: inout [AppPost]) async {
+        var profilesByUserID: [UUID: UserProfileModel] = [:]
+
+        for post in posts where post.authorHandle == "@user" {
+            guard let model = try? await postService.getByID(id: post.id) else { continue }
+            if profilesByUserID[model.userId] == nil,
+               let profile = try? await profileService.getByUserID(userID: model.userId) {
+                profilesByUserID[model.userId] = profile
+            }
+        }
+
+        for index in posts.indices where posts[index].authorHandle == "@user" {
+            guard let model = try? await postService.getByID(id: posts[index].id),
+                  let authorProfile = profilesByUserID[model.userId] else { continue }
+            posts[index] = appPost(from: model, authorProfile: authorProfile)
+        }
+    }
+
+    private func appComment(from model: CommentModel) -> AppComment {
+        AppComment(
+            id: model.id,
+            postID: model.postId,
+            authorName: model.userId == currentUserId ? profile.fullName : "Пользователь",
+            content: model.content,
+            createdAt: model.createdAt
+        )
+    }
+
+    private func setLikeState(postID: UUID, isLiked: Bool) {
+        if isLiked {
+            likedPostIDs.insert(postID)
+        } else {
+            likedPostIDs.remove(postID)
+        }
+
+        if let index = posts.firstIndex(where: { $0.id == postID }) {
+            let delta = likeDelta(current: posts[index].isLiked, next: isLiked)
+            posts[index].isLiked = isLiked
+            posts[index].likes = max(0, posts[index].likes + delta)
+        }
+
+        if let index = feed.firstIndex(where: { $0.id == postID }) {
+            let delta = likeDelta(current: feed[index].isLiked, next: isLiked)
+            feed[index].isLiked = isLiked
+            feed[index].likes = max(0, feed[index].likes + delta)
+        }
+    }
+
+    private func setPostStats(postID: UUID, stats: PostStatsModel) {
+        if let index = posts.firstIndex(where: { $0.id == postID }) {
+            posts[index].likes = Int(stats.likesCount)
+            posts[index].comments = Int(stats.commentsCount)
+        }
+
+        if let index = feed.firstIndex(where: { $0.id == postID }) {
+            feed[index].likes = Int(stats.likesCount)
+            feed[index].comments = Int(stats.commentsCount)
+        }
+    }
+
+    private func likeDelta(current: Bool, next: Bool) -> Int {
+        switch (current, next) {
+        case (false, true):
+            return 1
+        case (true, false):
+            return -1
+        default:
+            return 0
+        }
+    }
+
+    private func dogAgeValue(from text: String) -> String {
+        let clean = text.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if clean.contains("щен") || clean.contains("puppy") {
+            return "puppy"
+        }
+        if clean.contains("стар") || clean.contains("elder") || clean.contains("senior") {
+            return "elderly"
+        }
+        return "adult"
+    }
+
+    private func dogAgeText(from value: String) -> String {
+        switch value {
+        case "puppy":
+            return "Щенок"
+        case "elderly", "senior":
+            return "Пожилая"
+        default:
+            return "Взрослая"
+        }
+    }
+
     private func displayName(from email: String) -> String {
         email.split(separator: "@").first.map(String.init) ?? email
     }
@@ -311,9 +767,13 @@ final class AppViewModel: ObservableObject {
     }
 
     private func upsertChat(_ chat: Chat) {
+        upsertChat(chat, title: chat.title)
+    }
+
+    private func upsertChat(_ chat: Chat, title: String) {
         let item = AppChat(
             id: chat.id,
-            title: chat.title,
+            title: title,
             lastMessage: "Откройте чат",
             unreadCount: 0
         )
@@ -323,6 +783,38 @@ final class AppViewModel: ObservableObject {
         } else {
             chats.insert(item, at: 0)
         }
+    }
+
+    private func displayTitle(for chat: Chat) async -> String {
+        if chat.isGroup {
+            return chat.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Группа" : chat.title
+        }
+
+        guard let members = try? await chatUseCase.getChatMembers(chatID: chat.id),
+              let otherUserID = members.first(where: { $0.userId != currentUserId })?.userId,
+              let title = await profileDisplayTitle(userID: otherUserID) else {
+            return chat.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Чат" : chat.title
+        }
+
+        return title
+    }
+
+    private func profileDisplayTitle(userID: UUID) async -> String? {
+        guard let profile = try? await profileService.getByUserID(userID: userID) else {
+            return nil
+        }
+
+        let fullName = [profile.name, profile.surname]
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+
+        if !fullName.isEmpty {
+            return fullName
+        }
+
+        let username = profile.username.trimmingCharacters(in: .whitespacesAndNewlines)
+        return username.isEmpty ? nil : "@\(username)"
     }
 }
 
@@ -417,6 +909,12 @@ extension AppViewModel {
             chatUseCase: MockChatUseCase(),
             profileService: MockUserProfileServiceAPI(),
             uploadService: MockUploadServiceAPI(),
+            dogService: MockDogServiceAPI(),
+            postService: MockPostServiceAPI(),
+            feedService: MockFeedServiceAPI(),
+            userService: MockUserServiceAPI(),
+            followService: MockFollowServiceAPI(),
+            statsService: MockStatsServiceAPI(),
             canEditProfile: true
         )
     }()
@@ -482,6 +980,125 @@ struct MockUploadServiceAPI: UploadServiceAPIProtocol {
 
     func uploadDogImage(_ imageData: Data, mimeType: String?) async throws -> MediaInfoModel {
         MediaInfoModel(url: "", mimeType: mimeType ?? "image/jpeg")
+    }
+}
+
+struct MockDogServiceAPI: DogServiceAPIProtocol {
+    func create(ownerID: UUID, input: CreateDogInput) async throws -> DogModel {
+        DogModel(
+            id: UUID(),
+            ownerId: ownerID,
+            name: input.name,
+            breed: input.breed,
+            photoUrl: input.photoUrl,
+            status: input.status,
+            age: input.age,
+            gender: input.gender
+        )
+    }
+
+    func getPrivate(dogID: UUID) async throws -> DogModel {
+        try await getPublic(dogID: dogID)
+    }
+
+    func getPublic(dogID: UUID) async throws -> DogModel {
+        DogModel(
+            id: dogID,
+            ownerId: UUID(),
+            name: "Бимка",
+            breed: "Лабрадор",
+            photoUrl: "",
+            status: "friendly",
+            age: "adult",
+            gender: "female"
+        )
+    }
+
+    func update(dogID: UUID, input: UpdateDogInput) async throws {}
+    func delete(dogID: UUID) async throws {}
+    func listByOwnerID(ownerID: UUID) async throws -> [DogModel] { [] }
+}
+
+struct MockPostServiceAPI: PostServiceAPIProtocol {
+    func create(userID: UUID, content: String, imageUrl: String?) async throws -> PostModel {
+        PostModel(id: UUID(), userId: userID, content: content, imageUrl: imageUrl, createdAt: .now)
+    }
+
+    func getByID(id: UUID) async throws -> PostModel {
+        PostModel(id: id, userId: UUID(), content: "", imageUrl: nil, createdAt: .now)
+    }
+
+    func listByUser(userID: UUID) async throws -> [PostModel] { [] }
+    func delete(id: UUID) async throws {}
+    func addLike(postID: UUID) async throws {}
+    func removeLike(postID: UUID) async throws {}
+    func createComment(postID: UUID, userID: UUID, content: String) async throws -> CommentModel {
+        CommentModel(id: UUID(), postId: postID, userId: userID, content: content, createdAt: .now)
+    }
+    func listCommentsByPostID(postID: UUID) async throws -> [CommentModel] { [] }
+    func deleteComment(id: UUID) async throws {}
+}
+
+struct MockFeedServiceAPI: FeedServiceAPIProtocol {
+    func getFeed(userID: UUID, before: Date?, limit: Int) async throws -> [PostModel] { [] }
+}
+
+struct MockUserServiceAPI: UserServiceAPIProtocol {
+    func getByID(id: UUID) async throws -> UserModel {
+        UserModel(id: id, email: "preview@gav.app", role: "user", createdAt: .now, updatedAt: .now)
+    }
+
+    func update(id: UUID, input: UpdateUserInput) async throws {}
+    func delete(id: UUID) async throws {}
+
+    func getByEmail(email: String) async throws -> UserModel {
+        UserModel(id: UUID(), email: email, role: "user", createdAt: .now, updatedAt: .now)
+    }
+
+    func updateLocation(id: UUID, input: UpdateLocationInput) async throws {}
+
+    func findDogsNearby(
+        id: UUID,
+        centerLat: Double,
+        centerLon: Double,
+        radiusMeters: Double
+    ) async throws -> [DogModel] { [] }
+}
+
+struct MockFollowServiceAPI: FollowServiceAPIProtocol {
+    func follow(userID: UUID) async throws {}
+    func unfollow(userID: UUID) async throws {}
+    func getFollowers(userID: UUID) async throws -> [FollowModel] { [] }
+    func getFollowing(userID: UUID) async throws -> [FollowModel] { [] }
+}
+
+struct MockStatsServiceAPI: StatsServiceAPIProtocol {
+    func userStats(userID: UUID) async throws -> UserStatsModel {
+        UserStatsModel(
+            id: UUID(),
+            userId: userID,
+            postCount: 0,
+            followersCount: 0,
+            followingsCount: 0,
+            dogsCount: 0,
+            createdAt: .now,
+            updatedAt: .now
+        )
+    }
+
+    func profileStats(userID: UUID) async throws -> ProfileStatsModel {
+        ProfileStatsModel(userId: userID, postCount: 0, followersCount: 0, followingsCount: 0)
+    }
+
+    func postStats(postID: UUID) async throws -> PostStatsModel {
+        PostStatsModel(
+            id: UUID(),
+            postId: postID,
+            likesCount: 0,
+            commentsCount: 0,
+            createdAt: .now,
+            updatedAt: .now
+        )
     }
 }
 

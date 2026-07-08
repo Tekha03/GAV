@@ -18,7 +18,7 @@ final class ChatDetailViewModel: ObservableObject {
     private var recordingURL: URL?
 
     var messageRows: [ChatMessageRowModel] {
-        messages.map { message in
+        sortedMessages.map { message in
             ChatMessageRowModel(
                 id: message.id,
                 message: message,
@@ -26,6 +26,19 @@ final class ChatDetailViewModel: ObservableObject {
                 isPinned: pinnedMessages.contains(where: { $0.messageID == message.id })
             )
         }
+    }
+
+    private var sortedMessages: [Message] {
+        messages.sorted {
+            if $0.createdAt == $1.createdAt {
+                return $0.id.uuidString < $1.id.uuidString
+            }
+            return $0.createdAt < $1.createdAt
+        }
+    }
+
+    var latestMessage: Message? {
+        sortedMessages.last
     }
 
     init(chatID: UUID, currentUserId: UUID, useCase: ChatUseCase) {
@@ -37,8 +50,16 @@ final class ChatDetailViewModel: ObservableObject {
     func loadMessages() async {
         do {
             messages = try await useCase.getMessages(chatID: chatID, limit: 50, before: nil)
+                .sorted { $0.createdAt < $1.createdAt }
         } catch {
             errorMessage = error.localizedDescription
+        }
+    }
+
+    func runPolling() async {
+        while !Task.isCancelled {
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            await refreshMessagesSilently()
         }
     }
 
@@ -47,22 +68,23 @@ final class ChatDetailViewModel: ObservableObject {
         guard !text.isEmpty else { return }
 
         do {
-            _ = try await useCase.sendMessage(
+            let message = try await useCase.sendMessage(
                 chatID: chatID,
                 text: text,
                 attachments: nil,
                 replyToId: nil
             )
             messageText = ""
-            await loadMessages()
+            upsertMessage(message)
         } catch {
             errorMessage = error.localizedDescription
+            await loadMessages()
         }
     }
 
     func sendAttachment(url: URL, type: AttachmentType, fileSize: Int64) async {
         do {
-            _ = try await useCase.sendMessage(
+            let message = try await useCase.sendMessage(
                 chatID: chatID,
                 text: nil,
                 attachments: [
@@ -75,9 +97,10 @@ final class ChatDetailViewModel: ObservableObject {
                 ],
                 replyToId: nil
             )
-            await loadMessages()
+            upsertMessage(message)
         } catch {
             errorMessage = error.localizedDescription
+            await loadMessages()
         }
     }
 
@@ -167,5 +190,24 @@ final class ChatDetailViewModel: ObservableObject {
             .appendingPathComponent(UUID().uuidString)
             .appendingPathExtension("m4a")
         return url
+    }
+
+    private func upsertMessage(_ message: Message) {
+        errorMessage = nil
+        if let index = messages.firstIndex(where: { $0.id == message.id }) {
+            messages[index] = message
+        } else {
+            messages.append(message)
+        }
+        messages.sort { $0.createdAt < $1.createdAt }
+    }
+
+    private func refreshMessagesSilently() async {
+        do {
+            let loaded = try await useCase.getMessages(chatID: chatID, limit: 50, before: nil)
+            messages = loaded.sorted { $0.createdAt < $1.createdAt }
+        } catch {
+            // Keep the currently visible chat if a background refresh misses once.
+        }
     }
 }

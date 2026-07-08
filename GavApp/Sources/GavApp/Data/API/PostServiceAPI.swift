@@ -17,9 +17,29 @@ protocol PostServiceAPIProtocol {
 @available(macOS 12.0, *)
 final class PostServiceAPI: PostServiceAPIProtocol {
     private let base: BaseAPI
+    private let decoder: JSONDecoder
 
     init(baseURL: URL, session: URLSession = .shared, authManager: AuthManager) {
         self.base = BaseAPI(baseURL: baseURL, session: session, authManager: authManager)
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .custom { decoder in
+            let container = try decoder.singleValueContainer()
+            let value = try container.decode(String.self)
+            let isoWithFraction = ISO8601DateFormatter()
+            isoWithFraction.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            if let date = isoWithFraction.date(from: value) {
+                return date
+            }
+            let iso = ISO8601DateFormatter()
+            if let date = iso.date(from: value) {
+                return date
+            }
+            throw DecodingError.dataCorruptedError(
+                in: container,
+                debugDescription: "Invalid ISO8601 date: \(value)"
+            )
+        }
+        self.decoder = decoder
     }
 
     func create(userID: UUID, content: String, imageUrl: String?) async throws -> PostModel {
@@ -27,19 +47,24 @@ final class PostServiceAPI: PostServiceAPIProtocol {
         let input = CreatePostInput(userId: userID, content: content, imageUrl: imageUrl)
         let body = try JSONEncoder().encode(input)
         let data = try await base.request(path, method: "POST", body: body)
-        return try JSONDecoder().decode(PostModel.self, from: data)
+        return try decoder.decode(PostModel.self, from: data)
     }
 
     func getByID(id: UUID) async throws -> PostModel {
         let path = "/api/v1/posts/\(id.uuidString)"
         let data = try await base.request(path)
-        return try JSONDecoder().decode(PostModel.self, from: data)
+        return try decoder.decode(PostModel.self, from: data)
     }
 
     func listByUser(userID: UUID) async throws -> [PostModel] {
-        let path = "/api/v1/posts"
+        var components = URLComponents()
+        components.queryItems = [
+            URLQueryItem(name: "user_id", value: userID.uuidString)
+        ]
+        let query = components.percentEncodedQuery ?? ""
+        let path = "/api/v1/posts" + (query.isEmpty ? "" : "?\(query)")
         let data = try await base.request(path)
-        return try JSONDecoder().decode([PostModel].self, from: data)
+        return try decoder.decode([PostModel].self, from: data)
     }
 
     func delete(id: UUID) async throws {
@@ -61,14 +86,14 @@ final class PostServiceAPI: PostServiceAPIProtocol {
         let path = "/api/v1/posts/\(postID.uuidString)/comments"
         let input = CreateCommentInput(postId: postID, userId: userID, content: content)
         let body = try JSONEncoder().encode(input)
-        let data = try await base.request(path, method: "POST", body: body)
-        return try JSONDecoder().decode(CommentModel.self, from: data)
+        _ = try await base.request(path, method: "POST", body: body)
+        return CommentModel(id: UUID(), postId: postID, userId: userID, content: content, createdAt: .now)
     }
 
     func listCommentsByPostID(postID: UUID) async throws -> [CommentModel] {
         let path = "/api/v1/posts/\(postID.uuidString)/comments"
         let data = try await base.request(path)
-        return try JSONDecoder().decode([CommentModel].self, from: data)
+        return try decoder.decode([CommentModel].self, from: data)
     }
 
     func deleteComment(id: UUID) async throws {
@@ -76,4 +101,3 @@ final class PostServiceAPI: PostServiceAPIProtocol {
         _ = try await base.request(path, method: "DELETE")
     }
 }
-

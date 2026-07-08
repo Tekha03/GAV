@@ -3,6 +3,10 @@ import SwiftUI
 struct FeedView: View {
     @EnvironmentObject private var appViewModel: AppViewModel
     @State private var searchText = ""
+    @State private var selectedCommentsPost: AppPost?
+    @State private var accountSearchResults: [UserProfileModel] = []
+    @State private var isSearchingAccounts = false
+    @State private var accountSearchTask: Task<Void, Never>?
 
     private var filteredFeed: [AppPost] {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
@@ -12,17 +16,6 @@ struct FeedView: View {
             $0.content.lowercased().contains(query) ||
             $0.authorName.lowercased().contains(query) ||
             $0.authorHandle.lowercased().contains(query)
-        }
-    }
-
-    private var filteredAccounts: [AppProfile] {
-        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        guard !query.isEmpty else { return [] }
-
-        return appViewModel.accounts.filter {
-            $0.fullName.lowercased().contains(query) ||
-            $0.handle.lowercased().contains(query) ||
-            $0.bio.lowercased().contains(query)
         }
     }
 
@@ -40,7 +33,9 @@ struct FeedView: View {
                         } else {
                             ForEach(filteredFeed) { post in
                                 PostView(post: post) {
-                                    appViewModel.toggleLike(postID: post.id)
+                                    Task { await appViewModel.toggleLike(postID: post.id) }
+                                } onComment: {
+                                    selectedCommentsPost = post
                                 }
                             }
                         }
@@ -53,6 +48,19 @@ struct FeedView: View {
             }
             .navigationTitle("Лента")
             .searchable(text: $searchText, prompt: "Поиск постов и аккаунтов")
+            .onChange(of: searchText) { _, newValue in
+                scheduleAccountSearch(newValue)
+            }
+            .onDisappear {
+                accountSearchTask?.cancel()
+            }
+            .task {
+                await appViewModel.loadAuthenticatedContent()
+            }
+            .sheet(item: $selectedCommentsPost) { post in
+                CommentsView(post: post)
+                    .environmentObject(appViewModel)
+            }
         }
     }
 
@@ -90,44 +98,57 @@ struct FeedView: View {
 
     private var searchResultsSection: some View {
         VStack(alignment: .leading, spacing: 18) {
-            if !filteredAccounts.isEmpty {
+            if isSearchingAccounts {
+                HStack {
+                    Spacer()
+                    ProgressView()
+                        .tint(.white)
+                    Spacer()
+                }
+                .padding(.vertical, 8)
+            } else if !accountSearchResults.isEmpty {
                 VStack(alignment: .leading, spacing: 10) {
                     Text("Аккаунты")
                         .font(.headline)
                         .foregroundStyle(.white)
 
-                    ForEach(filteredAccounts, id: \.handle) { account in
-                        HStack(spacing: 12) {
-                            AsyncImage(url: account.avatarURL) { phase in
-                                switch phase {
-                                case .success(let image):
-                                    image.resizable().scaledToFill()
-                                default:
-                                    Circle()
-                                        .fill(.white.opacity(0.12))
-                                        .overlay(Image(systemName: "person.fill"))
+                    ForEach(accountSearchResults, id: \.userId) { account in
+                        NavigationLink {
+                            UserProfileDetailView(profile: account)
+                        } label: {
+                            HStack(spacing: 12) {
+                                AsyncImage(url: account.profilePhotoUrl.flatMap { MediaURLResolver.resolve($0) }) { phase in
+                                    switch phase {
+                                    case .success(let image):
+                                        image.resizable().scaledToFill()
+                                    default:
+                                        Circle()
+                                            .fill(.white.opacity(0.12))
+                                            .overlay(Image(systemName: "person.fill"))
+                                    }
                                 }
-                            }
-                            .frame(width: 44, height: 44)
-                            .clipShape(Circle())
+                                .frame(width: 44, height: 44)
+                                .clipShape(Circle())
 
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(account.fullName)
-                                    .font(.subheadline.bold())
-                                    .foregroundStyle(.white)
-                                Text(account.handle)
-                                    .font(.caption)
-                                    .foregroundStyle(.white.opacity(0.75))
-                                Text(account.bio)
-                                    .font(.caption2)
-                                    .foregroundStyle(.white.opacity(0.65))
-                                    .lineLimit(2)
-                            }
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(displayName(for: account))
+                                        .font(.subheadline.bold())
+                                        .foregroundStyle(.white)
+                                    Text("@\(account.username)")
+                                        .font(.caption)
+                                        .foregroundStyle(.white.opacity(0.75))
+                                    Text(account.bio)
+                                        .font(.caption2)
+                                        .foregroundStyle(.white.opacity(0.65))
+                                        .lineLimit(2)
+                                }
 
-                            Spacer()
+                                Spacer()
+                            }
+                            .padding(12)
+                            .background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 16))
                         }
-                        .padding(12)
-                        .background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 16))
+                        .buttonStyle(.plain)
                     }
                 }
             }
@@ -140,13 +161,15 @@ struct FeedView: View {
 
                     ForEach(filteredFeed) { post in
                         PostView(post: post) {
-                            appViewModel.toggleLike(postID: post.id)
+                            Task { await appViewModel.toggleLike(postID: post.id) }
+                        } onComment: {
+                            selectedCommentsPost = post
                         }
                     }
                 }
             }
 
-            if filteredAccounts.isEmpty && filteredFeed.isEmpty {
+            if !isSearchingAccounts && accountSearchResults.isEmpty && filteredFeed.isEmpty {
                 ContentUnavailableView(
                     "Ничего не найдено",
                     systemImage: "magnifyingglass",
@@ -155,5 +178,45 @@ struct FeedView: View {
                 .foregroundStyle(.white)
             }
         }
+    }
+
+    private func scheduleAccountSearch(_ value: String) {
+        accountSearchTask?.cancel()
+
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.count >= 2 else {
+            accountSearchResults = []
+            isSearchingAccounts = false
+            return
+        }
+
+        isSearchingAccounts = true
+        accountSearchTask = Task {
+            try? await Task.sleep(nanoseconds: 300_000_000)
+            guard !Task.isCancelled else { return }
+
+            do {
+                let profiles = try await appViewModel.searchProfiles(query: trimmed)
+                guard !Task.isCancelled else { return }
+                await MainActor.run {
+                    accountSearchResults = profiles
+                    isSearchingAccounts = false
+                }
+            } catch {
+                guard !Task.isCancelled else { return }
+                await MainActor.run {
+                    accountSearchResults = []
+                    isSearchingAccounts = false
+                }
+            }
+        }
+    }
+
+    private func displayName(for profile: UserProfileModel) -> String {
+        let fullName = [profile.name, profile.surname]
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+        return fullName.isEmpty ? "@\(profile.username)" : fullName
     }
 }

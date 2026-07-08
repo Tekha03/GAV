@@ -10,4 +10,10 @@ public struct CreateCommentInput: Encodable {
         self.userId = userId
         self.content = content
     }
+
+    private enum CodingKeys: String, CodingKey {
+        case postId = "post_id"
+        case userId = "user_id"
+        case content
+    }
 }

@@ -53,6 +53,9 @@ struct ChatDetailView: View {
         .task {
             await viewModel.loadMessages()
         }
+        .task {
+            await viewModel.runPolling()
+        }
         .confirmationDialog("Вложение", isPresented: $showingAttachmentOptions, titleVisibility: .visible) {
             Button("Фото") {
                 showingPhotoPicker = true
@@ -137,7 +140,7 @@ struct ChatDetailView: View {
                 .padding(.vertical, 16)
             }
             .onChange(of: viewModel.messages.count) { _, _ in
-                guard let last = viewModel.messages.last else { return }
+                guard let last = viewModel.latestMessage else { return }
                 DispatchQueue.main.async {
                     proxy.scrollTo(last.id, anchor: .bottom)
                 }

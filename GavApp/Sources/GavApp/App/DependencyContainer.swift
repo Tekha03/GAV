@@ -6,11 +6,12 @@ final class DependencyContainer {
     let authManager: AuthManager
     let authService: AuthServiceAPIProtocol
 
-    private let socialBaseURL = URL(string: "http://localhost:8080")!
-    private let messengerBaseURL = URL(string: "http://localhost:8082")!
+    private let socialBaseURL = URL(string: "http://192.168.1.4:8080")!
+    private let messengerBaseURL = URL(string: "http://192.168.1.4:8082")!
 
     init() {
         let authManager = AuthManager()
+        MediaURLResolver.configure(socialBaseURL: socialBaseURL)
         self.authManager = authManager
         self.authService = AuthServiceAPI(baseURL: socialBaseURL, authManager: authManager)
 
@@ -28,6 +29,30 @@ final class DependencyContainer {
             authManager: authManager
         )
         appViewModel.uploadService = UploadServiceAPI(
+            baseURL: socialBaseURL,
+            authManager: authManager
+        )
+        appViewModel.dogService = DogServiceAPI(
+            baseURL: socialBaseURL,
+            authManager: authManager
+        )
+        appViewModel.postService = PostServiceAPI(
+            baseURL: socialBaseURL,
+            authManager: authManager
+        )
+        appViewModel.feedService = FeedServiceAPI(
+            baseURL: socialBaseURL,
+            authManager: authManager
+        )
+        appViewModel.userService = UserServiceAPI(
+            baseURL: socialBaseURL,
+            authManager: authManager
+        )
+        appViewModel.followService = FollowServiceAPI(
+            baseURL: socialBaseURL,
+            authManager: authManager
+        )
+        appViewModel.statsService = StatsServiceAPI(
             baseURL: socialBaseURL,
             authManager: authManager
         )

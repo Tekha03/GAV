@@ -130,7 +130,8 @@ struct AddDogView: View {
         uploadError = nil
         defer { isUploading = false }
 
-        var photoURL: URL? = editingDog?.photoURL
+        var rawPhotoURL: String?
+        var displayPhotoURL: URL? = editingDog?.photoURL
 
         if let selectedImageData {
             do {
@@ -144,11 +145,17 @@ struct AddDogView: View {
                     return
                 }
 
-                photoURL = newURL
+                rawPhotoURL = media.url
+                displayPhotoURL = newURL
             } catch {
                 uploadError = "Не удалось загрузить фото"
                 return
             }
+        }
+
+        if editingDog == nil && rawPhotoURL == nil {
+            uploadError = "Добавьте фото собаки"
+            return
         }
 
         let dog = AppDog(
@@ -157,15 +164,32 @@ struct AddDogView: View {
             breed: breed,
             ageText: ageText,
             mood: mood,
-            photoURL: photoURL,
+            photoURL: displayPhotoURL,
             notes: notes
         )
 
         if let editingDog,
-           let index = viewModel.dogs.firstIndex(where: { $0.id == editingDog.id }) {
-            viewModel.dogs[index] = dog
+           viewModel.dogs.contains(where: { $0.id == editingDog.id }) {
+            do {
+                try await viewModel.updateDog(dog)
+            } catch {
+                uploadError = "Не удалось сохранить собаку"
+                return
+            }
         } else {
-            viewModel.dogs.insert(dog, at: 0)
+            do {
+                try await viewModel.createDog(
+                    name: name,
+                    breed: breed,
+                    ageText: ageText,
+                    mood: mood,
+                    photoUrl: rawPhotoURL ?? "",
+                    notes: notes
+                )
+            } catch {
+                uploadError = "Не удалось сохранить собаку"
+                return
+            }
         }
 
         dismiss()

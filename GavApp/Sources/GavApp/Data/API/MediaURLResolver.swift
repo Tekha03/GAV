@@ -1,7 +1,11 @@
 import Foundation
 
 enum MediaURLResolver {
-    private static let socialBaseURL = URL(string: "http://localhost:8080")!
+    private static var socialBaseURL = URL(string: "http://localhost:8080")!
+
+    static func configure(socialBaseURL: URL) {
+        self.socialBaseURL = socialBaseURL
+    }
 
     static func resolve(_ rawURL: String?) -> URL? {
         guard let rawURL, !rawURL.isEmpty else { return nil }

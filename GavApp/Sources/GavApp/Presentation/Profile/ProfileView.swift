@@ -11,6 +11,9 @@ struct ProfileView: View {
     @State private var showAddDogSheet = false
     @State private var showLogoutConfirmation = false
     @State private var editingDog: AppDog?
+    @State private var deletingDog: AppDog?
+    @State private var selectedCommentsPost: AppPost?
+    @State private var dogErrorMessage: String?
 
     var body: some View {
         NavigationStack {
@@ -96,6 +99,10 @@ struct ProfileView: View {
                     uploadService: uploadService
                 )
             }
+            .sheet(item: $selectedCommentsPost) { post in
+                CommentsView(post: post)
+                    .environmentObject(appViewModel)
+            }
             .confirmationDialog(
                 "Выйти из профиля?",
                 isPresented: $showLogoutConfirmation,
@@ -107,8 +114,36 @@ struct ProfileView: View {
 
                 Button("Отмена", role: .cancel) {}
             }
+            .confirmationDialog(
+                "Удалить собаку?",
+                isPresented: Binding(
+                    get: { deletingDog != nil },
+                    set: { if !$0 { deletingDog = nil } }
+                ),
+                titleVisibility: .visible
+            ) {
+                Button("Удалить", role: .destructive) {
+                    guard let dog = deletingDog else { return }
+                    Task { await deleteDog(dog) }
+                }
+
+                Button("Отмена", role: .cancel) {
+                    deletingDog = nil
+                }
+            }
+            .alert("Не удалось удалить собаку", isPresented: Binding(
+                get: { dogErrorMessage != nil },
+                set: { if !$0 { dogErrorMessage = nil } }
+            )) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(dogErrorMessage ?? "")
+            }
         }
         .preferredColorScheme(.dark)
+        .task {
+            await appViewModel.loadAuthenticatedContent()
+        }
     }
 
     private var header: some View {
@@ -118,26 +153,28 @@ struct ProfileView: View {
                 .foregroundStyle(.white.opacity(0.95))
                 .padding(.top, 12)
 
-            HStack(alignment: .top, spacing: 16) {
+            HStack(alignment: .center, spacing: 16) {
                 avatar
                     .frame(width: 92, height: 92)
 
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack(spacing: 12) {
-                        statCard(title: "Подписчики", value: appViewModel.profile.followers)
-                        statCard(title: "Подписки", value: appViewModel.profile.following)
-                        statCard(title: "Собаки", value: appViewModel.dogs.count)
-                    }
-
-                    Text(appViewModel.profile.bio)
-                        .font(.footnote)
-                        .foregroundStyle(.white.opacity(0.9))
-                        .lineLimit(nil)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                HStack(spacing: 10) {
+                    statCard(title: "Подписчики", value: appViewModel.profile.followers)
+                    statCard(title: "Подписки", value: appViewModel.profile.following)
+                    statCard(title: "Собаки", value: appViewModel.dogs.count)
                 }
+                .frame(maxWidth: .infinity)
+                .frame(height: 92)
             }
             .padding(.top, 4)
+
+            if !appViewModel.profile.bio.isEmpty {
+                Text(appViewModel.profile.bio)
+                    .font(.footnote)
+                    .foregroundStyle(.white.opacity(0.9))
+                    .lineLimit(nil)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
         }
         .padding(18)
         .background(
@@ -220,9 +257,25 @@ struct ProfileView: View {
                             dogCard(dog)
                         }
                         .buttonStyle(.plain)
+                        .contextMenu {
+                            if appViewModel.canEditProfile {
+                                Button {
+                                    editingDog = dog
+                                } label: {
+                                    Label("Редактировать", systemImage: "pencil")
+                                }
+
+                                Button(role: .destructive) {
+                                    deletingDog = dog
+                                } label: {
+                                    Label("Удалить", systemImage: "trash")
+                                }
+                            }
+                        }
                     }
                 }
-                .padding(.vertical, 2)
+                .padding(.horizontal, 2)
+                .padding(.vertical, 8)
             }
         }
     }
@@ -235,7 +288,9 @@ struct ProfileView: View {
 
             ForEach(appViewModel.posts) { post in
                 PostView(post: post) {
-                    appViewModel.toggleLike(postID: post.id)
+                    Task { await appViewModel.toggleLike(postID: post.id) }
+                } onComment: {
+                    selectedCommentsPost = post
                 }
             }
         }
@@ -290,7 +345,7 @@ struct ProfileView: View {
     }
 
     private func dogCard(_ dog: AppDog) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+        ZStack(alignment: .bottomLeading) {
             AsyncImage(url: dog.photoURL) { phase in
                 switch phase {
                 case .success(let image):
@@ -315,26 +370,45 @@ struct ProfileView: View {
             }
             .frame(width: 132, height: 180)
             .clipped()
-            .overlay(
-                LinearGradient(
-                    colors: [.clear, .black.opacity(0.82)],
-                    startPoint: .center,
-                    endPoint: .bottom
-                )
+
+            LinearGradient(
+                colors: [.clear, .black.opacity(0.82)],
+                startPoint: .center,
+                endPoint: .bottom
             )
-            .overlay(alignment: .bottomLeading) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(dog.name)
-                        .font(.headline.weight(.semibold))
-                        .foregroundStyle(.white)
-                    Text(dog.breed)
-                        .font(.caption)
-                        .foregroundStyle(.white.opacity(0.8))
+            .frame(width: 132, height: 180)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(dog.name)
+                    .font(.headline.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+
+                Text(dog.breed)
+                    .font(.caption)
+                    .foregroundStyle(.white.opacity(0.8))
+                    .lineLimit(1)
+
+                if !dog.notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    Text(dog.notes)
+                        .font(.caption2)
+                        .foregroundStyle(.white.opacity(0.72))
+                        .lineLimit(2)
                 }
-                .padding(10)
             }
-            .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-            .shadow(color: .black.opacity(0.22), radius: 10, x: 0, y: 6)
+            .padding(10)
+        }
+        .frame(width: 132, height: 180)
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .shadow(color: .black.opacity(0.22), radius: 10, x: 0, y: 6)
+    }
+
+    private func deleteDog(_ dog: AppDog) async {
+        do {
+            try await appViewModel.deleteDog(dog)
+            deletingDog = nil
+        } catch {
+            dogErrorMessage = error.localizedDescription
         }
     }
 }

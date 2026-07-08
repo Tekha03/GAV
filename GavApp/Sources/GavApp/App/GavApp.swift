@@ -20,13 +20,18 @@ struct GavApp: App {
     var body: some Scene {
         WindowGroup {
             Group {
-                if sessionViewModel.isAuthenticated {
+                if sessionViewModel.isLoading {
+                    ProgressView()
+                } else if sessionViewModel.isAuthenticated {
                     AppView(session: sessionViewModel)
                 } else {
                     AuthView(session: sessionViewModel)
                 }
             }
             .environmentObject(appViewModel)
+            .task {
+                await sessionViewModel.restoreSavedSessionIfNeeded()
+            }
         }
     }
 }

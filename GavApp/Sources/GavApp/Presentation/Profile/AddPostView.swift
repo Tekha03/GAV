@@ -112,34 +112,28 @@ struct AddPostView: View {
         errorMessage = nil
         defer { isPublishing = false }
 
-        var imageURL: URL?
+        var rawImageURL: String?
         if let selectedImageData {
             do {
                 let media = try await uploadService.uploadPostImage(
                     selectedImageData,
                     mimeType: "image/jpeg"
                 )
-                imageURL = MediaURLResolver.resolve(media.url)
+                rawImageURL = media.url
             } catch {
                 errorMessage = "Не удалось загрузить фото поста"
                 return
             }
         }
 
-        let post = AppPost(
-            id: UUID(),
-            authorName: viewModel.profile.fullName,
-            authorHandle: viewModel.profile.handle,
-            authorPhotoURL: viewModel.profile.avatarURL,
-            content: content.trimmingCharacters(in: .whitespacesAndNewlines),
-            imageURL: imageURL,
-            likes: 0,
-            comments: 0,
-            createdAt: .now
-        )
-
-        viewModel.posts.insert(post, at: 0)
-        viewModel.feed.insert(post, at: 0)
-        dismiss()
+        do {
+            try await viewModel.createPost(
+                content: content.trimmingCharacters(in: .whitespacesAndNewlines),
+                imageUrl: rawImageURL
+            )
+            dismiss()
+        } catch {
+            errorMessage = "Не удалось опубликовать пост"
+        }
     }
 }

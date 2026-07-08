@@ -19,7 +19,9 @@ final class AppSessionViewModel: ObservableObject {
         self.authService = authService
         self.authManager = authManager
         self.appViewModel = appViewModel
-        self.isAuthenticated = authManager.currentToken() != nil && authManager.currentUserId() != nil
+        let hasSavedSession = authManager.currentToken() != nil && authManager.currentUserId() != nil
+        self.isAuthenticated = hasSavedSession
+        self.isLoading = hasSavedSession
     }
 
     func login(email: String, password: String) async {
@@ -28,19 +30,22 @@ final class AppSessionViewModel: ObservableObject {
         }
     }
 
-    func register(email: String, password: String, username: String) async {
+    func register(email: String, password: String, firstName: String, lastName: String, username: String) async {
         await authenticate {
             try await authService.register(email: email, password: password)
         } afterUserLoaded: { [appViewModel] user in
             let cleanUsername = Self.normalizedUsername(username)
             let profile = CreateProfileInput(
-                name: Self.displayName(from: user.email),
-                surname: "",
+                name: firstName.trimmingCharacters(in: .whitespacesAndNewlines),
+                surname: lastName.trimmingCharacters(in: .whitespacesAndNewlines),
                 username: cleanUsername,
                 bio: ""
             ).toModel(userID: user.id)
             _ = try await appViewModel.profileService.create(userID: user.id, model: profile)
-            appViewModel.profile.fullName = Self.displayName(from: user.email)
+            appViewModel.profile.fullName = [profile.name, profile.surname]
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+                .joined(separator: " ")
             appViewModel.profile.handle = "@\(cleanUsername)"
         }
     }
@@ -48,6 +53,36 @@ final class AppSessionViewModel: ObservableObject {
     func logout() {
         authManager.clearTokens()
         isAuthenticated = false
+    }
+
+    func restoreSavedSessionIfNeeded() async {
+        guard authManager.currentToken() != nil, authManager.currentUserId() != nil else {
+            isLoading = false
+            isAuthenticated = false
+            return
+        }
+
+        isLoading = true
+        errorMessage = nil
+
+        do {
+            let user = try await authService.getMe()
+            authManager.saveSession(
+                accessToken: authManager.getAccessToken() ?? "",
+                refreshToken: authManager.getRefreshToken() ?? "",
+                userId: user.id
+            )
+            appViewModel.applyAuthenticatedUser(user)
+            await appViewModel.loadAuthenticatedProfile()
+            await appViewModel.loadAuthenticatedContent()
+            await appViewModel.loadChats()
+            isAuthenticated = true
+        } catch {
+            authManager.clearTokens()
+            isAuthenticated = false
+        }
+
+        isLoading = false
     }
 
     private func authenticate(
@@ -72,6 +107,8 @@ final class AppSessionViewModel: ObservableObject {
             )
             appViewModel.applyAuthenticatedUser(user)
             try await afterUserLoaded?(user)
+            await appViewModel.loadAuthenticatedProfile()
+            await appViewModel.loadAuthenticatedContent()
             await appViewModel.loadChats()
             isAuthenticated = true
         } catch {

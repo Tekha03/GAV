@@ -5,6 +5,8 @@ struct AuthView: View {
 
     @State private var mode: AuthMode = .login
     @State private var email = ""
+    @State private var firstName = ""
+    @State private var lastName = ""
     @State private var username = ""
     @State private var password = ""
     @State private var passwordConfirmation = ""
@@ -43,10 +45,26 @@ struct AuthView: View {
 
                     if mode == .register {
                         authField(
+                            title: "Имя",
+                            text: $firstName,
+                            keyboard: .default,
+                            contentType: .givenName,
+                            autocapitalization: .words
+                        )
+
+                        authField(
+                            title: "Фамилия",
+                            text: $lastName,
+                            keyboard: .default,
+                            contentType: .familyName,
+                            autocapitalization: .words
+                        )
+
+                        authField(
                             title: "Никнейм",
                             text: $username,
                             keyboard: .default,
-                            contentType: .username
+                            contentType: nil
                         )
 
                         secureField(title: "Повтор пароля", text: $passwordConfirmation)
@@ -106,7 +124,9 @@ struct AuthView: View {
         guard trimmedEmail.contains("@"), password.count >= 6 else { return false }
         guard mode == .register else { return true }
 
-        return password == passwordConfirmation && isUsernameValid
+        return password == passwordConfirmation &&
+            !firstName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+            isUsernameValid
     }
 
     private var isUsernameValid: Bool {
@@ -123,6 +143,8 @@ struct AuthView: View {
             await session.register(
                 email: trimmedEmail,
                 password: password,
+                firstName: firstName,
+                lastName: lastName,
                 username: normalizedUsername(username)
             )
         }
@@ -139,12 +161,13 @@ struct AuthView: View {
         title: String,
         text: Binding<String>,
         keyboard: UIKeyboardType,
-        contentType: UITextContentType
+        contentType: UITextContentType?,
+        autocapitalization: TextInputAutocapitalization = .never
     ) -> some View {
         TextField(title, text: text)
             .keyboardType(keyboard)
             .textContentType(contentType)
-            .textInputAutocapitalization(.never)
+            .textInputAutocapitalization(autocapitalization)
             .autocorrectionDisabled()
             .padding(.horizontal, 14)
             .frame(height: 48)
