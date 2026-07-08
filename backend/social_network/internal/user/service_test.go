@@ -13,7 +13,7 @@ import (
 
 type testEnv struct {
 	service UserService
-	repo	*MockRepository
+	repo    *MockRepository
 }
 
 func setup(t *testing.T) *testEnv {
@@ -24,7 +24,7 @@ func setup(t *testing.T) *testEnv {
 
 	return &testEnv{
 		service: service,
-		repo: repo,
+		repo:    repo,
 	}
 }
 
@@ -107,8 +107,8 @@ func TestService_Get(t *testing.T) {
 	id := uuid.New()
 	email := "test@mail.com"
 	mockUser := &User{
-		ID: id,
-		Email: email,
+		ID:       id,
+		Email:    email,
 		Password: "hash",
 	}
 
@@ -160,9 +160,9 @@ func TestService_Update(t *testing.T) {
 
 		s, _ := NewService(repo)
 		err := s.Update(ctx, id, UpdateUserInput{
-			Email: &email,
+			Email:    &email,
 			Password: &password,
-			Role: &role,
+			Role:     &role,
 		})
 
 		require.NoError(t, err)
@@ -174,9 +174,9 @@ func TestService_Update(t *testing.T) {
 
 		s, _ := NewService(repo)
 		err := s.Update(ctx, id, UpdateUserInput{
-			Email: &email,
+			Email:    &email,
 			Password: &password,
-			Role: &role,
+			Role:     &role,
 		})
 
 		require.Error(t, err)
@@ -208,7 +208,6 @@ func TestService_Delete(t *testing.T) {
 	})
 }
 
-
 func TestFindDogsNearby_Success(t *testing.T) {
 	ctx := context.Background()
 	userID := uuid.New()
@@ -219,14 +218,17 @@ func TestFindDogsNearby_Success(t *testing.T) {
 
 		dogsFromRepo := []*dog.Dog{
 			{
-				ID:              uuid.New(),
-				OwnerID:         otherUserID,
+				ID:      uuid.New(),
+				OwnerID: otherUserID,
 			},
 		}
 
 		env.repo.
 			On("FindWalkingNearby", ctx, 0.0, 0.0, 1000.0).
 			Return(dogsFromRepo, nil)
+		env.repo.
+			On("GetByID", ctx, otherUserID).
+			Return(&User{ID: otherUserID, Visibility: VisibilityEveryone}, nil)
 
 		dogs, err := env.service.FindDogsNearby(ctx, userID, 0.0, 0.0, 1000.0)
 
@@ -239,14 +241,17 @@ func TestFindDogsNearby_Success(t *testing.T) {
 		env := setup(t)
 		dogsFromRepo := []*dog.Dog{
 			{
-				ID:              uuid.New(),
-				OwnerID:         userID,
+				ID:      uuid.New(),
+				OwnerID: userID,
 			},
 		}
 
 		env.repo.
 			On("FindWalkingNearby", ctx, 0.0, 0.0, 1000.0).
 			Return(dogsFromRepo, nil)
+		env.repo.
+			On("GetByID", ctx, userID).
+			Return(&User{ID: userID, Visibility: VisibilityEveryone}, nil)
 
 		dogs, err := env.service.FindDogsNearby(ctx, userID, 0.0, 0.0, 1000.0)
 
@@ -256,16 +261,20 @@ func TestFindDogsNearby_Success(t *testing.T) {
 
 	t.Run("filter invisible", func(t *testing.T) {
 		env := setup(t)
+		otherUserID := uuid.New()
 		dogsFromRepo := []*dog.Dog{
 			{
-				ID:              uuid.New(),
-				OwnerID:         uuid.New(),
+				ID:      uuid.New(),
+				OwnerID: otherUserID,
 			},
 		}
 
 		env.repo.
 			On("FindWalkingNearby", ctx, 0.0, 0.0, 1000.0).
 			Return(dogsFromRepo, nil)
+		env.repo.
+			On("GetByID", ctx, otherUserID).
+			Return(&User{ID: otherUserID, Visibility: VisibilityNoOne}, nil)
 
 		dogs, err := env.service.FindDogsNearby(ctx, userID, 0, 0, 1000)
 

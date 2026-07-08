@@ -9,8 +9,8 @@ import (
 )
 
 type VaccinationRepository struct {
-	mu 		sync.RWMutex
-	vacs 	map[uuid.UUID]*vaccination.Vaccination
+	mu   sync.RWMutex
+	vacs map[uuid.UUID]*vaccination.Vaccination
 }
 
 func NewVaccinationRepository() *VaccinationRepository {

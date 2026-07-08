@@ -10,14 +10,14 @@ import (
 )
 
 type UserRepository struct {
-	mu		sync.RWMutex
-	byID	map[uuid.UUID]*user.User
-	byEmail	map[string]*user.User
+	mu      sync.RWMutex
+	byID    map[uuid.UUID]*user.User
+	byEmail map[string]*user.User
 }
 
 func NewUserRepository() *UserRepository {
 	return &UserRepository{
-		byID: 	 make(map[uuid.UUID]*user.User),
+		byID:    make(map[uuid.UUID]*user.User),
 		byEmail: make(map[string]*user.User),
 	}
 }

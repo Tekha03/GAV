@@ -9,8 +9,8 @@ import (
 )
 
 type StatsRepository struct {
-	mu 		sync.RWMutex
-	stats	map[uuid.UUID]*stats.UserStats
+	mu    sync.RWMutex
+	stats map[uuid.UUID]*stats.UserStats
 }
 
 func NewStatsReposirory() *StatsRepository {
@@ -34,7 +34,6 @@ func (s *StatsRepository) Create(ctx context.Context, st *stats.UserStats) error
 	s.stats[st.UserID] = st
 	return nil
 }
-
 
 func (s *StatsRepository) GetByUserID(ctx context.Context, userID uuid.UUID) (*stats.UserStats, error) {
 	s.mu.Lock()

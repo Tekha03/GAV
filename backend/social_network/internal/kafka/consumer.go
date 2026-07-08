@@ -9,9 +9,9 @@ import (
 )
 
 type Consumer struct {
-	client 	sarama.ConsumerGroup
+	client  sarama.ConsumerGroup
 	handler sarama.ConsumerGroupHandler
-	topics 	[]string
+	topics  []string
 }
 
 func NewConsumer(brokers []string, groupID uuid.UUID, handler sarama.ConsumerGroupHandler) (*Consumer, error) {
@@ -25,7 +25,7 @@ func NewConsumer(brokers []string, groupID uuid.UUID, handler sarama.ConsumerGro
 	return &Consumer{
 		client:  client,
 		handler: handler,
-		topics:  []string{
+		topics: []string{
 			"chat_events",
 			"message_events",
 			"reaction_events",

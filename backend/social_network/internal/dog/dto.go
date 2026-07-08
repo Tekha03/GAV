@@ -1,19 +1,21 @@
 package dog
 
 type CreateDogInput struct {
-	Name		string
-	Breed		string
-	Gender		Gender
-	Age			Age
-	Status		Status
-	PhotoUrl	string
+	Name     string `json:"name"`
+	Breed    string `json:"breed"`
+	Gender   Gender `json:"gender"`
+	Age      Age    `json:"age"`
+	Status   Status `json:"status"`
+	PhotoUrl string `json:"photo_url"`
+	Notes    string `json:"notes"`
 }
 
 type UpdateDogInput struct {
-	Name		*string
-	Breed		*string
-	Gender		*Gender
-	Age			*Age
-	Status		*Status
-	PhotoUrl	*string
+	Name     *string `json:"name"`
+	Breed    *string `json:"breed"`
+	Gender   *Gender `json:"gender"`
+	Age      *Age    `json:"age"`
+	Status   *Status `json:"status"`
+	PhotoUrl *string `json:"photo_url"`
+	Notes    *string `json:"notes"`
 }

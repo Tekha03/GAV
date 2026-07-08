@@ -3,7 +3,7 @@ package events
 import "github.com/google/uuid"
 
 type ChatCreatedData struct {
-	ChatID   uuid.UUID 	`json:"chat_id"`
+	ChatID  uuid.UUID   `json:"chat_id"`
 	Members []uuid.UUID `json:"members"`
 }
 

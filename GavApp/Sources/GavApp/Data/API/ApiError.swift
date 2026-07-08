@@ -14,8 +14,8 @@ enum APIError: Error, LocalizedError, CustomNSError {
             return "Invalid server response: \(code)"
         case .decodingError(_):
             return "Failed to decode JSON"
-        case .networkError(_):
-            return "Network error"
+        case .networkError(let error):
+            return "Network error: \(error.localizedDescription)"
         }
     }
 }

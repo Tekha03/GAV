@@ -2,10 +2,10 @@
 package client
 
 import (
-	"context"
-	"google.golang.org/grpc"
 	pb "api/gen/notification/v1"
+	"context"
 	uuid "github.com/google/uuid"
+	"google.golang.org/grpc"
 )
 
 type NotificationClient struct {

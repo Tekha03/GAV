@@ -32,7 +32,7 @@ func (r *StatsRepository) CreateUserStats(ctx context.Context, userStats *stats.
 }
 
 func (r *StatsRepository) DeleteUserStats(ctx context.Context, userID uuid.UUID) error {
-	result := r.DB(ctx).Delete(&stats.UserStats{}, "id = ?", userID)
+	result := r.DB(ctx).Delete(&stats.UserStats{}, "user_id = ?", userID)
 
 	if result.Error != nil {
 		return fmt.Errorf("stats repository: delete user stats: %w", result.Error)
@@ -48,7 +48,7 @@ func (r *StatsRepository) DeleteUserStats(ctx context.Context, userID uuid.UUID)
 func (r *StatsRepository) GetUserStats(ctx context.Context, userID uuid.UUID) (*stats.UserStats, error) {
 	var userStats stats.UserStats
 
-	if err := r.DB(ctx).First(&userStats, "id = ?", userID).Error; err != nil {
+	if err := r.DB(ctx).First(&userStats, "user_id = ?", userID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, stats.ErrStatsNotFound
 		}
@@ -60,19 +60,19 @@ func (r *StatsRepository) GetUserStats(ctx context.Context, userID uuid.UUID) (*
 }
 
 func (r *StatsRepository) IncrementPosts(ctx context.Context, userID uuid.UUID) error {
-	return r.incrementUserField(ctx, userID, "posts", 1)
+	return r.incrementUserField(ctx, userID, "post_count", 1)
 }
 
 func (r *StatsRepository) DecrementPosts(ctx context.Context, userID uuid.UUID) error {
-	return r.incrementUserField(ctx, userID, "posts", -1)
+	return r.incrementUserField(ctx, userID, "post_count", -1)
 }
 
 func (r *StatsRepository) IncrementDogs(ctx context.Context, userID uuid.UUID) error {
-	return r.incrementUserField(ctx, userID, "dogs", 1)
+	return r.incrementUserField(ctx, userID, "dogs_count", 1)
 }
 
 func (r *StatsRepository) DecrementDogs(ctx context.Context, userID uuid.UUID) error {
-	return r.incrementUserField(ctx, userID, "dogs", -1)
+	return r.incrementUserField(ctx, userID, "dogs_count", -1)
 }
 
 func (r *StatsRepository) IncrementFollowers(ctx context.Context, userID uuid.UUID) error {
@@ -92,6 +92,13 @@ func (r *StatsRepository) DecrementFollowings(ctx context.Context, userID uuid.U
 }
 
 func (r *StatsRepository) incrementUserField(ctx context.Context, userID uuid.UUID, field string, delta int) error {
+	var userStats stats.UserStats
+	if err := r.DB(ctx).
+		Where("user_id = ?", userID).
+		FirstOrCreate(&userStats, stats.UserStats{UserID: userID}).Error; err != nil {
+		return fmt.Errorf("stats repository: ensure user stats: %w", err)
+	}
+
 	result := r.DB(ctx).
 		Model(&stats.UserStats{}).
 		Where("user_id = ?", userID).UpdateColumn(field, gorm.Expr(field+" + ?", delta))
@@ -118,7 +125,7 @@ func (r *StatsRepository) CreatePostStats(ctx context.Context, postStats *stats.
 func (r *StatsRepository) GetPostStats(ctx context.Context, postID uuid.UUID) (*stats.PostStats, error) {
 	var postStats stats.PostStats
 
-	if err := r.DB(ctx).First(&postStats, "id = ?", postID).Error; err != nil {
+	if err := r.DB(ctx).First(&postStats, "post_id = ?", postID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, stats.ErrStatsNotFound
 		}
@@ -130,22 +137,29 @@ func (r *StatsRepository) GetPostStats(ctx context.Context, postID uuid.UUID) (*
 }
 
 func (r *StatsRepository) IncrementPostLikes(ctx context.Context, postID uuid.UUID) error {
-	return r.incrementPostField(ctx, postID, "likes", 1)
+	return r.incrementPostField(ctx, postID, "likes_count", 1)
 }
 
 func (r *StatsRepository) DecrementPostLikes(ctx context.Context, postID uuid.UUID) error {
-	return r.incrementPostField(ctx, postID, "likes", -1)
+	return r.incrementPostField(ctx, postID, "likes_count", -1)
 }
 
 func (r *StatsRepository) IncrementPostComments(ctx context.Context, postID uuid.UUID) error {
-	return r.incrementPostField(ctx, postID, "comments", 1)
+	return r.incrementPostField(ctx, postID, "comments_count", 1)
 }
 
 func (r *StatsRepository) DecrementPostComments(ctx context.Context, postID uuid.UUID) error {
-	return r.incrementPostField(ctx, postID, "comments", -1)
+	return r.incrementPostField(ctx, postID, "comments_count", -1)
 }
 
 func (r *StatsRepository) incrementPostField(ctx context.Context, postID uuid.UUID, field string, delta int) error {
+	var postStats stats.PostStats
+	if err := r.DB(ctx).
+		Where("post_id = ?", postID).
+		FirstOrCreate(&postStats, stats.PostStats{PostID: postID}).Error; err != nil {
+		return fmt.Errorf("stats repository: ensure post stats: %w", err)
+	}
+
 	result := r.DB(ctx).
 		Model(&stats.PostStats{}).
 		Where("post_id = ?", postID).

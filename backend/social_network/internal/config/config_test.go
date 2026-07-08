@@ -57,7 +57,6 @@ func TestLoadStorage_Defaults(t *testing.T) {
 	assert.Equal(t, "./uploads", cfg.LocalPath)
 }
 
-
 func TestLoadStorage_FromEnv(t *testing.T) {
 	t.Setenv("STORAGE_TYPE", "s3")
 	t.Setenv("STORAGE_LOCAL_PATH", "/data")
@@ -91,7 +90,7 @@ func TestValidate_Success(t *testing.T) {
 		},
 		JWT: JWTConfig{
 			Secret: "secret",
-			TTL: time.Hour,
+			TTL:    time.Hour,
 		},
 	}
 
@@ -107,7 +106,7 @@ func TestValidate_HTTPPortMissing(t *testing.T) {
 		},
 		JWT: JWTConfig{
 			Secret: "secret",
-			TTL: time.Hour,
+			TTL:    time.Hour,
 		},
 	}
 
@@ -117,7 +116,6 @@ func TestValidate_HTTPPortMissing(t *testing.T) {
 	assert.Contains(t, err.Error(), "HTTP_PORT")
 }
 
-
 func TestValidate_DBPathMissing(t *testing.T) {
 	cfg := &Config{
 		HTTP: HTTPConfig{
@@ -126,7 +124,7 @@ func TestValidate_DBPathMissing(t *testing.T) {
 		DB: DBConfig{},
 		JWT: JWTConfig{
 			Secret: "secret",
-			TTL: time.Hour,
+			TTL:    time.Hour,
 		},
 	}
 
@@ -189,24 +187,27 @@ func TestLoad_Success(t *testing.T) {
 	assert.Equal(t, time.Hour, cfg.JWT.TTL)
 }
 
-func TestLoad_ValidationError(t *testing.T) {
+func TestLoad_Defaults(t *testing.T) {
 	t.Setenv("HTTP_PORT", "")
-	t.Setenv("DB_PATH", "./db")
-	t.Setenv("JWT_SECRET", "secret")
-	t.Setenv("JWT_TTL", "1h")
+	t.Setenv("DB_PATH", "")
+	t.Setenv("JWT_SECRET", "")
+	t.Setenv("JWT_TTL", "")
 
 	cfg, err := Load()
 
-	assert.Error(t, err)
-	assert.Nil(t, cfg)
+	assert.NoError(t, err)
+	assert.Equal(t, "8080", cfg.HTTP.Port)
+	assert.Equal(t, "./dbserver/social.db", cfg.DB.Path)
+	assert.Equal(t, "dev-secret-change-me", cfg.JWT.Secret)
+	assert.Equal(t, 24*time.Hour, cfg.JWT.TTL)
 }
 
 func TestLoadEnvFrom(t *testing.T) {
-    envFile := filepath.Join(t.TempDir(), ".env")
-    os.WriteFile(envFile, []byte("TEST_ENV=hello"), 0644)
+	envFile := filepath.Join(t.TempDir(), ".env")
+	os.WriteFile(envFile, []byte("TEST_ENV=hello"), 0644)
 
-    err := loadEnvFromPath(envFile)
+	err := loadEnvFromPath(envFile)
 
-    assert.NoError(t, err)
-    assert.Equal(t, "hello", os.Getenv("TEST_ENV"))
+	assert.NoError(t, err)
+	assert.Equal(t, "hello", os.Getenv("TEST_ENV"))
 }

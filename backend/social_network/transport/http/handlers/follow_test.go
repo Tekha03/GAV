@@ -1,13 +1,10 @@
 package handlers
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"social_network/internal/follow"
-	"social_network/transport/http/dto"
 	"social_network/transport/http/middleware"
 	"testing"
 
@@ -27,17 +24,17 @@ func TestFollowHandler_Follow(t *testing.T) {
 
 		h, _ := NewFollowHandler(mockSvc, mockNotif)
 
-		input := dto.FollowRequest{UserID: followingID}
-
 		mockSvc.On("Follow", mock.Anything, mock.Anything).Return(nil)
 		mockNotif.On("NotifyFollow", mock.Anything, followingID, followerID).Return()
 
-		body, _ := json.Marshal(input)
-		req := httptest.NewRequest(http.MethodPost, "/follow", bytes.NewBuffer(body))
+		r := chi.NewRouter()
+		r.Post("/follow/{userID}", h.Follow)
+
+		req := httptest.NewRequest(http.MethodPost, "/follow/"+followingID.String(), nil)
 		req = req.WithContext(context.WithValue(req.Context(), middleware.UserIDKey, followerID))
 
 		w := httptest.NewRecorder()
-		h.Follow(w, req)
+		r.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusNoContent, w.Code)
 	})
@@ -56,17 +53,20 @@ func TestFollowHandler_Follow(t *testing.T) {
 		assert.NotEqual(t, http.StatusNoContent, w.Code)
 	})
 
-	t.Run("invalid json", func(t *testing.T) {
+	t.Run("invalid user id", func(t *testing.T) {
 		mockSvc := new(MockFollowService)
 		mockNotif := new(MockNotificationService)
 
 		h, _ := NewFollowHandler(mockSvc, mockNotif)
 
-		req := httptest.NewRequest(http.MethodPost, "/follow", bytes.NewBufferString("{bad"))
+		r := chi.NewRouter()
+		r.Post("/follow/{userID}", h.Follow)
+
+		req := httptest.NewRequest(http.MethodPost, "/follow/invalid", nil)
 		req = req.WithContext(context.WithValue(req.Context(), middleware.UserIDKey, followerID))
 
 		w := httptest.NewRecorder()
-		h.Follow(w, req)
+		r.ServeHTTP(w, req)
 
 		assert.NotEqual(t, http.StatusNoContent, w.Code)
 	})
@@ -77,16 +77,16 @@ func TestFollowHandler_Follow(t *testing.T) {
 
 		h, _ := NewFollowHandler(mockSvc, mockNotif)
 
-		input := dto.FollowRequest{UserID: followingID}
-
 		mockSvc.On("Follow", mock.Anything, mock.Anything).Return(assert.AnError)
 
-		body, _ := json.Marshal(input)
-		req := httptest.NewRequest(http.MethodPost, "/follow", bytes.NewBuffer(body))
+		r := chi.NewRouter()
+		r.Post("/follow/{userID}", h.Follow)
+
+		req := httptest.NewRequest(http.MethodPost, "/follow/"+followingID.String(), nil)
 		req = req.WithContext(context.WithValue(req.Context(), middleware.UserIDKey, followerID))
 
 		w := httptest.NewRecorder()
-		h.Follow(w, req)
+		r.ServeHTTP(w, req)
 
 		assert.NotEqual(t, http.StatusNoContent, w.Code)
 	})

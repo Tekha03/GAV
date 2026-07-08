@@ -1,10 +1,10 @@
 package middleware
 
 import (
+	"net/http"
 	"social_network/internal/auth"
 	"social_network/internal/post"
 	"social_network/transport/response"
-	"net/http"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"

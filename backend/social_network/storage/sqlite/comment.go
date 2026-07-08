@@ -49,7 +49,7 @@ func (r *CommentRepository) ListByPostID(ctx context.Context, postID uuid.UUID) 
 	return comments, err
 }
 
-func (r *CommentRepository) Delete(ctx context.Context, commentID, userID uuid.UUID) error {
+func (r *CommentRepository) Delete(ctx context.Context, userID, commentID uuid.UUID) error {
 	deleted := r.DB(ctx).Where("id = ? AND user_id = ?", commentID, userID).Delete(&comment.Comment{})
 
 	if deleted.RowsAffected == 0 {

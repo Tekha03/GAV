@@ -8,18 +8,18 @@ import (
 )
 
 type ChatMemberRequestDTO struct {
-	UserID uuid.UUID      	`json:"user_id"`
-	ChatID uuid.UUID      	`json:"chat_id"`
+	UserID uuid.UUID        `json:"user_id"`
+	ChatID uuid.UUID        `json:"chat_id"`
 	Role   model.MemberRole `json:"role"`
-	Muted  bool           	`json:"muted"`
+	Muted  bool             `json:"muted"`
 }
 
 type ChatMemberResponseDTO struct {
-	UserID           uuid.UUID      	`json:"user_id"`
-	ChatID           uuid.UUID      	`json:"chat_id"`
-	Role             model.MemberRole 	`json:"role"`
-	JoinedAt         time.Time      	`json:"joined_at"`
-	LeftAt           *time.Time     	`json:"left_at,omitempty"`
-	Muted            bool           	`json:"muted"`
-	LastReadMessageID uuid.UUID     	`json:"last_read_message_id"`
+	UserID            uuid.UUID        `json:"user_id"`
+	ChatID            uuid.UUID        `json:"chat_id"`
+	Role              model.MemberRole `json:"role"`
+	JoinedAt          time.Time        `json:"joined_at"`
+	LeftAt            *time.Time       `json:"left_at,omitempty"`
+	Muted             bool             `json:"muted"`
+	LastReadMessageID uuid.UUID        `json:"last_read_message_id"`
 }

@@ -3,13 +3,13 @@ package config
 import "os"
 
 type StorageConfig struct {
-	Type		string
-	LocalPath	string
+	Type      string
+	LocalPath string
 }
 
 func loadStorage() StorageConfig {
 	return StorageConfig{
-		Type: getEnv("STORAGE_TYPE", "local"),
+		Type:      getEnv("STORAGE_TYPE", "local"),
 		LocalPath: getEnv("STORAGE_LOCAL_PATH", "./uploads"),
 	}
 }

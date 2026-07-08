@@ -10,9 +10,9 @@ import (
 )
 
 type service struct {
-	hub 			*Hub
+	hub              *Hub
 	notificationRepo Repository
-	deviceRepo     	device.Repository
+	deviceRepo       device.Repository
 	firebaseClient   *firebase.Client
 }
 
@@ -22,26 +22,26 @@ func NewService(hub *Hub, notificationRepo Repository, deviceRepo device.Reposit
 	}
 
 	return &service{
-		hub: 				hub,
-		notificationRepo:  	 notificationRepo,
-		deviceRepo: 		deviceRepo,
-		firebaseClient: 	 firebaseClient,
+		hub:              hub,
+		notificationRepo: notificationRepo,
+		deviceRepo:       deviceRepo,
+		firebaseClient:   firebaseClient,
 	}, nil
 }
 
 func (s *service) NotifyLike(ctx context.Context, postOwnerID, likerID, postID uuid.UUID) error {
 	return s.notify(ctx, postOwnerID, likerID, TypeLike, postID, LikeMessage, LikeMessage, map[string]string{
-		"entity_type": 	"post",
-		"entity_id": 	postID.String(),
-		"type": 		string(TypeLike),
+		"entity_type": "post",
+		"entity_id":   postID.String(),
+		"type":        string(TypeLike),
 	})
 }
 
 func (s *service) NotifyComment(ctx context.Context, postOwnerID, commenterID, postID uuid.UUID) error {
 	return s.notify(ctx, postOwnerID, commenterID, TypeComment, postID, CommentMessage, CommentMessage, map[string]string{
-		"entity_type": 	"comment",
-		"entity_id": 	postID.String(),
-		"type": 		string(TypeComment),
+		"entity_type": "comment",
+		"entity_id":   postID.String(),
+		"type":        string(TypeComment),
 	})
 }
 
@@ -117,7 +117,7 @@ func (s *service) notify(ctx context.Context, userID, fromUserID uuid.UUID, noti
 		}
 	}
 
-	return  nil
+	return nil
 }
 
 func (s *service) sendToUser(notification *Notification, userID uuid.UUID) error {

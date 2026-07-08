@@ -1,13 +1,11 @@
 package config
 
-import "os"
-
 type HTTPConfig struct {
 	Port string
 }
 
 func loadHTTP() HTTPConfig {
 	return HTTPConfig{
-		Port: os.Getenv("HTTP_PORT"),
+		Port: getEnv("HTTP_PORT", "8080"),
 	}
 }

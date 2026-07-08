@@ -8,8 +8,8 @@ import (
 )
 
 type Claims struct {
-	UserID	uuid.UUID	`json:"sub"`
-	Role	string		`json:"role"`
+	UserID uuid.UUID `json:"sub"`
+	Role   string    `json:"role"`
 	jwt.RegisteredClaims
 }
 
@@ -23,10 +23,10 @@ func NewClaims(userID uuid.UUID, role string, ttl time.Duration) (*Claims, error
 
 	return &Claims{
 		UserID: userID,
-		Role: role,
+		Role:   role,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(ttl)),
-			IssuedAt: jwt.NewNumericDate(time.Now()),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
 	}, nil
 }

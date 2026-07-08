@@ -27,7 +27,7 @@ func NewUserRepository(db *gorm.DB) (user.Repository, error) {
 
 func (r *UserRepository) Create(ctx context.Context, u *user.User) error {
 	var existing user.User
-	err := r.DB(ctx).Where("settings_email = ?", u.Email).First(&existing).Error
+	err := r.DB(ctx).Where("email = ?", u.Email).First(&existing).Error
 
 	if err == nil {
 		return ErrUserExists
@@ -55,7 +55,7 @@ func (r *UserRepository) GetByID(ctx context.Context, id uuid.UUID) (*user.User,
 
 func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*user.User, error) {
 	var u user.User
-	if err := r.DB(ctx).Where("settings_email = ?", email).First(&u).Error; err != nil {
+	if err := r.DB(ctx).Where("email = ?", email).First(&u).Error; err != nil {
 		return nil, err
 	}
 
@@ -92,19 +92,37 @@ func (r *UserRepository) FindWalkingNearby(ctx context.Context, centerLat, cente
 	var dogs []*dog.Dog
 
 	query := `
-	SELECT *, (
-		6371000 * acos(
-			cos(radians(?)) * cos(radians(lat)) * cos(radians(lon) - radians(?)) +
-			sin(radians(?)) * sin(radians(lat))
-		)
-	) AS distance
+	SELECT
+		dogs.id,
+		dogs.owner_id,
+		dogs.name,
+		dogs.breed,
+		dogs.photo_url,
+		dogs.status,
+		dogs.age,
+		dogs.gender,
+		users.lat AS lat,
+		users.lon AS lon
 	FROM dogs
-	WHERE lat IS NOT NULL AND lon IS NOT NULL
-	  AND location_visible = TRUE
-	HAVING distance <= ?
+	JOIN users ON users.id = dogs.owner_id
+	WHERE users.lat IS NOT NULL AND users.lon IS NOT NULL
+	  AND users.visibility = ?
+	  AND users.location_status = ?
+	  AND (((users.lat - ?) * 111320) * ((users.lat - ?) * 111320)
+	    + ((users.lon - ?) * 111320) * ((users.lon - ?) * 111320)) <= (? * ?)
 	`
 
-	if err := r.DB(ctx).Raw(query, centerLat, centerLon, centerLat, radiusMeters).Scan(&dogs).Error; err != nil {
+	if err := r.DB(ctx).Raw(
+		query,
+		user.VisibilityEveryone,
+		user.Walking,
+		centerLat,
+		centerLat,
+		centerLon,
+		centerLon,
+		radiusMeters,
+		radiusMeters,
+	).Scan(&dogs).Error; err != nil {
 		return nil, fmt.Errorf("dog repository: find walking nearby: %w", err)
 	}
 

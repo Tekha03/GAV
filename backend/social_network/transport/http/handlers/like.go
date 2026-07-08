@@ -2,7 +2,12 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
+	"io"
 	"net/http"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 
 	"social_network/internal/like"
 	"social_network/internal/notification"
@@ -12,9 +17,9 @@ import (
 )
 
 type LikeHandler struct {
-	service 			like.LikeService
-	postService			post.PostService
-	notificationService  notification.NotificationService
+	service             like.LikeService
+	postService         post.PostService
+	notificationService notification.NotificationService
 }
 
 func NewLikeHandler(
@@ -54,27 +59,27 @@ func (h *LikeHandler) Add(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var like like.Like
-	if err := json.NewDecoder(r.Body).Decode(&like); err != nil {
+	likeModel, err := likeFromRequest(r)
+	if err != nil {
 		response.Error(w, ErrInvalidInput)
 		return
 	}
 
-	like.UserID = userID
+	likeModel.UserID = userID
 
-	if err := h.service.Add(r.Context(), like); err != nil {
+	if err := h.service.Add(r.Context(), likeModel); err != nil {
 		response.Error(w, err)
 		return
 	}
 
-	post, err := h.postService.GetByID(r.Context(), like.PostID)
+	post, err := h.postService.GetByID(r.Context(), likeModel.PostID)
 	if err != nil {
 		response.Error(w, err)
 		return
 	}
 
 	if post != nil && post.UserID != userID {
-		go h.notificationService.NotifyLike(r.Context(), post.UserID, userID, like.PostID)
+		go h.notificationService.NotifyLike(r.Context(), post.UserID, userID, likeModel.PostID)
 	}
 
 	response.JSON(w, http.StatusNoContent, nil)
@@ -93,24 +98,47 @@ func (h *LikeHandler) Add(w http.ResponseWriter, r *http.Request) {
 // @Failure      500   {object}  response.ErrorResponse  "Внутренняя ошибка сервиса"
 // @Router       /likes [delete]
 func (h *LikeHandler) Remove(w http.ResponseWriter, r *http.Request) {
-	var like like.Like
-	if err := json.NewDecoder(r.Body).Decode(&like); err != nil {
-		response.Error(w, ErrInvalidInput)
-		return
-	}
-
 	userID, ok := middleware.UserID(r.Context())
 	if !ok {
 		response.Error(w, ErrUnauthorized)
 		return
 	}
 
-	like.UserID = userID
+	likeModel, err := likeFromRequest(r)
+	if err != nil {
+		response.Error(w, ErrInvalidInput)
+		return
+	}
 
-	if err := h.service.Remove(r.Context(), like); err != nil {
+	likeModel.UserID = userID
+
+	if err := h.service.Remove(r.Context(), likeModel); err != nil {
 		response.Error(w, err)
 		return
 	}
 
 	response.JSON(w, http.StatusNoContent, nil)
+}
+
+func likeFromRequest(r *http.Request) (like.Like, error) {
+	if id := chi.URLParam(r, "id"); id != "" {
+		postID, err := uuid.Parse(id)
+		if err != nil {
+			return like.Like{}, err
+		}
+		return like.Like{PostID: postID}, nil
+	}
+
+	var likeModel like.Like
+	err := json.NewDecoder(r.Body).Decode(&likeModel)
+	if errors.Is(err, io.EOF) {
+		return like.Like{}, err
+	}
+	if err != nil {
+		return like.Like{}, err
+	}
+	if likeModel.PostID == uuid.Nil {
+		return like.Like{}, ErrInvalidInput
+	}
+	return likeModel, nil
 }

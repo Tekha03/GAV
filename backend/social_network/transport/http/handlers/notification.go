@@ -11,7 +11,7 @@ import (
 )
 
 var upgrader = websocket.Upgrader{
-	CheckOrigin: func (r *http.Request) bool { return true },
+	CheckOrigin: func(r *http.Request) bool { return true },
 }
 
 type NotificationHandler struct {
@@ -51,8 +51,8 @@ func (h *NotificationHandler) ServeWS(w http.ResponseWriter, r *http.Request) {
 
 	client := &notification.Client{
 		UserID: userID,
-		Conn:	conn,
-		Send: 	make(chan []byte, 256),
+		Conn:   conn,
+		Send:   make(chan []byte, 256),
 	}
 
 	h.hub.Register <- client
@@ -62,7 +62,7 @@ func (h *NotificationHandler) ServeWS(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *NotificationHandler) readPump(client *notification.Client) {
-	defer func () {
+	defer func() {
 		h.hub.Unregister <- client
 		client.Conn.Close()
 	}()

@@ -6,17 +6,17 @@ import (
 )
 
 type Client struct {
-	UserID  uuid.UUID
-	ChatID  uuid.UUID
-	Conn    *websocket.Conn
-	Send    chan []byte
+	UserID uuid.UUID
+	ChatID uuid.UUID
+	Conn   *websocket.Conn
+	Send   chan []byte
 }
 
 type Hub struct {
-	clients map[uuid.UUID][]*Client
-	Register    chan *Client
-	Unregister  chan *Client
-	broadcast   chan []byte
+	clients    map[uuid.UUID][]*Client
+	Register   chan *Client
+	Unregister chan *Client
+	broadcast  chan []byte
 }
 
 func NewHub() *Hub {
@@ -46,12 +46,12 @@ func (h *Hub) Run() {
 		case message := <-h.broadcast:
 			for _, clients := range h.clients {
 				for _, client := range clients {
-				   select {
-				   case client.Send <- message:
-				   default:
-					   close(client.Send)
-					   h.Unregister <- client
-				   }
+					select {
+					case client.Send <- message:
+					default:
+						close(client.Send)
+						h.Unregister <- client
+					}
 				}
 			}
 		}

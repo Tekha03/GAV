@@ -5,6 +5,6 @@ import (
 )
 
 type CreateCommentRequest struct {
-	PostID	uuid.UUID	`json:"post_id" validate:"required"`
-	Content	string		`json:"content" validate:"required,max=500"`
+	PostID  uuid.UUID `json:"post_id" validate:"required"`
+	Content string    `json:"content" validate:"required,max=500"`
 }

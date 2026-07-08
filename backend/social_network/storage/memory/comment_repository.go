@@ -11,8 +11,8 @@ import (
 )
 
 type CommentRepository struct {
-	mu			sync.RWMutex
-	comments	map[uuid.UUID]comment.Comment
+	mu       sync.RWMutex
+	comments map[uuid.UUID]comment.Comment
 }
 
 func NewCommentRepository() *CommentRepository {

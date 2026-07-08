@@ -1,18 +1,18 @@
 package gorm
 
 import (
-    "context"
-    "gorm.io/gorm"
+	"context"
+	"gorm.io/gorm"
 )
 
 type Repository struct {
-    db *gorm.DB
+	db *gorm.DB
 }
 
 func NewRepository(db *gorm.DB) *Repository {
-    return &Repository{db: db}
+	return &Repository{db: db}
 }
 
 func (r *Repository) WithContext(ctx context.Context) *gorm.DB {
-    return r.db.WithContext(ctx)
+	return r.db.WithContext(ctx)
 }

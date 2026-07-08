@@ -9,11 +9,9 @@ import (
 	"github.com/google/uuid"
 )
 
-
 type DogRepository struct {
-	mu 		sync.RWMutex
-	dogs 	map[uuid.UUID]*dog.Dog
-
+	mu   sync.RWMutex
+	dogs map[uuid.UUID]*dog.Dog
 }
 
 func NewDogRepository() *DogRepository {

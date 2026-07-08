@@ -38,6 +38,17 @@ func (m *MockRepository) GetByUserID(ctx context.Context, userID uuid.UUID) (*Us
 	return profile.(*UserProfile), args.Error(1)
 }
 
+func (m *MockRepository) Search(ctx context.Context, query string, limit int) ([]*UserProfile, error) {
+	args := m.Called(ctx, query, limit)
+	profiles := args.Get(0)
+
+	if profiles == nil {
+		return nil, args.Error(1)
+	}
+
+	return profiles.([]*UserProfile), args.Error(1)
+}
+
 func (m *MockRepository) Update(ctx context.Context, profile *UserProfile) error {
 	args := m.Called(ctx, profile)
 	return args.Error(0)

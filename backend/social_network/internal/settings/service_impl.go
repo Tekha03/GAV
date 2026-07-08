@@ -29,10 +29,10 @@ func (s *service) Get(ctx context.Context, userID uuid.UUID) (*UserSettings, err
 	}
 
 	defaultSettings := &UserSettings{
-		UserID:			userID,
-		ProfilePrivacy:	 false,
-		ShowLocation:	true,
-		AllowMessages:	true,
+		UserID:         userID,
+		ProfilePrivacy: false,
+		ShowLocation:   true,
+		AllowMessages:  true,
 	}
 
 	if err := s.repo.Create(ctx, defaultSettings); err != nil {

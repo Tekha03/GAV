@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"social_network/internal/profile"
+	"strings"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -34,7 +35,7 @@ func (r *ProfileRepository) Create(ctx context.Context, userProfile *profile.Use
 func (r *ProfileRepository) GetByID(ctx context.Context, profileID uuid.UUID) (*profile.UserProfile, error) {
 	var userProfile profile.UserProfile
 
-	err := r.DB(ctx).First(&userProfile, "id = ?", profileID).Error
+	err := r.DB(ctx).First(&userProfile, "user_id = ?", profileID).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, profile.ErrProfileNotFound
@@ -61,6 +62,25 @@ func (r *ProfileRepository) GetByUserID(ctx context.Context, userID uuid.UUID) (
 	return &userProfile, nil
 }
 
+func (r *ProfileRepository) Search(ctx context.Context, query string, limit int) ([]*profile.UserProfile, error) {
+	var profiles []*profile.UserProfile
+	normalizedQuery := strings.TrimSpace(query)
+	usernameQuery := strings.TrimPrefix(normalizedQuery, "@")
+	term := "%" + strings.ToLower(normalizedQuery) + "%"
+	usernameTerm := "%" + strings.ToLower(usernameQuery) + "%"
+
+	err := r.DB(ctx).
+		Where("lower(username) LIKE ? OR lower(username) LIKE ? OR lower(name) LIKE ? OR lower(surname) LIKE ?", term, usernameTerm, term, term).
+		Order("username ASC").
+		Limit(limit).
+		Find(&profiles).Error
+	if err != nil {
+		return nil, fmt.Errorf("profile repository: search: %w", err)
+	}
+
+	return profiles, nil
+}
+
 func (r *ProfileRepository) Update(ctx context.Context, userProfile *profile.UserProfile) error {
 	err := r.DB(ctx).Save(userProfile).Error
 
@@ -72,7 +92,7 @@ func (r *ProfileRepository) Update(ctx context.Context, userProfile *profile.Use
 }
 
 func (r *ProfileRepository) Delete(ctx context.Context, profileID uuid.UUID) error {
-	result := r.DB(ctx).Delete(&profile.UserProfile{}, "id = ?", profileID)
+	result := r.DB(ctx).Delete(&profile.UserProfile{}, "user_id = ?", profileID)
 
 	if result.Error != nil {
 		return fmt.Errorf("profile repository: delete: %w", result.Error)

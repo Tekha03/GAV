@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"social_network/internal/profile"
+	"strconv"
 
 	"social_network/internal/validation"
 	"social_network/transport/http/middleware"
@@ -121,6 +122,19 @@ func (h *ProfileHandler) GetByUserID(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusOK, profile)
 }
 
+func (h *ProfileHandler) Search(w http.ResponseWriter, r *http.Request) {
+	query := r.URL.Query().Get("q")
+	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+
+	profiles, err := h.service.Search(r.Context(), query, limit)
+	if err != nil {
+		response.Error(w, err)
+		return
+	}
+
+	response.JSON(w, http.StatusOK, profiles)
+}
+
 // GetByUserID godoc
 // @Summary Get profile by user ID
 // @Description Get profile by user ID
@@ -133,7 +147,7 @@ func (h *ProfileHandler) GetByUserID(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} response.ErrorResponse
 // @Router /profile/user/{userID} [get]
 func (h *ProfileHandler) Update(w http.ResponseWriter, r *http.Request) {
-	profileID, err := uuid.Parse(chi.URLParam(r, "id"))
+	profileID, err := profileIDFromRoute(r)
 	if err != nil {
 		response.Error(w, ErrInvalidInput)
 		return
@@ -172,7 +186,7 @@ func (h *ProfileHandler) Update(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} response.ErrorResponse
 // @Router /profile/{id} [put]
 func (h *ProfileHandler) Delete(w http.ResponseWriter, r *http.Request) {
-	profileID, err := uuid.Parse(chi.URLParam(r, "id"))
+	profileID, err := profileIDFromRoute(r)
 	if err != nil {
 		response.Error(w, ErrInvalidInput)
 		return
@@ -184,4 +198,12 @@ func (h *ProfileHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response.JSON(w, http.StatusNoContent, nil)
+}
+
+func profileIDFromRoute(r *http.Request) (uuid.UUID, error) {
+	if value := chi.URLParam(r, "id"); value != "" {
+		return uuid.Parse(value)
+	}
+
+	return uuid.Parse(chi.URLParam(r, "userID"))
 }

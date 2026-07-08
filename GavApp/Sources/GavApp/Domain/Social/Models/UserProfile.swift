@@ -46,6 +46,7 @@ public struct UserProfile: Identifiable, Equatable, Sendable {
         self.birthDate = birthDate
         self.lat = lat
         self.lon = lon
+        self.locationStatus = locationStatus
         self.locationVisibility = locationVisibility
         self.showLocation = showLocation
         self.isProfilePublic = isProfilePublic

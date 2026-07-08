@@ -1,217 +1,115 @@
 import Foundation
 import SwiftUI
+import Combine
 
 @MainActor
-@available(macOS 12.0, *)
 final class ProfileViewModel: ObservableObject {
-
-    @Published var profile: UserProfile?
-    @Published var dogs: [Dog] = []
-    @Published var posts: [Post] = []
+    @Published var profile: AppProfile
+    @Published var currentUser: UserModel?
+    @Published var currentUserId: UUID?
+    @Published var stats: ProfileStatsModel?
     @Published var isLoading = false
-    @Published private(set) var isOwner = false
+    @Published var errorMessage: String?
 
-    private let profileUseCase: ProfileUseCase
-    private let dogUseCase: DogUseCase
-    private let followUseCase: FollowUseCase
-    private let feedUseCase: FeedUseCase
-    private let statsUseCase: StatsUseCase
-    private let userUseCase: UserUseCase
-    private let postUseCase: PostUseCase
-    private let likeUseCase: LikeUseCase
-
-    private let currentUserId: UUID
+    private let authManager: AuthManager
+    private let userProfileService: UserProfileServiceAPIProtocol
+    private let settingsService: SettingsServiceAPIProtocol
+    private let dogService: DogServiceAPIProtocol
+    private let statsService: StatsServiceAPIProtocol
 
     init(
-        currentUserId: UUID,
-        profileUseCase: ProfileUseCase,
-        dogUseCase: DogUseCase,
-        followUseCase: FollowUseCase,
-        feedUseCase: FeedUseCase,
-        statsUseCase: StatsUseCase,
-        userUseCase: UserUseCase,
-        postUseCase: PostUseCase,
-        likeUseCase: LikeUseCase
+        authManager: AuthManager,
+        userProfileService: UserProfileServiceAPIProtocol,
+        settingsService: SettingsServiceAPIProtocol,
+        dogService: DogServiceAPIProtocol,
+        statsService: StatsServiceAPIProtocol,
+        previewProfile: AppProfile? = nil
     ) {
-        self.currentUserId = currentUserId
-        self.profileUseCase = profileUseCase
-        self.dogUseCase = dogUseCase
-        self.followUseCase = followUseCase
-        self.feedUseCase = feedUseCase
-        self.statsUseCase = statsUseCase
-        self.userUseCase = userUseCase
-        self.postUseCase = postUseCase
-        self.likeUseCase = likeUseCase
+        self.authManager = authManager
+        self.userProfileService = userProfileService
+        self.settingsService = settingsService
+        self.dogService = dogService
+        self.statsService = statsService
+        self.profile = previewProfile ?? AppProfile(
+            fullName: "Viktoria Kashurkina",
+            handle: "vickdogmom",
+            bio: "dog-friendly",
+            avatarURL: nil,
+            followers: 0,
+            following: 0
+        )
+        self.currentUserId = authManager.currentUserId()
     }
 
-    // MARK: Load Profile
+    func loadProfile() async {
+        guard let userID = authManager.currentUserId() else {
+            errorMessage = "No user ID"
+            return
+        }
 
-    func load(userId: UUID) async {
+        currentUserId = userID
         isLoading = true
         defer { isLoading = false }
 
+        let profileService = userProfileService
+        let statsService = statsService
+
         do {
-            let profile = try await profileUseCase.getByUserID(userID: userId)
-            let dogs = try await dogUseCase.listByOwnerID(ownerID: userId)
-            let posts = try await feedUseCase.getFeed(
-                userID: userId,
-                before: nil,
-                limit: 30
+            let profileModel = try await profileService.getByUserID(userID: userID)
+            let statsModel = try await statsService.profileStats(userID: userID)
+
+            self.stats = statsModel
+            self.profile = AppProfile(
+                fullName: "\(profileModel.name) \(profileModel.surname)",
+                handle: profileModel.username,
+                bio: profileModel.bio,
+                avatarURL: profileModel.profilePhotoUrl.flatMap(URL.init(string:)),
+                followers: Int(statsModel.followersCount),
+                following: Int(statsModel.followingsCount)
             )
-
-            _ = try await statsUseCase.profileStats(userID: userId)
-
-            self.profile = profile
-            self.dogs = dogs
-            self.posts = posts
-            self.isOwner = userId == currentUserId
-
         } catch {
-            print("Load profile error: \(error)")
+            errorMessage = error.localizedDescription
         }
     }
-
-    // MARK: Follow
-
-    func toggleFollow() async {
-        guard let id = profile?.userId else { return }
-
-        let follow = Follow(
-            followerId: currentUserId,
-            followingId: id
-        )
-
-        do {
-            let exists = try await followUseCase.exists(follow: follow)
-
-            if exists {
-                try await followUseCase.unfollow(follow: follow)
-                profile?.isFollowed = false
-                profile?.followersCount -= 1
-            } else {
-                try await followUseCase.follow(follow: follow)
-                profile?.isFollowed = true
-                profile?.followersCount += 1
-            }
-
-        } catch {
-            print("Follow error: \(error)")
-        }
-    }
-
-    // MARK: Like Post
-
-    func toggleLike(for post: Post) async {
-
-        let like = Like(
-            userId: currentUserId,
-            postId: post.id
-        )
-
-        do {
-            let exists = try await likeUseCase.exists(like: like)
-
-            if let index = posts.firstIndex(where: { $0.id == post.id }) {
-
-                if exists {
-                    try await likeUseCase.remove(like: like)
-                    posts[index].likesCount -= 1
-                } else {
-                    try await likeUseCase.add(like: like)
-                    posts[index].likesCount += 1
-                }
-            }
-
-        } catch {
-            print("Like error: \(error)")
-        }
-    }
-
-    // MARK: Create Post
-
-    func createPost(
-        content: String,
-        imageUrl: String? = nil
-    ) async {
-
-        guard let userId = profile?.userId else { return }
-
-        do {
-            let post = try await postUseCase.create(
-                userID: userId,
-                content: content,
-                imageUrl: imageUrl
-            )
-
-            posts.insert(post, at: 0)
-
-        } catch {
-            print("Create post error: \(error)")
-        }
-    }
-
-    // MARK: Profile Update
 
     func updateProfile(input: UpdateProfileInput) async {
+        guard let userID = currentUserId ?? authManager.currentUserId() else { return }
+
+        let profileService = userProfileService
+
         do {
-            try await profileUseCase.update(
-                userID: currentUserId,
-                input: input
-            )
-
-            profile?.name = input.name
-            profile?.surname = input.surname
-            profile?.bio = input.bio
-
+            try await profileService.update(userID: userID, input: input)
+            await loadProfile()
         } catch {
-            print("Update profile error: \(error)")
+            errorMessage = error.localizedDescription
         }
     }
 
-    // MARK: Dog
+    func updateUserSettings(settings: UserSettingsModel) async {
+        let settingsService = settingsService
 
-    func createDog(_ input: CreateDogInput) async {
         do {
-            let dog = try await dogUseCase.create(
-                userId: currentUserId,
-                input: input
+            let input = UpdateUserSettingsInput(
+                profilePrivacy: settings.profilePrivacy,
+                showLocation: settings.showLocation,
+                allowMessages: settings.allowMessages
             )
-
-            dogs.append(dog)
-
+            try await settingsService.updateSettings(input: input)
         } catch {
-            print("Create dog error: \(error)")
+            errorMessage = error.localizedDescription
         }
     }
 
-    func updateDog(
-        dogId: UUID,
-        input: UpdateDogInput
-    ) async {
+    func addDog(input: CreateDogInput) async {
+        guard let userID = currentUserId ?? authManager.currentUserId() else { return }
+
+        let dogService = dogService
 
         do {
-            try await dogUseCase.update(
-                dogId: dogId,
-                input: input
-            )
+            _ = try await dogService.create(ownerID: userID, input: input)
+            await loadProfile()
         } catch {
-            print("Update dog error: \(error)")
-        }
-    }
-
-    // MARK: Settings
-
-    func updateUserSettings(
-        settings: UserSettings
-    ) async {
-
-        do {
-            try await userUseCase.updateUserSettings(
-                id: currentUserId,
-                input: settings
-            )
-        } catch {
-            print("Settings update error: \(error)")
+            errorMessage = error.localizedDescription
         }
     }
 }

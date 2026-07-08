@@ -1,12 +1,12 @@
 package profile
 
-import "errors"
+import appErrors "social_network/internal/errors"
 
 var (
-	ErrProfileAlreadyExists = errors.New("profile already exists")
-	ErrProfileNotFound		= errors.New("profile not found")
-	ErrInvalidUserID	   = errors.New("invalid user ID")
-	ErrInvalidProfileID	  	= errors.New("invalid profile ID")
+	ErrProfileAlreadyExists = appErrors.New(appErrors.CodeConflict, "profile already exists")
+	ErrProfileNotFound      = appErrors.New(appErrors.CodeNotFound, "profile not found")
+	ErrInvalidUserID        = appErrors.New(appErrors.CodeValidation, "invalid user ID")
+	ErrInvalidProfileID     = appErrors.New(appErrors.CodeValidation, "invalid profile ID")
 
-	ErrRepoNil			   = errors.New("profile service: repo is nil")
+	ErrRepoNil = appErrors.New(appErrors.CodeInternal, "profile service: repo is nil")
 )

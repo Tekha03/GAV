@@ -18,11 +18,11 @@ import (
 )
 
 type App struct {
-	Server 			*http.Server
-	Services 		*Services
-	NotificationHub	 *notification.Hub
-	sqlDB  			*gorm.DB
-	logger 			*slog.Logger
+	Server          *http.Server
+	Services        *Services
+	NotificationHub *notification.Hub
+	sqlDB           *gorm.DB
+	logger          *slog.Logger
 }
 
 func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
@@ -68,14 +68,14 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 
 	jwtConfig := auth.JWTConfig{
 		Secret: []byte(cfg.JWT.Secret),
-		TTL: 	cfg.JWT.TTL,
+		TTL:    cfg.JWT.TTL,
 	}
 
 	logger.Info("jwt cofigured", "ttl", cfg.JWT.TTL.String())
 
 	mediaStorage := media.NewLocalStorage(cfg.Storage.LocalPath)
 
-	repos, err := initRepositories(db);
+	repos, err := initRepositories(db)
 	if err != nil {
 		return nil, err
 	}
@@ -95,41 +95,42 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 
 	router := httptransport.NewRouter(
 		httptransport.Handlers{
-			Auth:			handlers.Auth,
-			User: 			handlers.User,
-			Profile: 	 	 handlers.Profile,
-			Post: 			handlers.Post,
-			Feed:			handlers.Feed,
-			Comment: 		handlers.Comment,
-			Like: 			handlers.Like,
-			Follow: 		handlers.Follow,
-			Dog: 			handlers.Dog,
-			Vaccination:	handlers.Vaccination,
-			Stats: 			handlers.Stats,
-			Settings: 		handlers.Settings,
-			Upload: 		handlers.Upload,
-			WS: 		handlers.WSHandler,
+			Auth:        handlers.Auth,
+			User:        handlers.User,
+			Profile:     handlers.Profile,
+			Post:        handlers.Post,
+			Feed:        handlers.Feed,
+			Comment:     handlers.Comment,
+			Like:        handlers.Like,
+			Follow:      handlers.Follow,
+			Dog:         handlers.Dog,
+			Vaccination: handlers.Vaccination,
+			Stats:       handlers.Stats,
+			Settings:    handlers.Settings,
+			Upload:      handlers.Upload,
+			WS:          handlers.WSHandler,
 		},
 		httptransport.RouterDeps{
-			AuthMW: middleware.JWTAuth(jwtConfig),
+			AuthMW:      middleware.JWTAuth(jwtConfig),
 			PostService: services.Post,
+			StoragePath: cfg.Storage.LocalPath,
 		},
 		logger,
 	)
 
 	server := &http.Server{
-		Addr:	":" + cfg.HTTP.Port,
+		Addr:    ":" + cfg.HTTP.Port,
 		Handler: router,
 	}
 
 	logger.Info("http server configured", "port", cfg.HTTP.Port)
 
 	return &App{
-		Server: 		server,
-		Services:		services,
+		Server:          server,
+		Services:        services,
 		NotificationHub: notificationHub,
-		sqlDB: 			db,
-		logger: 		logger,
+		sqlDB:           db,
+		logger:          logger,
 	}, nil
 }
 

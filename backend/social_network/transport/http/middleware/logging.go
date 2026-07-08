@@ -23,7 +23,7 @@ func Logging(logger *slog.Logger) func(http.Handler) http.Handler {
 
 			wrapped := &responseWriter{
 				ResponseWriter: w,
-				status: 		http.StatusOK,
+				status:         http.StatusOK,
 			}
 
 			next.ServeHTTP(wrapped, r)

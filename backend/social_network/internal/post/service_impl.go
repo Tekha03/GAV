@@ -2,36 +2,43 @@ package post
 
 import (
 	"context"
+	"social_network/internal/stats"
 	"time"
 
 	"github.com/google/uuid"
 )
 
 type service struct {
-	repo Repository
+	repo        Repository
+	statService stats.StatsService
 }
 
-func NewService(repo Repository) (PostService, error) {
+func NewService(repo Repository, statService ...stats.StatsService) (PostService, error) {
 	if repo == nil {
 		return nil, ErrRepoNil
 	}
 
-	return &service{repo: repo}, nil
+	return &service{repo: repo, statService: stats.ServiceOrNoop(statService...)}, nil
 }
 
 func (s *service) Create(ctx context.Context, userID uuid.UUID, content string, imageUrl string) (*Post, error) {
 	if content == "" {
-		return  nil, ErrEmptyContent
+		return nil, ErrEmptyContent
 	}
 
 	post := &Post{
-		UserID: 	userID,
-		Content: 	content,
-		ImageUrl: 	imageUrl,
-		CreatedAt: 	time.Now(),
+		ID:        uuid.New(),
+		UserID:    userID,
+		Content:   content,
+		ImageUrl:  imageUrl,
+		CreatedAt: time.Now(),
 	}
 
 	if err := s.repo.Create(ctx, post); err != nil {
+		return nil, err
+	}
+
+	if err := s.statService.IncrementPosts(ctx, userID); err != nil {
 		return nil, err
 	}
 
@@ -84,6 +91,10 @@ func (s *service) Delete(ctx context.Context, userID, postID uuid.UUID) error {
 
 	if post.UserID != userID {
 		return ErrForbidden
+	}
+
+	if err = s.statService.DecrementPosts(ctx, userID); err != nil {
+		return err
 	}
 
 	return s.repo.Delete(ctx, postID)

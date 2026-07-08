@@ -3,6 +3,7 @@ package comment
 import (
 	"context"
 	"errors"
+	"social_network/internal/stats"
 
 	"github.com/google/uuid"
 )
@@ -13,25 +14,31 @@ var (
 )
 
 type service struct {
-	repo Repository
+	repo        Repository
+	statService stats.StatsService
 }
 
-func NewService(repo Repository) (CommentService, error) {
+func NewService(repo Repository, statService ...stats.StatsService) (CommentService, error) {
 	if repo == nil {
 		return nil, ErrRepoEmpty
 	}
 
-	return &service{repo: repo}, nil
+	return &service{repo: repo, statService: stats.ServiceOrNoop(statService...)}, nil
 }
 
 func (s *service) Create(ctx context.Context, userID, postID uuid.UUID, content string) error {
 	comment := &Comment{
-		UserID: userID,
-		PostID: postID,
+		ID:      uuid.New(),
+		UserID:  userID,
+		PostID:  postID,
 		Content: content,
 	}
 
-	return  s.repo.Create(ctx, comment)
+	if err := s.statService.IncrementPostComments(ctx, postID); err != nil {
+		return err
+	}
+
+	return s.repo.Create(ctx, comment)
 }
 
 func (s *service) GetByID(ctx context.Context, commentID uuid.UUID) (*Comment, error) {
@@ -43,5 +50,13 @@ func (s *service) ListByPostID(ctx context.Context, postID uuid.UUID) ([]Comment
 }
 
 func (s *service) Delete(ctx context.Context, userID, commentID uuid.UUID) error {
+	comment, err := s.repo.GetByID(ctx, commentID)
+	if err != nil {
+		return err
+	}
+
+	if err := s.statService.DecrementPostComments(ctx, comment.PostID); err != nil {
+		return err
+	}
 	return s.repo.Delete(ctx, userID, commentID)
 }

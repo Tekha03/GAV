@@ -45,8 +45,8 @@ func (r *TokenRepository) Revoke(ctx context.Context, hash string) error {
 		Model(&token.RefreshToken{}).
 		Where("token_hash = ?", hash).
 		Updates(map[string]interface{}{
-			"revoked":		true,
-			"updated_at":	gorm.Expr("CURRENT_TIMESTAMP"),
+			"revoked":    true,
+			"updated_at": gorm.Expr("CURRENT_TIMESTAMP"),
 		})
 
 	if result.Error != nil {
@@ -65,8 +65,8 @@ func (r *TokenRepository) RevokeAllForUser(ctx context.Context, userID uuid.UUID
 		Model(&token.RefreshToken{}).
 		Where("user_id = ? AND revoked = ?", userID, false).
 		Updates(map[string]interface{}{
-			"revoked":		true,
-			"updated_at":	gorm.Expr("CURRENT_TIMESTAMP"),
+			"revoked":    true,
+			"updated_at": gorm.Expr("CURRENT_TIMESTAMP"),
 		})
 
 	if result.Error != nil {

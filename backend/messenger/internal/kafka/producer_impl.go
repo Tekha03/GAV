@@ -9,9 +9,9 @@ import (
 )
 
 const (
-	chatTopic 		= "chat-events"
-	messageTopic  	= "message-events"
-	reactionTopic 	= "reaction-events"
+	chatTopic     = "chat-events"
+	messageTopic  = "message-events"
+	reactionTopic = "reaction-events"
 )
 
 type Producer struct {
@@ -32,6 +32,10 @@ func NewProducer(brokers []string) (*Producer, error) {
 }
 
 func (p *Producer) PublishEvent(event events.Event) error {
+	if p == nil || p.producer == nil {
+		return nil
+	}
+
 	bytes, err := json.Marshal(event)
 	if err != nil {
 		return err
@@ -44,7 +48,7 @@ func (p *Producer) PublishEvent(event events.Event) error {
 
 	message := &sarama.ProducerMessage{
 		Topic: topic,
-		Key: sarama.StringEncoder(event.EventID.String()),
+		Key:   sarama.StringEncoder(event.EventID.String()),
 		Value: sarama.ByteEncoder(bytes),
 	}
 

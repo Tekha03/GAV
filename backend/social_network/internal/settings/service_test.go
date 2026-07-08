@@ -28,10 +28,10 @@ func TestService_Get(t *testing.T) {
 	ctx := context.Background()
 	userID := uuid.New()
 	mockSettings := &UserSettings{
-		UserID: userID,
+		UserID:         userID,
 		ProfilePrivacy: false,
-		ShowLocation: true,
-		AllowMessages: true,
+		ShowLocation:   true,
+		AllowMessages:  true,
 	}
 
 	t.Run("success existing settings", func(t *testing.T) {
@@ -74,10 +74,10 @@ func TestService_Update(t *testing.T) {
 	ctx := context.Background()
 	userID := uuid.New()
 	mockSettings := &UserSettings{
-		UserID: userID,
+		UserID:         userID,
 		ProfilePrivacy: false,
-		ShowLocation: true,
-		AllowMessages: true,
+		ShowLocation:   true,
+		AllowMessages:  true,
 	}
 	newProfilePrivacy := true
 	newShowLocation := false

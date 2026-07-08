@@ -8,8 +8,8 @@ import (
 	"social_network/internal/notification"
 )
 
-type UseCase struct{
-	store 	*messengersync.Store
+type UseCase struct {
+	store    *messengersync.Store
 	notifier notification.NotificationService
 }
 

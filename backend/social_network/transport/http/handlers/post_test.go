@@ -80,6 +80,32 @@ func TestPostHandler_Create_Success(t *testing.T) {
 	assert.Equal(t, http.StatusCreated, w.Code)
 }
 
+func TestPostHandler_Create_JSONSuccess(t *testing.T) {
+	env := setupPostHandler(t)
+
+	userID := uuid.New()
+	body := bytes.NewBufferString(`{"content":"hello","image_url":"image-url"}`)
+	req := httptest.NewRequest(http.MethodPost, "/posts", body)
+	req.Header.Set("Content-Type", "application/json")
+	req = req.WithContext(context.WithValue(req.Context(), middleware.UserIDKey, userID))
+
+	env.postService.
+		On("Create", mock.Anything, userID, "hello", "image-url").
+		Return(&post.Post{
+			ID:        uuid.New(),
+			UserID:    userID,
+			Content:   "hello",
+			ImageUrl:  "image-url",
+			CreatedAt: time.Now(),
+		}, nil)
+
+	w := httptest.NewRecorder()
+	env.handler.Create(w, req)
+
+	assert.Equal(t, http.StatusCreated, w.Code)
+	env.mediaService.AssertNotCalled(t, "UploadImage")
+}
+
 func TestPostHandler_Create_Unauthorized(t *testing.T) {
 	env := setupPostHandler(t)
 

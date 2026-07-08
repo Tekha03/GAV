@@ -11,6 +11,7 @@ protocol FeedServiceAPIProtocol {
 @available(macOS 12.0, *)
 final class FeedServiceAPI: FeedServiceAPIProtocol {
     private let base: BaseAPI
+    private let decoder: JSONDecoder
 
     init(
         baseURL: URL,
@@ -22,6 +23,25 @@ final class FeedServiceAPI: FeedServiceAPIProtocol {
             session: session,
             authManager: authManager
         )
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .custom { decoder in
+            let container = try decoder.singleValueContainer()
+            let value = try container.decode(String.self)
+            let isoWithFraction = ISO8601DateFormatter()
+            isoWithFraction.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            if let date = isoWithFraction.date(from: value) {
+                return date
+            }
+            let iso = ISO8601DateFormatter()
+            if let date = iso.date(from: value) {
+                return date
+            }
+            throw DecodingError.dataCorruptedError(
+                in: container,
+                debugDescription: "Invalid ISO8601 date: \(value)"
+            )
+        }
+        self.decoder = decoder
     }
 
     func getFeed(
@@ -38,10 +58,12 @@ final class FeedServiceAPI: FeedServiceAPIProtocol {
         )
 
         if let before = before {
+            let formatter = ISO8601DateFormatter()
+            formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
             components.queryItems?.append(
                 URLQueryItem(
-                    name: "before",
-                    value: String(Int(before.timeIntervalSince1970))
+                    name: "cursor",
+                    value: formatter.string(from: before)
                 )
             )
         }
@@ -57,6 +79,10 @@ final class FeedServiceAPI: FeedServiceAPIProtocol {
 
         let data = try await base.request(path)
 
-        return try JSONDecoder().decode([PostModel].self, from: data)
+        return try decoder.decode(FeedResponseModel.self, from: data).posts
     }
+}
+
+private struct FeedResponseModel: Decodable {
+    let posts: [PostModel]
 }

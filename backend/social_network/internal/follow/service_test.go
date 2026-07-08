@@ -2,6 +2,7 @@ package follow
 
 import (
 	"context"
+	statsPkg "social_network/internal/stats"
 	"testing"
 
 	"github.com/google/uuid"
@@ -73,6 +74,25 @@ func TestService_Follow(t *testing.T) {
 
 		require.NoError(t, err)
 	})
+
+	t.Run("increments stats in the right direction", func(t *testing.T) {
+		repo := new(MockRepository)
+		statService := &recordingStatsService{StatsService: statsPkg.NoopService()}
+
+		s, err := NewService(repo, statService)
+		require.NoError(t, err)
+
+		f := Follow{FollowerID: followerID, FollowingID: followingID}
+
+		repo.On("FollowerExists", ctx, f).Return(false, nil).Once()
+		repo.On("Follow", ctx, f).Return(nil).Once()
+
+		err = s.Follow(ctx, f)
+
+		require.NoError(t, err)
+		require.Equal(t, []uuid.UUID{followerID}, statService.incrementedFollowings)
+		require.Equal(t, []uuid.UUID{followingID}, statService.incrementedFollowers)
+	})
 }
 
 func TestService_Unfollow(t *testing.T) {
@@ -91,6 +111,22 @@ func TestService_Unfollow(t *testing.T) {
 	err := s.Unfollow(ctx, f)
 
 	require.NoError(t, err)
+}
+
+type recordingStatsService struct {
+	statsPkg.StatsService
+	incrementedFollowers  []uuid.UUID
+	incrementedFollowings []uuid.UUID
+}
+
+func (s *recordingStatsService) IncrementFollowers(_ context.Context, userID uuid.UUID) error {
+	s.incrementedFollowers = append(s.incrementedFollowers, userID)
+	return nil
+}
+
+func (s *recordingStatsService) IncrementFollowings(_ context.Context, userID uuid.UUID) error {
+	s.incrementedFollowings = append(s.incrementedFollowings, userID)
+	return nil
 }
 
 func TestService_GetFollowers(t *testing.T) {

@@ -12,7 +12,6 @@ import (
 	"github.com/google/uuid"
 )
 
-
 type MessageRepository struct {
 	mu       sync.RWMutex
 	messages map[uuid.UUID]*model.Message
@@ -108,7 +107,7 @@ func (mr *MessageRepository) GetByChatID(ctx context.Context, chatID uuid.UUID, 
 	return result, nil
 }
 func (mr *MessageRepository) UpdateReadAtForChat(ctx context.Context, chatID, userID uuid.UUID, readAt time.Time) error {
-    mr.mu.Lock()
-    defer mr.mu.Unlock()
-    return nil
+	mr.mu.Lock()
+	defer mr.mu.Unlock()
+	return nil
 }

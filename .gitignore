@@ -1,12 +1,26 @@
-/bin/
-/vendor/
-/*.exe
-*.log
-*.tmp
-chat_gen/
-*.json
-*.yaml
-Tekha-12-patches/
-Gav_App/
+# macOS
 .DS_Store
-api/proto/external/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Databases and runtime data
+*.db
+*.db-shm
+*.db-wal
+uploads/
+
+# Xcode
+xcuserdata/
+*.xcuserstate
+DerivedData/
+
+# Go
+bin/
+vendor/
+coverage.out
+
+# VSCode
+.vscode/

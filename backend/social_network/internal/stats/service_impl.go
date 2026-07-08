@@ -29,9 +29,9 @@ func (s *service) ProfileStats(ctx context.Context, userID uuid.UUID) (*ProfileS
 	}
 
 	return &ProfileStats{
-		UserID: userStats.UserID,
-		PostCount: userStats.PostCount,
-		Followers: userStats.Followers,
+		UserID:     userStats.UserID,
+		PostCount:  userStats.PostCount,
+		Followers:  userStats.Followers,
 		Followings: userStats.Followings,
 	}, nil
 }

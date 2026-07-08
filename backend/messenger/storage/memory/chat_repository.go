@@ -10,13 +10,12 @@ import (
 )
 
 type ChatRepository struct {
-	mu 		sync.RWMutex
-	chats 	map[uuid.UUID]*model.Chat
+	mu    sync.RWMutex
+	chats map[uuid.UUID]*model.Chat
 }
 
 func NewChatRepository() *ChatRepository {
-	return &ChatRepository{chats:
-		make(map[uuid.UUID]*model.Chat),
+	return &ChatRepository{chats: make(map[uuid.UUID]*model.Chat),
 	}
 }
 

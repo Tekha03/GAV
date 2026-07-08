@@ -14,6 +14,12 @@ public struct CreatePostInput: Encodable {
         self.content = content
         self.imageUrl = imageUrl
     }
+
+    private enum CodingKeys: String, CodingKey {
+        case userId = "user_id"
+        case content
+        case imageUrl = "image_url"
+    }
 }
 
 public struct UpdatePostInput: Encodable {
@@ -26,5 +32,10 @@ public struct UpdatePostInput: Encodable {
     ) {
         self.content = content
         self.imageUrl = imageUrl
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case content
+        case imageUrl = "image_url"
     }
 }

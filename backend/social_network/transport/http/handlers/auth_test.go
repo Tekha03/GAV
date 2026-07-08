@@ -60,6 +60,23 @@ func TestAuthHandler_Register(t *testing.T) {
 	})
 }
 
+func TestAuthHandler_LoginInvalidCredentials(t *testing.T) {
+	mockSvc := new(MockAuthService)
+	h, _ := NewAuthHandler(mockSvc)
+
+	body := `{"email":"test@mail.com","password":"wrong"}`
+
+	mockSvc.On("Login", mock.Anything, "test@mail.com", "wrong").
+		Return((*auth.AuthTokens)(nil), auth.ErrInvalidCredentials)
+
+	req := httptest.NewRequest(http.MethodPost, "/auth/login", bytes.NewBufferString(body))
+	w := httptest.NewRecorder()
+
+	h.Login(w, req)
+
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+}
+
 func TestAuthHandler_Refresh(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		mockSvc := new(MockAuthService)

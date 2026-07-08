@@ -10,6 +10,8 @@ protocol UploadServiceAPIProtocol {
         _ imageData: Data,
         mimeType: String?
     ) async throws -> MediaInfoModel
+
+    func uploadDogImage(_ imageData: Data, mimeType: String?) async throws -> MediaInfoModel
 }
 
 @available(macOS 12.0, *)
@@ -36,7 +38,9 @@ final class UploadServiceAPI: UploadServiceAPIProtocol {
         let data = try await base.upload(
             "/api/v1/upload/avatar",
             fileData: imageData,
-            mimeType: mimeType
+            mimeType: mimeType,
+            fieldName: "avatar",
+            fileName: "avatar.jpg"
         )
 
         return try JSONDecoder().decode(MediaInfoModel.self, from: data)
@@ -50,9 +54,22 @@ final class UploadServiceAPI: UploadServiceAPIProtocol {
         let data = try await base.upload(
             "/api/v1/upload/post-image",
             fileData: imageData,
-            mimeType: mimeType
+            mimeType: mimeType,
+            fieldName: "image",
+            fileName: "post.jpg"
         )
 
+        return try JSONDecoder().decode(MediaInfoModel.self, from: data)
+    }
+
+    func uploadDogImage(_ imageData: Data, mimeType: String?) async throws -> MediaInfoModel {
+        let data = try await base.upload(
+            "/api/v1/upload/dog-image",
+            fileData: imageData,
+            mimeType: mimeType,
+            fieldName: "image",
+            fileName: "dog.jpg"
+        )
         return try JSONDecoder().decode(MediaInfoModel.self, from: data)
     }
 }

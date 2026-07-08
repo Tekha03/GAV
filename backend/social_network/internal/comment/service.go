@@ -6,7 +6,7 @@ import (
 	"github.com/google/uuid"
 )
 
-type CommentService interface{
+type CommentService interface {
 	Create(ctx context.Context, userID, postID uuid.UUID, content string) error
 	GetByID(ctx context.Context, commentID uuid.UUID) (*Comment, error)
 	ListByPostID(ctx context.Context, postID uuid.UUID) ([]Comment, error)

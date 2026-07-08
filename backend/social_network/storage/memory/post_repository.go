@@ -16,7 +16,7 @@ var (
 )
 
 type PostRepository struct {
-	mu sync.RWMutex
+	mu    sync.RWMutex
 	posts map[uuid.UUID]*post.Post
 }
 

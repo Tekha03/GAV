@@ -1,7 +1,7 @@
 import Foundation
 
 @available(macOS 12.0, *)
-struct BaseAPI {
+struct BaseAPI: Sendable {
     let baseURL: URL
     let session: URLSession
     let authManager: AuthManager
@@ -22,7 +22,9 @@ struct BaseAPI {
         body: Data? = nil,
         requiresAuth: Bool = true
     ) async throws -> Data {
-        let url = baseURL.appendingPathComponent(path)
+        guard let url = makeURL(path) else {
+            throw APIError.invalidURL
+        }
         var request = URLRequest(url: url)
         request.httpMethod = method
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -46,6 +48,8 @@ struct BaseAPI {
             }
 
             return data
+        } catch let error as APIError {
+            throw error
         } catch {
             throw APIError.networkError(error)
         }
@@ -60,7 +64,9 @@ struct BaseAPI {
         requiresAuth: Bool = true
     ) async throws -> Data {
 
-        let url = baseURL.appendingPathComponent(path)
+        guard let url = makeURL(path) else {
+            throw APIError.invalidURL
+        }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
 
@@ -103,8 +109,14 @@ struct BaseAPI {
 
             return data
 
+        } catch let error as APIError {
+            throw error
         } catch {
             throw APIError.networkError(error)
         }
+    }
+
+    private func makeURL(_ path: String) -> URL? {
+        URL(string: path, relativeTo: baseURL)?.absoluteURL
     }
 }

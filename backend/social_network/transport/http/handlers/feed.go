@@ -74,17 +74,17 @@ func (h *FeedHandler) GetFeed(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp := dto.FeedResponse{
-		Posts:	make([]dto.PostResponse, len(posts)),
-		NextCursor:	"",
-		HasMore:	nextCursor != time.Time{},
+		Posts:      make([]dto.PostResponse, len(posts)),
+		NextCursor: "",
+		HasMore:    nextCursor != time.Time{},
 	}
 
 	for i, post := range posts {
 		resp.Posts[i] = dto.PostResponse{
-			ID: post.ID,
-			AuthorID:
-			post.UserID,
-			Content: post.Content,
+			ID:        post.ID,
+			AuthorID:  post.UserID,
+			Content:   post.Content,
+			ImageUrl:  post.ImageUrl,
 			CreatedAt: post.CreatedAt,
 		}
 	}

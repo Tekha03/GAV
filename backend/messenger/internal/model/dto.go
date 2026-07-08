@@ -3,11 +3,11 @@ package model
 import "github.com/google/uuid"
 
 type SendMessageInput struct {
-    ChatID      uuid.UUID
-    SenderID    uuid.UUID
-    Text        *string
-    ReplyToID   *uuid.UUID
-    Attachments []AttachmentInput
+	ChatID      uuid.UUID
+	SenderID    uuid.UUID
+	Text        *string
+	ReplyToID   *uuid.UUID
+	Attachments []AttachmentInput
 }
 
 type AttachmentInput struct {

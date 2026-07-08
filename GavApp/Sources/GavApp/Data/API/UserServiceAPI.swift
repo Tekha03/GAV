@@ -48,7 +48,7 @@ final class UserServiceAPI: UserServiceAPIProtocol {
     func updateLocation(id: UUID, input: UpdateLocationInput) async throws {
         let path = "/api/v1/users/\(id.uuidString)/location"
         let body = try JSONEncoder().encode(input)
-        _ = try await base.request(path, method: "PATCH", body: body)
+        _ = try await base.request(path, method: "PUT", body: body)
     }
 
     func findDogsNearby(
@@ -58,7 +58,7 @@ final class UserServiceAPI: UserServiceAPIProtocol {
         radiusMeters: Double
     ) async throws -> [DogModel] {
 
-        let path = "/api/v1/users/\(id.uuidString)/dogs/nearby?lat=\(centerLat)&lon=\(centerLon)&radius=\(radiusMeters)"
+        let path = "/api/v1/dogs/nearby?lat=\(centerLat)&lon=\(centerLon)&radius=\(radiusMeters)"
 
         let data = try await base.request(path)
 

@@ -3,6 +3,7 @@ import Foundation
 public enum MemberRole: String, Codable {
     case owner
     case admin
+    case member
     case participant
 }
 

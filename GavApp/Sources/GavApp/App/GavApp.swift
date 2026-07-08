@@ -1,21 +1,37 @@
 import SwiftUI
 
 @main
-@available(macOS 12.0, *)
 struct GavApp: App {
-    private let container = DependencyContainer()
+    @StateObject private var appViewModel: AppViewModel
+    @StateObject private var sessionViewModel: AppSessionViewModel
+
+    init() {
+        let container = DependencyContainer()
+        _appViewModel = StateObject(wrappedValue: container.appViewModel)
+        _sessionViewModel = StateObject(
+            wrappedValue: AppSessionViewModel(
+                authService: container.authService,
+                authManager: container.authManager,
+                appViewModel: container.appViewModel
+            )
+        )
+    }
 
     var body: some Scene {
         WindowGroup {
-            AppView(
-                profileViewModel: container.profileViewModel,
-                feedViewModel: container.feedViewModel,
-                mapViewModel: container.mapViewModel,
-                vaccinationViewModel: container.vaccinationViewModel,
-                chatListViewModel: container.chatListViewModel,
-                appViewModel: container.appViewModel
-            )
-            .environment(\.colorScheme, .dark)
+            Group {
+                if sessionViewModel.isLoading {
+                    ProgressView()
+                } else if sessionViewModel.isAuthenticated {
+                    AppView(session: sessionViewModel)
+                } else {
+                    AuthView(session: sessionViewModel)
+                }
+            }
+            .environmentObject(appViewModel)
+            .task {
+                await sessionViewModel.restoreSavedSessionIfNeeded()
+            }
         }
     }
 }

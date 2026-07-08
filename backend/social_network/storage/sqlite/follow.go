@@ -27,16 +27,16 @@ func (r *FollowRepository) Follow(ctx context.Context, follow follow.Follow) err
 
 func (r *FollowRepository) Unfollow(ctx context.Context, unfollow follow.Follow) error {
 	return r.DB(ctx).
-	Where("follower_id = ? AND following_id = ?", unfollow.FollowerID, unfollow.FollowingID).
-	Delete(&follow.Follow{}).Error
+		Where("follower_id = ? AND following_id = ?", unfollow.FollowerID, unfollow.FollowingID).
+		Delete(&follow.Follow{}).Error
 }
 
 func (r *FollowRepository) FollowerExists(ctx context.Context, followCheck follow.Follow) (bool, error) {
 	var count int64
 
 	err := r.DB(ctx).Model(&follow.Follow{}).
-	Where("follower_id = ? AND following_id = ?", followCheck.FollowerID, followCheck.FollowingID).
-	Count(&count).Error
+		Where("follower_id = ? AND following_id = ?", followCheck.FollowerID, followCheck.FollowingID).
+		Count(&count).Error
 
 	if err != nil {
 		return false, err

@@ -9,7 +9,7 @@ import (
 )
 
 type UseCase struct {
-	store 	*messengersync.Store
+	store    *messengersync.Store
 	notifier notification.NotificationService
 }
 

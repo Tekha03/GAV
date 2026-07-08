@@ -2,7 +2,7 @@ import Security
 import CoreFoundation
 import Foundation
 
-class KeychainWrapper {
+final class KeychainWrapper: Sendable {
     private let service: String = "com.gavapp.auth"
 
     func set(_ value: String, forKey key: String) {
