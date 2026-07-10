@@ -7,10 +7,12 @@ struct VaccinationTabView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
-                    Text("Выберите собаку, чтобы открыть прививки и напоминания.")
-                        .font(.subheadline)
-                        .foregroundStyle(.white.opacity(0.85))
-                        .padding(.top, 4)
+                    if !appViewModel.dogs.isEmpty {
+                        Text("Выберите собаку, чтобы открыть прививки и напоминания.")
+                            .font(.subheadline)
+                            .foregroundStyle(.white.opacity(0.85))
+                            .padding(.top, 4)
+                    }
 
                     dogsSection
                 }
@@ -39,20 +41,50 @@ struct VaccinationTabView: View {
                 .font(.headline)
                 .foregroundStyle(.white)
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 14) {
-                    ForEach(appViewModel.dogs) { dog in
-                        NavigationLink {
-                            VaccinationListView(dog: dog)
-                        } label: {
-                            dogCard(dog)
+            if appViewModel.dogs.isEmpty {
+                emptyDogsState
+            } else {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 14) {
+                        ForEach(appViewModel.dogs) { dog in
+                            NavigationLink {
+                                VaccinationListView(dog: dog)
+                            } label: {
+                                dogCard(dog)
+                            }
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
                     }
+                    .padding(.vertical, 4)
                 }
-                .padding(.vertical, 4)
             }
         }
+    }
+
+    private var emptyDogsState: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "pawprint")
+                .font(.system(size: 38, weight: .semibold))
+                .foregroundStyle(.orange)
+
+            Text("Сначала добавьте собаку")
+                .font(.headline)
+                .foregroundStyle(.white)
+
+            Text("После этого здесь появится трекер прививок и напоминания.")
+                .font(.subheadline)
+                .multilineTextAlignment(.center)
+                .foregroundStyle(.white.opacity(0.68))
+                .frame(maxWidth: 280)
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 28)
+        .frame(maxWidth: .infinity)
+        .background(.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 18))
+        .overlay(
+            RoundedRectangle(cornerRadius: 18)
+                .stroke(.white.opacity(0.08), lineWidth: 1)
+        )
     }
 
     private func dogCard(_ dog: AppDog) -> some View {
