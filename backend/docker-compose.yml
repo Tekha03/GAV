@@ -80,6 +80,7 @@ services:
       HTTP_ADDR: :8082
       SOCIAL_NETWORK_ADDR: social-network:9000
       KAFKA_ENABLED: "false"
+      JWT_SECRET: dev-secret-change-me
     ports:
       - "8082:8082"
       - "9090:9090"

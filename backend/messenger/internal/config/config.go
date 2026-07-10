@@ -25,6 +25,7 @@ type Config struct {
 	KafkaEnabled      bool     `yaml:"kafka_enabled"`
 	KafkaBrokers      []string `yaml:"kafka_brokers"`
 	KafkaTopic        string   `yaml:"kafka_topic"`
+	JWTSecret         string   `yaml:"jwt_secret"`
 }
 
 func Load() (*Config, error) {
@@ -43,6 +44,7 @@ func Load() (*Config, error) {
 		KafkaEnabled:      getEnv("KAFKA_ENABLED", "false") == "true",
 		KafkaBrokers:      strings.Split(getEnv("KAFKA_BROKERS", "localhost:9092"), ","),
 		KafkaTopic:        getEnv("KAFKA_TOPIC", "events"),
+		JWTSecret:         getEnv("JWT_SECRET", ""),
 	}
 
 	if err := cfg.Validate(); err != nil {
@@ -55,6 +57,9 @@ func Load() (*Config, error) {
 func (c *Config) Validate() error {
 	if c.PostgresDSN == "" {
 		return fmt.Errorf("POSTGRES_DSN is required")
+	}
+	if c.JWTSecret == "" {
+		return fmt.Errorf("JWT_SECRET is required")
 	}
 	if _, err := parseDSN(c.PostgresDSN); err != nil {
 		return fmt.Errorf("invalid POSTGRES_DSN: %w", err)

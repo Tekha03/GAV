@@ -1,0 +1,10 @@
+[core]
+	repositoryformatversion = 0
+	filemode = true
+	bare = false
+	logallrefupdates = true
+	ignorecase = true
+	precomposeunicode = true
+[remote "github"]
+	url = git@github.com:Tekha03/GAV.git
+	fetch = +refs/heads/*:refs/remotes/github/*
