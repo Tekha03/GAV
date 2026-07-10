@@ -1,6 +1,6 @@
 import Foundation
 
-public struct UserModel: Codable, Equatable {
+public struct UserModel: Codable, Equatable, Sendable {
     public let id: UUID
     public let email: String
     public let role: String
