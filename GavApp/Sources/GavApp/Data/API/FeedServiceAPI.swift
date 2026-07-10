@@ -1,6 +1,6 @@
 import Foundation
 
-protocol FeedServiceAPIProtocol {
+protocol FeedServiceAPIProtocol: Sendable {
     func getFeed(
         userID: UUID,
         before: Date?,
@@ -9,7 +9,7 @@ protocol FeedServiceAPIProtocol {
 }
 
 @available(macOS 12.0, *)
-final class FeedServiceAPI: FeedServiceAPIProtocol {
+final class FeedServiceAPI: FeedServiceAPIProtocol, @unchecked Sendable {
     private let base: BaseAPI
     private let decoder: JSONDecoder
 

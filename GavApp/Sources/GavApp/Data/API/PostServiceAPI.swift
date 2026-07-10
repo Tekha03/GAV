@@ -1,6 +1,6 @@
 import Foundation
 
-protocol PostServiceAPIProtocol {
+protocol PostServiceAPIProtocol: Sendable {
     func create(userID: UUID, content: String, imageUrl: String?) async throws -> PostModel
     func getByID(id: UUID) async throws -> PostModel
     func listByUser(userID: UUID) async throws -> [PostModel]
@@ -15,7 +15,7 @@ protocol PostServiceAPIProtocol {
 }
 
 @available(macOS 12.0, *)
-final class PostServiceAPI: PostServiceAPIProtocol {
+final class PostServiceAPI: PostServiceAPIProtocol, @unchecked Sendable {
     private let base: BaseAPI
     private let decoder: JSONDecoder
 

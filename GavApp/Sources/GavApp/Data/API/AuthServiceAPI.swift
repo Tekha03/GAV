@@ -1,6 +1,6 @@
 import Foundation
 
-protocol AuthServiceAPIProtocol {
+protocol AuthServiceAPIProtocol: Sendable {
     func register(email: String, password: String) async throws -> AuthTokensModel
     func login(email: String, password: String) async throws -> AuthTokensModel
     func refreshToken(refreshToken: String) async throws -> AuthTokensModel
@@ -9,7 +9,7 @@ protocol AuthServiceAPIProtocol {
 }
 
 @available(macOS 12.0, *)
-final class AuthServiceAPI: AuthServiceAPIProtocol {
+final class AuthServiceAPI: AuthServiceAPIProtocol, @unchecked Sendable {
     private let base: BaseAPI
 
     init(baseURL: URL, session: URLSession = .shared, authManager: AuthManager) {

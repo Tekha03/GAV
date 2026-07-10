@@ -1,6 +1,6 @@
 import Foundation
 
-protocol UserServiceAPIProtocol {
+protocol UserServiceAPIProtocol: Sendable {
     func getByID(id: UUID) async throws -> UserModel
     func update(id: UUID, input: UpdateUserInput) async throws
     func delete(id: UUID) async throws
@@ -15,7 +15,7 @@ protocol UserServiceAPIProtocol {
 }
 
 @available(macOS 12.0, *)
-final class UserServiceAPI: UserServiceAPIProtocol {
+final class UserServiceAPI: UserServiceAPIProtocol, @unchecked Sendable {
     private let base: BaseAPI
 
     init(baseURL: URL, session: URLSession = .shared, authManager: AuthManager) {

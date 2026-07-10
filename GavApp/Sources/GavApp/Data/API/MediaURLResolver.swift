@@ -1,5 +1,6 @@
 import Foundation
 
+@MainActor
 enum MediaURLResolver {
     private static var socialBaseURL = URL(string: "http://localhost:8080")!
 

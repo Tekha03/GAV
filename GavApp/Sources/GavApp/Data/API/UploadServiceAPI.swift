@@ -1,6 +1,6 @@
 import Foundation
 
-protocol UploadServiceAPIProtocol {
+protocol UploadServiceAPIProtocol: Sendable {
     func uploadAvatar(
         _ imageData: Data,
         mimeType: String?
@@ -15,7 +15,7 @@ protocol UploadServiceAPIProtocol {
 }
 
 @available(macOS 12.0, *)
-final class UploadServiceAPI: UploadServiceAPIProtocol {
+final class UploadServiceAPI: UploadServiceAPIProtocol, @unchecked Sendable {
     private let base: BaseAPI
 
     init(

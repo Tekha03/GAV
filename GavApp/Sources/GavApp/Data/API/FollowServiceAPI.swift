@@ -1,6 +1,6 @@
 import Foundation
 
-protocol FollowServiceAPIProtocol {
+protocol FollowServiceAPIProtocol: Sendable {
     func follow(userID: UUID) async throws
     func unfollow(userID: UUID) async throws
     func getFollowers(userID: UUID) async throws -> [FollowModel]
@@ -8,7 +8,7 @@ protocol FollowServiceAPIProtocol {
 }
 
 @available(macOS 12.0, *)
-final class FollowServiceAPI: FollowServiceAPIProtocol {
+final class FollowServiceAPI: FollowServiceAPIProtocol, @unchecked Sendable {
     private let base: BaseAPI
 
     init(baseURL: URL, session: URLSession = .shared, authManager: AuthManager) {
