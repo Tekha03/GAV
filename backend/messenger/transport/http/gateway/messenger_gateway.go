@@ -68,11 +68,13 @@ type sendMessageRequest struct {
 	Attachments []attachmentDTO `json:"attachments"`
 }
 
-func NewHTTPServer(addr string, chatService service.Service) *http.Server {
+func NewHTTPServer(addr string, chatService service.Service, jwtSecret string) *http.Server {
 	r := chi.NewRouter()
 	r.Use(corsMiddleware())
 
 	r.Route("/api/v1", func(r chi.Router) {
+		r.Use(authMiddleware(jwtSecret))
+
 		r.Post("/chats/private", createPrivateChat(chatService))
 		r.Post("/chats/group", createGroupChat(chatService))
 		r.Get("/users/{user_id}/chats", getUserChats(chatService))
@@ -94,7 +96,13 @@ func getChatMembers(chatService service.Service) http.HandlerFunc {
 			return
 		}
 
-		members, err := chatService.GetChatMembers(r.Context(), chatID)
+		authenticatedUserID, ok := currentUserID(r.Context())
+		if !ok {
+			writeError(w, http.StatusUnauthorized, errUnauthorized)
+			return
+		}
+
+		members, err := chatService.GetChatMembers(r.Context(), chatID, authenticatedUserID)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, err)
 			return
@@ -117,6 +125,16 @@ func createPrivateChat(chatService service.Service) http.HandlerFunc {
 			return
 		}
 
+		authenticatedUserID, ok := currentUserID(r.Context())
+		if !ok {
+			writeError(w, http.StatusUnauthorized, errUnauthorized)
+			return
+		}
+		if req.UserID1 != authenticatedUserID && req.UserID2 != authenticatedUserID {
+			writeError(w, http.StatusForbidden, errForbidden)
+			return
+		}
+
 		chat, err := chatService.CreatePrivateChat(r.Context(), req.UserID1, req.UserID2)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, err)
@@ -135,6 +153,16 @@ func createGroupChat(chatService service.Service) http.HandlerFunc {
 			return
 		}
 
+		authenticatedUserID, ok := currentUserID(r.Context())
+		if !ok {
+			writeError(w, http.StatusUnauthorized, errUnauthorized)
+			return
+		}
+		if req.CreatorID != authenticatedUserID {
+			writeError(w, http.StatusForbidden, errForbidden)
+			return
+		}
+
 		chat, err := chatService.CreateGroupChat(r.Context(), req.Title, req.CreatorID, req.MemberIDs)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, err)
@@ -150,6 +178,16 @@ func getUserChats(chatService service.Service) http.HandlerFunc {
 		userID, err := parsePathUUID(r, "user_id")
 		if err != nil {
 			writeError(w, http.StatusBadRequest, err)
+			return
+		}
+
+		authenticatedUserID, ok := currentUserID(r.Context())
+		if !ok {
+			writeError(w, http.StatusUnauthorized, errUnauthorized)
+			return
+		}
+		if userID != authenticatedUserID {
+			writeError(w, http.StatusForbidden, errForbidden)
 			return
 		}
 
@@ -176,7 +214,13 @@ func getChat(chatService service.Service) http.HandlerFunc {
 			return
 		}
 
-		chat, err := chatService.GetChatByID(r.Context(), chatID)
+		authenticatedUserID, ok := currentUserID(r.Context())
+		if !ok {
+			writeError(w, http.StatusUnauthorized, errUnauthorized)
+			return
+		}
+
+		chat, err := chatService.GetChatByID(r.Context(), chatID, authenticatedUserID)
 		if err != nil {
 			writeError(w, http.StatusNotFound, err)
 			return
@@ -211,7 +255,13 @@ func getMessages(chatService service.Service) http.HandlerFunc {
 			cursor = &parsed
 		}
 
-		messages, err := chatService.GetMessages(r.Context(), chatID, limit, cursor)
+		authenticatedUserID, ok := currentUserID(r.Context())
+		if !ok {
+			writeError(w, http.StatusUnauthorized, errUnauthorized)
+			return
+		}
+
+		messages, err := chatService.GetMessages(r.Context(), chatID, authenticatedUserID, limit, cursor)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, err)
 			return
@@ -240,6 +290,16 @@ func sendMessage(chatService service.Service) http.HandlerFunc {
 			return
 		}
 
+		authenticatedUserID, ok := currentUserID(r.Context())
+		if !ok {
+			writeError(w, http.StatusUnauthorized, errUnauthorized)
+			return
+		}
+		if req.SenderID != authenticatedUserID {
+			writeError(w, http.StatusForbidden, errForbidden)
+			return
+		}
+
 		attachments := make([]model.AttachmentInput, 0, len(req.Attachments))
 		for _, attachment := range req.Attachments {
 			attachments = append(attachments, model.AttachmentInput{
@@ -250,7 +310,7 @@ func sendMessage(chatService service.Service) http.HandlerFunc {
 			})
 		}
 
-		message, err := chatService.SendMessage(r.Context(), model.SendMessageInput{
+		message, err := chatService.SendMessage(r.Context(), authenticatedUserID, model.SendMessageInput{
 			ChatID:      chatID,
 			SenderID:    req.SenderID,
 			Text:        req.Text,
@@ -282,6 +342,16 @@ func markAsRead(chatService service.Service) http.HandlerFunc {
 		var req request
 		if err := decodeJSON(r, &req); err != nil {
 			writeError(w, http.StatusBadRequest, err)
+			return
+		}
+
+		authenticatedUserID, ok := currentUserID(r.Context())
+		if !ok {
+			writeError(w, http.StatusUnauthorized, errUnauthorized)
+			return
+		}
+		if req.UserID != authenticatedUserID {
+			writeError(w, http.StatusForbidden, errForbidden)
 			return
 		}
 
