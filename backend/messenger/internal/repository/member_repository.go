@@ -12,6 +12,7 @@ type ChatMemberRepository interface {
 	RemoveMember(ctx context.Context, memberID, chatID uuid.UUID) error
 	GetMembers(ctx context.Context, chatID uuid.UUID) ([]*model.ChatMember, error)
 	UpdateRole(ctx context.Context, chatID, userID uuid.UUID, role *model.MemberRole) error
+	GetRole(ctx context.Context, userID, chatID uuid.UUID) (*model.MemberRole, error)
 	SetMuted(ctx context.Context, chatID, userID uuid.UUID, muted bool) error
 	GetUserChats(ctx context.Context, userID uuid.UUID) ([]uuid.UUID, error)
 	FindPrivateChatBetween(ctx context.Context, userID1, userID2 uuid.UUID) (uuid.UUID, error)

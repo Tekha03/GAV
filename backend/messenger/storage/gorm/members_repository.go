@@ -127,3 +127,19 @@ func (cmr *ChatMemberRepository) MemberExists(ctx context.Context, userID uuid.U
 
 	return ok, nil
 }
+
+func (cmr *ChatMemberRepository) GetRole(ctx context.Context, userID, chatID uuid.UUID) (*model.MemberRole, error) {
+	var member model.ChatMember
+	err := cmr.repo.WithContext(ctx).
+		Where("chat_id = ? AND user_id = ?", chatID, userID).
+		First(&member).Error
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return &member.Role, nil
+}

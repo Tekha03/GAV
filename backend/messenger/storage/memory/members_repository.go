@@ -164,3 +164,20 @@ func (mr *MembersRepository) MemberExists(ctx context.Context, userID, chatID uu
 
 	return ok, nil
 }
+
+func (mr *MembersRepository) GetRole(ctx context.Context, userID, chatID uuid.UUID) (*model.MemberRole, error) {
+	mr.mu.RLock()
+	defer mr.mu.RUnlock()
+
+	membersMap, ok := mr.members[chatID]
+	if !ok {
+		return nil, repository.ErrChatNotFound
+	}
+
+	member, exists := membersMap[userID]
+	if !exists {
+		return nil, repository.ErrMemberNotFound
+	}
+
+	return &member.Role, nil
+}

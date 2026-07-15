@@ -12,10 +12,10 @@ type Service interface {
 	CreateGroupChat(ctx context.Context, title string, creatorID uuid.UUID, membersIDs []uuid.UUID) (*model.Chat, error)
 	GetChatByID(ctx context.Context, chatID, requesterID uuid.UUID) (*model.Chat, error)
 
-	AddMember(ctx context.Context, userID, chatID, requesterID uuid.UUID) error
+	AddMember(ctx context.Context, userID, requesterID uuid.UUID) error
 	RemoveMember(ctx context.Context, userID, chatID, requesterID uuid.UUID) error
 	GetChatMembers(ctx context.Context, chatID, requesterID uuid.UUID) ([]*model.ChatMember, error)
-	LeaveChat(ctx context.Context, userID, chatID, requesterID uuid.UUID) error
+	LeaveChat(ctx context.Context, chatID, requesterID uuid.UUID) error
 	GetUserChats(ctx context.Context, userID uuid.UUID) ([]*model.Chat, error)
 
 	UpdateChatTitle(ctx context.Context, chatID, requesterID uuid.UUID, newTitle string) error

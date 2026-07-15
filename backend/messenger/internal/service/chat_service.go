@@ -114,16 +114,25 @@ func (s *ChatService) GetChatByID(ctx context.Context, chatID, requesterID uuid.
 	return chat, nil
 }
 
-func (s *ChatService) AddMember(ctx context.Context, userID, chatID, requesterID uuid.UUID) error {
+func (s *ChatService) AddMember(ctx context.Context, chatID, requesterID uuid.UUID) error {
 	if err := s.requireChatMember(ctx, chatID, requesterID); err != nil {
 		return err
 	}
 
+	role, err := s.membersRepo.GetRole(ctx, chatID, requesterID)
+	if err != nil {
+		return err
+	}
+
+	if *role != model.Admin {
+		return errors.ErrChatAccessDenied
+	}
+
 	member := &model.ChatMember{
 		ChatID:   chatID,
-		UserID:   userID,
+		UserID:   requesterID,
 		JoinedAt: time.Now(),
-		Role:     "member",
+		Role:     model.Member,
 	}
 
 	if err := s.membersRepo.AddMember(ctx, member); err != nil {
@@ -132,7 +141,7 @@ func (s *ChatService) AddMember(ctx context.Context, userID, chatID, requesterID
 
 	payload, err := json.Marshal(events.ChatMemberAddedData{
 		ChatID: chatID,
-		UserID: userID,
+		UserID: requesterID,
 	})
 	if err != nil {
 		return err
@@ -151,6 +160,15 @@ func (s *ChatService) AddMember(ctx context.Context, userID, chatID, requesterID
 func (s *ChatService) RemoveMember(ctx context.Context, userID, chatID, requesterID uuid.UUID) error {
 	if err := s.requireChatMember(ctx, chatID, requesterID); err != nil {
 		return err
+	}
+
+	role, err := s.membersRepo.GetRole(ctx, chatID, requesterID)
+	if err != nil {
+		return err
+	}
+
+	if *role != model.Admin {
+		return errors.ErrChatAccessDenied
 	}
 
 	if err := s.membersRepo.RemoveMember(ctx, userID, chatID); err != nil {
@@ -192,15 +210,13 @@ func (s *ChatService) GetChatMembers(ctx context.Context, chatID, requesterID uu
 	return members, nil
 }
 
-func (s *ChatService) LeaveChat(ctx context.Context, userID, chatID, requesterID uuid.UUID) error {
-	if userID != requesterID {
-		return errors.ErrChatAccessDenied
-	}
+func (s *ChatService) LeaveChat(ctx context.Context, chatID, requesterID uuid.UUID) error {
+
 	if err := s.requireChatMember(ctx, chatID, requesterID); err != nil {
 		return err
 	}
 
-	err := s.membersRepo.RemoveMember(ctx, userID, chatID)
+	err := s.membersRepo.RemoveMember(ctx, requesterID, chatID)
 	return err
 }
 
@@ -284,3 +300,4 @@ func (s *ChatService) requireChatMember(ctx context.Context, chatID, userID uuid
 	}
 	return nil
 }
+

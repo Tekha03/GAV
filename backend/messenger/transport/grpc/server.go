@@ -69,7 +69,7 @@ func (s *Server) GetChat(ctx context.Context, req *pb.GetChatRequest) (*pb.GetCh
 }
 
 func (s *Server) AddMember(ctx context.Context, req *pb.AddMemberRequest) (*pb.AddMemberResponse, error) {
-	err := s.service.AddMember(ctx, uuid.MustParse(req.UserId), uuid.MustParse(req.ChatId), uuid.MustParse(req.UserId))
+	err := s.service.AddMember(ctx, uuid.MustParse(req.ChatId), uuid.MustParse(req.UserId))
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "add member: %v", err)
 	}
