@@ -819,6 +819,58 @@ final class AppViewModel: ObservableObject {
 }
 
 extension AppViewModel {
+    static func runtime(
+        currentUserId: UUID?,
+        chatUseCase: ChatUseCase,
+        profileService: UserProfileServiceAPIProtocol,
+        uploadService: UploadServiceAPIProtocol,
+        dogService: DogServiceAPIProtocol,
+        postService: PostServiceAPIProtocol,
+        feedService: FeedServoceAPIProtocol,
+        userService: UserServiceAPIProtocol,
+        followService: FollowServiceAPIProtocol,
+        statsService: StatsServiceAPIProtocol,
+    ) -> AppViewModel {
+        let userID = currentUserId ?? UUID()
+
+        let viewModel = AppViewModel(
+            profile: AppProfile(
+                fullName: "Мой профиль",
+                handle: "@me",
+                bio: "",
+                avatarURL: nil,
+                followers: 0,
+                following: 0,
+            ),
+            dogs: [],
+            posts: [],
+            feed: [],
+            chats: [],
+            walkers: [],
+            vaccinations: [],
+            currentUserId: userID,
+            chatUseCase: chatUseCase,
+            profileService: profileService,
+            uploadService: uploadService,
+            dogService: dogService,
+            postService: postService,
+            feedService: feedService,
+            userService: userService,
+            followService: followService,
+            statsService: statsService,
+            canEditProfile: true,
+        )
+
+        if let currentUserId {
+            viewModel.applySavedSession(userID: currentUserId)
+        }
+
+        return viewModel
+    }
+}
+
+#if DEBUG
+extension AppViewModel {
     static let preview: AppViewModel = {
         let dog1 = AppDog(
             id: UUID(),
@@ -1149,3 +1201,4 @@ struct MockChatUseCase: ChatUseCase {
     func markAsRead(chatID: UUID, userID: UUID) async throws {}
     func sendTyping(chatID: UUID) async throws {}
 }
+#endif

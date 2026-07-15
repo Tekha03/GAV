@@ -47,7 +47,7 @@ func main() {
 		grpcServer.Serve(grpcLis)
 	}()
 
-	httpServer := gateway.NewHTTPServer(cfg.HTTPAddr, container.ChatService())
+	httpServer := gateway.NewHTTPServer(cfg.HTTPAddr, container.ChatService(), cfg.JWTSecret)
 	log.Printf("HTTP gateway on %s", cfg.HTTPAddr)
 	log.Fatal(httpServer.ListenAndServe())
 }
