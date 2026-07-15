@@ -128,6 +128,15 @@ func (s *ChatService) AddMember(ctx context.Context, chatID, requesterID uuid.UU
 		return errors.ErrChatAccessDenied
 	}
 
+	chat, err := s.chatRepo.GetByID(ctx, chatID)
+	if err != nil {
+		return err
+	}
+
+	if chat.IsGroup != true {
+		return errors.ErrChatAccessDenied
+	}
+
 	member := &model.ChatMember{
 		ChatID:   chatID,
 		UserID:   requesterID,
@@ -168,6 +177,15 @@ func (s *ChatService) RemoveMember(ctx context.Context, userID, chatID, requeste
 	}
 
 	if *role != model.Admin {
+		return errors.ErrChatAccessDenied
+	}
+
+	chat, err := s.chatRepo.GetByID(ctx, chatID)
+	if err != nil {
+		return err
+	}
+
+	if chat.IsGroup != true {
 		return errors.ErrChatAccessDenied
 	}
 
@@ -242,6 +260,15 @@ func (s *ChatService) GetUserChats(ctx context.Context, userID uuid.UUID) ([]*mo
 }
 
 func (s *ChatService) UpdateChatTitle(ctx context.Context, chatID, requesterID uuid.UUID, newTitle string) error {
+	chat, err := s.chatRepo.GetByID(ctx, chatID)
+	if err != nil {
+		return err
+	}
+
+	if chat.IsGroup != true {
+		return errors.ErrChatAccessDenied
+	}
+
 	if err := s.requireChatMember(ctx, chatID, requesterID); err != nil {
 		return err
 	}
@@ -253,6 +280,15 @@ func (s *ChatService) UpdateChatTitle(ctx context.Context, chatID, requesterID u
 }
 
 func (s *ChatService) UpdateChatPhoto(ctx context.Context, chatID, requesterID uuid.UUID, newPhotoURL string) error {
+	chat, err := s.chatRepo.GetByID(ctx, chatID)
+	if err != nil {
+		return err
+	}
+
+	if chat.IsGroup != true {
+		return errors.ErrChatAccessDenied
+	}
+	
 	if err := s.requireChatMember(ctx, chatID, requesterID); err != nil {
 		return err
 	}
