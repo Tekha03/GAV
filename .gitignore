@@ -1,5 +1,26 @@
-/bin/
-/vendor/
-/*.exe
-*.log
-*.tmp
+# macOS
+.DS_Store
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Databases and runtime data
+*.db
+*.db-shm
+*.db-wal
+uploads/
+
+# Xcode
+xcuserdata/
+*.xcuserstate
+DerivedData/
+
+# Go
+bin/
+vendor/
+coverage.out
+
+# VSCode
+.vscode/
