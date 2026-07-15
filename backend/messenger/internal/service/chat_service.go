@@ -97,7 +97,7 @@ func (s *ChatService) CreateGroupChat(ctx context.Context, title string, creator
 	return chat, nil
 }
 
-func (s *ChatService) GetChatByID(ctx context.Context, chatID uuid.UUID) (*model.Chat, error) {
+func (s *ChatService) GetChatByID(ctx context.Context, chatID, requesterID uuid.UUID) (*model.Chat, error) {
 	chat, err := s.chatRepo.GetByID(ctx, chatID)
 	if err != nil {
 		return nil, err
@@ -107,10 +107,18 @@ func (s *ChatService) GetChatByID(ctx context.Context, chatID uuid.UUID) (*model
 		return nil, errors.ErrChatNotFound
 	}
 
+	if err := s.requireChatMember(ctx, chatID, requesterID); err != nil {
+		return nil, err
+	}
+
 	return chat, nil
 }
 
-func (s *ChatService) AddMember(ctx context.Context, userID, chatID uuid.UUID) error {
+func (s *ChatService) AddMember(ctx context.Context, userID, chatID, requesterID uuid.UUID) error {
+	if err := s.requireChatMember(ctx, chatID, requesterID); err != nil {
+		return err
+	}
+
 	member := &model.ChatMember{
 		ChatID:   chatID,
 		UserID:   userID,
@@ -140,7 +148,11 @@ func (s *ChatService) AddMember(ctx context.Context, userID, chatID uuid.UUID) e
 	return s.publishEvent(event)
 }
 
-func (s *ChatService) RemoveMember(ctx context.Context, userID, chatID uuid.UUID) error {
+func (s *ChatService) RemoveMember(ctx context.Context, userID, chatID, requesterID uuid.UUID) error {
+	if err := s.requireChatMember(ctx, chatID, requesterID); err != nil {
+		return err
+	}
+
 	if err := s.membersRepo.RemoveMember(ctx, userID, chatID); err != nil {
 		return err
 	}
@@ -163,7 +175,11 @@ func (s *ChatService) RemoveMember(ctx context.Context, userID, chatID uuid.UUID
 	return s.publishEvent(event)
 }
 
-func (s *ChatService) GetChatMembers(ctx context.Context, chatID uuid.UUID) ([]*model.ChatMember, error) {
+func (s *ChatService) GetChatMembers(ctx context.Context, chatID, requesterID uuid.UUID) ([]*model.ChatMember, error) {
+	if err := s.requireChatMember(ctx, chatID, requesterID); err != nil {
+		return nil, err
+	}
+
 	members, err := s.membersRepo.GetMembers(ctx, chatID)
 	if err != nil {
 		return nil, err
@@ -176,7 +192,14 @@ func (s *ChatService) GetChatMembers(ctx context.Context, chatID uuid.UUID) ([]*
 	return members, nil
 }
 
-func (s *ChatService) LeaveChat(ctx context.Context, userID, chatID uuid.UUID) error {
+func (s *ChatService) LeaveChat(ctx context.Context, userID, chatID, requesterID uuid.UUID) error {
+	if userID != requesterID {
+		return errors.ErrChatAccessDenied
+	}
+	if err := s.requireChatMember(ctx, chatID, requesterID); err != nil {
+		return err
+	}
+
 	err := s.membersRepo.RemoveMember(ctx, userID, chatID)
 	return err
 }
@@ -202,14 +225,22 @@ func (s *ChatService) GetUserChats(ctx context.Context, userID uuid.UUID) ([]*mo
 	return chats, nil
 }
 
-func (s *ChatService) UpdateChatTitle(ctx context.Context, chatID uuid.UUID, newTitle string) error {
+func (s *ChatService) UpdateChatTitle(ctx context.Context, chatID, requesterID uuid.UUID, newTitle string) error {
+	if err := s.requireChatMember(ctx, chatID, requesterID); err != nil {
+		return err
+	}
+
 	if err := s.chatRepo.UpdateTitle(ctx, chatID, newTitle); err != nil {
 		return errors.ErrTitleUpdate
 	}
 	return nil
 }
 
-func (s *ChatService) UpdateChatPhoto(ctx context.Context, chatID uuid.UUID, newPhotoURL string) error {
+func (s *ChatService) UpdateChatPhoto(ctx context.Context, chatID, requesterID uuid.UUID, newPhotoURL string) error {
+	if err := s.requireChatMember(ctx, chatID, requesterID); err != nil {
+		return err
+	}
+
 	if err := s.chatRepo.UpdatePhoto(ctx, chatID, newPhotoURL); err != nil {
 		return errors.ErrPhotoUpdate
 	}
@@ -241,4 +272,15 @@ func getMemberIDs(members []*model.ChatMember) []uuid.UUID {
 		ids = append(ids, member.UserID)
 	}
 	return ids
+}
+
+func (s *ChatService) requireChatMember(ctx context.Context, chatID, userID uuid.UUID) error {
+	ok, err := s.membersRepo.MemberExists(ctx, userID, chatID)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return errors.ErrChatAccessDenied
+	}
+	return nil
 }

@@ -12,7 +12,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func (s *ChatService) SendMessage(ctx context.Context, input model.SendMessageInput) (*model.Message, error) {
+func (s *ChatService) SendMessage(ctx context.Context, requesterID uuid.UUID, input model.SendMessageInput) (*model.Message, error) {
 	chat, err := s.chatRepo.GetByID(ctx, input.ChatID)
 	if err != nil {
 		return nil, err
@@ -21,12 +21,11 @@ func (s *ChatService) SendMessage(ctx context.Context, input model.SendMessageIn
 		return nil, errors.ErrChatNotFound
 	}
 
-	members, err := s.membersRepo.GetMembers(ctx, input.ChatID)
-	if err != nil {
-		return nil, err
+	if input.SenderID != requesterID {
+		return nil, errors.ErrChatAccessDenied
 	}
-	if members == nil {
-		return nil, errors.ErrNoMembers
+	if err := s.requireChatMember(ctx, input.ChatID, requesterID); err != nil {
+		return nil, err
 	}
 
 	if input.Text == nil && len(input.Attachments) == 0 {
@@ -125,13 +124,19 @@ func (s *ChatService) SendMessage(ctx context.Context, input model.SendMessageIn
 	return message, nil
 }
 
-func (s *ChatService) EditMessage(ctx context.Context, messageID uuid.UUID, newText string) (*model.Message, error) {
+func (s *ChatService) EditMessage(ctx context.Context, requesterID, messageID uuid.UUID, newText string) (*model.Message, error) {
 	message, err := s.messageRepo.GetByID(ctx, messageID)
 	if err != nil {
 		return nil, err
 	}
 	if message == nil {
 		return nil, errors.ErrMessageNotFound
+	}
+	if message.SenderID != requesterID {
+		return nil, errors.ErrChatAccessDenied
+	}
+	if err := s.requireChatMember(ctx, message.ChatID, requesterID); err != nil {
+		return nil, err
 	}
 
 	if err := s.messageRepo.UpdateText(ctx, messageID, newText); err != nil {
@@ -168,13 +173,20 @@ func (s *ChatService) EditMessage(ctx context.Context, messageID uuid.UUID, newT
 
 	return message, nil
 }
-func (s *ChatService) DeleteMessage(ctx context.Context, messageID uuid.UUID) error {
+
+func (s *ChatService) DeleteMessage(ctx context.Context, requesterID, messageID uuid.UUID) error {
 	message, err := s.messageRepo.GetByID(ctx, messageID)
 	if err != nil {
 		return err
 	}
 	if message == nil {
 		return errors.ErrMessageNotFound
+	}
+	if message.SenderID != requesterID {
+		return errors.ErrChatAccessDenied
+	}
+	if err := s.requireChatMember(ctx, message.ChatID, requesterID); err != nil {
+		return err
 	}
 
 	if err := s.messageRepo.Delete(ctx, messageID); err != nil {
@@ -198,13 +210,17 @@ func (s *ChatService) DeleteMessage(ctx context.Context, messageID uuid.UUID) er
 
 	return s.publishEvent(event)
 }
-func (s *ChatService) GetMessages(ctx context.Context, chatID uuid.UUID, limit int, cursorID *uuid.UUID) ([]*model.Message, error) {
+
+func (s *ChatService) GetMessages(ctx context.Context, chatID, requesterID uuid.UUID, limit int, cursorID *uuid.UUID) ([]*model.Message, error) {
 	chat, err := s.chatRepo.GetByID(ctx, chatID)
 	if err != nil {
 		return nil, err
 	}
 	if chat == nil {
 		return nil, errors.ErrChatNotFound
+	}
+	if err := s.requireChatMember(ctx, chatID, requesterID); err != nil {
+		return nil, err
 	}
 
 	messages, err := s.messageRepo.GetByChatID(ctx, chatID, limit, cursorID)
@@ -227,7 +243,8 @@ func (s *ChatService) GetMessages(ctx context.Context, chatID uuid.UUID, limit i
 
 	return messages, nil
 }
-func (s *ChatService) MarkAsRead(ctx context.Context, chatID, userID uuid.UUID) error {
+
+func (s *ChatService) MarkAsRead(ctx context.Context, chatID, requesterID uuid.UUID) error {
 	chat, err := s.chatRepo.GetByID(ctx, chatID)
 	if err != nil {
 		return err
@@ -235,11 +252,14 @@ func (s *ChatService) MarkAsRead(ctx context.Context, chatID, userID uuid.UUID) 
 	if chat == nil {
 		return errors.ErrChatNotFound
 	}
+	if err := s.requireChatMember(ctx, chatID, requesterID); err != nil {
+		return err
+	}
 
-	return s.messageRepo.UpdateReadAtForChat(ctx, chatID, userID, time.Now())
+	return s.messageRepo.UpdateReadAtForChat(ctx, chatID, requesterID, time.Now())
 }
 
-func (s *ChatService) ForwardMessage(ctx context.Context, messageID, targetChatID, senderID uuid.UUID) (*model.Message, error) {
+func (s *ChatService) ForwardMessage(ctx context.Context, requesterID, messageID, targetChatID uuid.UUID) (*model.Message, error) {
 	origMsg, err := s.messageRepo.GetByID(ctx, messageID)
 	if err != nil {
 		return nil, err
@@ -248,26 +268,16 @@ func (s *ChatService) ForwardMessage(ctx context.Context, messageID, targetChatI
 		return nil, errors.ErrMessageNotFound
 	}
 
-	members, err := s.membersRepo.GetMembers(ctx, targetChatID)
-	if err != nil {
+	if err := s.requireChatMember(ctx, origMsg.ChatID, requesterID); err != nil {
 		return nil, err
 	}
-
-	isMember := false
-	for _, member := range members {
-		if member.UserID == senderID {
-			isMember = true
-			break
-		}
-	}
-
-	if !isMember {
-		return nil, errors.ErrIsNotMember
+	if err := s.requireChatMember(ctx, targetChatID, requesterID); err != nil {
+		return nil, err
 	}
 
 	input := model.SendMessageInput{
 		ChatID:      targetChatID,
-		SenderID:    senderID,
+		SenderID:    requesterID,
 		Text:        origMsg.Text,
 		Attachments: []model.AttachmentInput{},
 	}
@@ -286,7 +296,7 @@ func (s *ChatService) ForwardMessage(ctx context.Context, messageID, targetChatI
 		})
 	}
 
-	return s.SendMessage(ctx, input)
+	return s.SendMessage(ctx, requesterID, input)
 }
 
 func (s *ChatService) findChatReceiver(ctx context.Context, chatID, senderID uuid.UUID) (uuid.UUID, error) {

@@ -17,4 +17,5 @@ var (
 	ErrIsNotMember           = errors.New("this user is not member of chat")
 	ErrMemberExists          = errors.New("chat member already exists")
 	ErrMemberNotFound        = errors.New("member not found")
+	ErrChatAccessDenied      = errors.New("chat access denied")
 )

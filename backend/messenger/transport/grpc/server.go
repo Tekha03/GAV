@@ -48,7 +48,7 @@ func (s *Server) CreateGroupChat(ctx context.Context, req *pb.CreateGroupChatReq
 }
 
 func (s *Server) GetChat(ctx context.Context, req *pb.GetChatRequest) (*pb.GetChatResponse, error) {
-	chat, err := s.service.GetChatByID(ctx, uuid.MustParse(req.ChatId))
+	chat, err := s.service.GetChatByID(ctx, uuid.MustParse(req.ChatId), uuid.Nil)
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "chat not found: %v", err)
 	}
@@ -64,7 +64,7 @@ func (s *Server) GetChat(ctx context.Context, req *pb.GetChatRequest) (*pb.GetCh
 }
 
 func (s *Server) AddMember(ctx context.Context, req *pb.AddMemberRequest) (*pb.AddMemberResponse, error) {
-	err := s.service.AddMember(ctx, uuid.MustParse(req.UserId), uuid.MustParse(req.ChatId))
+	err := s.service.AddMember(ctx, uuid.MustParse(req.UserId), uuid.MustParse(req.ChatId), uuid.MustParse(req.UserId))
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "add member: %v", err)
 	}
@@ -85,7 +85,7 @@ func (s *Server) SendMessage(ctx context.Context, req *pb.SendMessageRequest) (*
 		ReplyToID: replyTo,
 	}
 
-	msg, err := s.service.SendMessage(ctx, input)
+	msg, err := s.service.SendMessage(ctx, input.SenderID, input)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "send message: %v", err)
 	}
@@ -103,7 +103,7 @@ func (s *Server) GetMessages(ctx context.Context, req *pb.GetMessagesRequest) (*
 		cursor = &id
 	}
 
-	messages, err := s.service.GetMessages(ctx, uuid.MustParse(req.ChatId), int(req.Limit), cursor)
+	messages, err := s.service.GetMessages(ctx, uuid.MustParse(req.ChatId), uuid.Nil, int(req.Limit), cursor)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "get messages: %v", err)
 	}
@@ -142,7 +142,7 @@ func (s *Server) GetMessages(ctx context.Context, req *pb.GetMessagesRequest) (*
 }
 
 func (s *Server) EditMessage(ctx context.Context, req *pb.EditMessageRequest) (*pb.EditMessageResponse, error) {
-	_, err := s.service.EditMessage(ctx, uuid.MustParse(req.MessageId), req.NewText)
+	_, err := s.service.EditMessage(ctx, uuid.Nil, uuid.MustParse(req.MessageId), req.NewText)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "edit message: %v", err)
 	}
@@ -150,7 +150,7 @@ func (s *Server) EditMessage(ctx context.Context, req *pb.EditMessageRequest) (*
 }
 
 func (s *Server) DeleteMessage(ctx context.Context, req *pb.DeleteMessageRequest) (*pb.DeleteMessageResponse, error) {
-	err := s.service.DeleteMessage(ctx, uuid.MustParse(req.MessageId))
+	err := s.service.DeleteMessage(ctx, uuid.Nil, uuid.MustParse(req.MessageId))
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "delete message: %v", err)
 	}
@@ -166,7 +166,8 @@ func (s *Server) MarkAsRead(ctx context.Context, req *pb.MarkAsReadRequest) (*pb
 }
 
 func (s *Server) AddReaction(ctx context.Context, req *pb.AddReactionRequest) (*pb.AddReactionResponse, error) {
-	err := s.service.AddReaction(ctx, uuid.MustParse(req.MessageId), uuid.MustParse(req.UserId), req.Emoji)
+	userID := uuid.MustParse(req.UserId)
+	err := s.service.AddReaction(ctx, uuid.MustParse(req.MessageId), userID, userID, req.Emoji)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "add reaction: %v", err)
 	}
@@ -174,7 +175,8 @@ func (s *Server) AddReaction(ctx context.Context, req *pb.AddReactionRequest) (*
 }
 
 func (s *Server) RemoveReaction(ctx context.Context, req *pb.RemoveReactionRequest) (*pb.RemoveReactionResponse, error) {
-	err := s.service.RemoveReaction(ctx, uuid.MustParse(req.MessageId), uuid.MustParse(req.UserId))
+	userID := uuid.MustParse(req.UserId)
+	err := s.service.RemoveReaction(ctx, uuid.MustParse(req.MessageId), userID, userID)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "remove reaction: %v", err)
 	}
@@ -182,7 +184,7 @@ func (s *Server) RemoveReaction(ctx context.Context, req *pb.RemoveReactionReque
 }
 
 func (s *Server) PinMessage(ctx context.Context, req *pb.PinMessageRequest) (*pb.PinMessageResponse, error) {
-	err := s.service.PinMessage(ctx, uuid.MustParse(req.MessageId))
+	err := s.service.PinMessage(ctx, uuid.Nil, uuid.MustParse(req.MessageId))
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "pin message: %v", err)
 	}

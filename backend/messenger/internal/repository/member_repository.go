@@ -16,4 +16,5 @@ type ChatMemberRepository interface {
 	GetUserChats(ctx context.Context, userID uuid.UUID) ([]uuid.UUID, error)
 	FindPrivateChatBetween(ctx context.Context, userID1, userID2 uuid.UUID) (uuid.UUID, error)
 	GetLastReadMessageID(ctx context.Context, chatID, userID uuid.UUID) (uuid.UUID, error)
+	MemberExists(ctx context.Context, userID uuid.UUID, chatID uuid.UUID) (bool, error)
 }

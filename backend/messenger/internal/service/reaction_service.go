@@ -11,13 +11,20 @@ import (
 	"github.com/google/uuid"
 )
 
-func (s *ChatService) AddReaction(ctx context.Context, messageID, userID uuid.UUID, emoji string) error {
+func (s *ChatService) AddReaction(ctx context.Context, messageID, userID, requesterID uuid.UUID, emoji string) error {
+	if userID != requesterID {
+		return errors.ErrChatAccessDenied
+	}
+
 	msg, err := s.messageRepo.GetByID(ctx, messageID)
 	if err != nil {
 		return err
 	}
 	if msg == nil {
 		return errors.ErrMessageNotFound
+	}
+	if err := s.requireChatMember(ctx, msg.ChatID, requesterID); err != nil {
+		return err
 	}
 
 	reaction := &model.Reaction{
@@ -50,13 +57,20 @@ func (s *ChatService) AddReaction(ctx context.Context, messageID, userID uuid.UU
 	return s.publishEvent(event)
 }
 
-func (s *ChatService) RemoveReaction(ctx context.Context, messageID, userID uuid.UUID) error {
+func (s *ChatService) RemoveReaction(ctx context.Context, messageID, userID, requesterID uuid.UUID) error {
+	if userID != requesterID {
+		return errors.ErrChatAccessDenied
+	}
+
 	msg, err := s.messageRepo.GetByID(ctx, messageID)
 	if err != nil {
 		return err
 	}
 	if msg == nil {
 		return errors.ErrMessageNotFound
+	}
+	if err := s.requireChatMember(ctx, msg.ChatID, requesterID); err != nil {
+		return err
 	}
 
 	if err := s.reactionRepo.Remove(ctx, messageID, userID); err != nil {

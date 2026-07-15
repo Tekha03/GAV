@@ -10,6 +10,8 @@ import (
 	"gorm.io/gorm"
 )
 
+var ErrMemberNotExists = errors.New("user is not chat member")
+
 type ChatMemberRepository struct {
 	repo *Repository
 }
@@ -108,4 +110,20 @@ func (cmr *ChatMemberRepository) GetLastReadMessageID(ctx context.Context, chatI
 	}
 
 	return member.LastReadMessageID, nil
+}
+
+func (cmr *ChatMemberRepository) MemberExists(ctx context.Context, userID uuid.UUID, chatID uuid.UUID) (bool, error) {
+	members, err := cmr.GetMembers(ctx, chatID)
+	if err != nil {
+		return false, err
+	}
+
+	ok := false
+	for _, member := range members {
+		if userID == member.UserID {
+			ok = true
+		}
+	}
+
+	return ok, nil
 }

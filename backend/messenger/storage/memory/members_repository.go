@@ -2,12 +2,15 @@ package memory
 
 import (
 	"context"
+	"errors"
 	"messenger/internal/model"
 	"messenger/internal/repository"
 	"sync"
 
 	"github.com/google/uuid"
 )
+
+var ErrMemberNotExists = errors.New("user is not chat member")
 
 type MembersRepository struct {
 	mu      sync.RWMutex
@@ -143,4 +146,21 @@ func (mr *MembersRepository) FindPrivateChatBetween(ctx context.Context, userID1
 	}
 
 	return uuid.Nil, nil
+}
+
+func (mr *MembersRepository) MemberExists(ctx context.Context, userID, chatID uuid.UUID) (bool, error){
+	members, err := mr.GetMembers(ctx, chatID)
+	if err != nil {
+		return false, err
+	}
+
+	ok := false
+
+	for _, member := range members {
+		if userID == member.UserID {
+			ok = true
+		}
+	}
+
+	return ok, nil
 }

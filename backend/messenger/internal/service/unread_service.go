@@ -8,6 +8,10 @@ import (
 )
 
 func (s *ChatService) GetChatUnreadCount(ctx context.Context, chatID, userID uuid.UUID) (int, error) {
+	if err := s.requireChatMember(ctx, chatID, userID); err != nil {
+		return 0, err
+	}
+
 	lastReadID, err := s.membersRepo.GetLastReadMessageID(ctx, chatID, userID)
 	if err != nil {
 		return 0, err
