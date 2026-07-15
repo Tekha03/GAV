@@ -40,7 +40,11 @@ func main() {
 		log.Fatal(err)
 	}
 
-	grpcServer := grpc.NewServer()
+	grpcServer := grpc.NewServer(
+		grpc.UnaryInterceptor(gr.AuthUnaryInterceptor(cfg.JWTSecret)),
+		grpc.StreamInterceptor(gr.AuthStreamInterceptor(cfg.JWTSecret)),
+	)
+	
 	chatv1.RegisterChatServiceServer(grpcServer, gr.NewServer(container.ChatService()))
 	go func() {
 		log.Printf("gRPC on %s", cfg.GRPCAddr)

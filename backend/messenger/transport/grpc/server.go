@@ -48,7 +48,12 @@ func (s *Server) CreateGroupChat(ctx context.Context, req *pb.CreateGroupChatReq
 }
 
 func (s *Server) GetChat(ctx context.Context, req *pb.GetChatRequest) (*pb.GetChatResponse, error) {
-	chat, err := s.service.GetChatByID(ctx, uuid.MustParse(req.ChatId), uuid.Nil)
+	requesterID, ok := CurrentUserID(ctx)
+	if !ok {
+		return nil, status.Error(codes.Unauthenticated, "unauthenticated")
+	}
+
+	chat, err := s.service.GetChatByID(ctx, uuid.MustParse(req.ChatId), requesterID)
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "chat not found: %v", err)
 	}
@@ -103,7 +108,12 @@ func (s *Server) GetMessages(ctx context.Context, req *pb.GetMessagesRequest) (*
 		cursor = &id
 	}
 
-	messages, err := s.service.GetMessages(ctx, uuid.MustParse(req.ChatId), uuid.Nil, int(req.Limit), cursor)
+	requesterID, ok := CurrentUserID(ctx)
+	if !ok {
+		return nil, status.Error(codes.Unauthenticated, "unauthenticated")
+	}
+
+	messages, err := s.service.GetMessages(ctx, uuid.MustParse(req.ChatId), requesterID, int(req.Limit), cursor)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "get messages: %v", err)
 	}
@@ -142,7 +152,11 @@ func (s *Server) GetMessages(ctx context.Context, req *pb.GetMessagesRequest) (*
 }
 
 func (s *Server) EditMessage(ctx context.Context, req *pb.EditMessageRequest) (*pb.EditMessageResponse, error) {
-	_, err := s.service.EditMessage(ctx, uuid.Nil, uuid.MustParse(req.MessageId), req.NewText)
+	requesterID, ok := CurrentUserID(ctx)
+	if !ok {
+		return nil, status.Error(codes.Unauthenticated, "unauthenticated")
+	}
+	_, err := s.service.EditMessage(ctx, requesterID, uuid.MustParse(req.MessageId), req.NewText)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "edit message: %v", err)
 	}
@@ -150,7 +164,11 @@ func (s *Server) EditMessage(ctx context.Context, req *pb.EditMessageRequest) (*
 }
 
 func (s *Server) DeleteMessage(ctx context.Context, req *pb.DeleteMessageRequest) (*pb.DeleteMessageResponse, error) {
-	err := s.service.DeleteMessage(ctx, uuid.Nil, uuid.MustParse(req.MessageId))
+	requesterID, ok := CurrentUserID(ctx)
+	if !ok {
+		return nil, status.Error(codes.Unauthenticated, "unauthenticated")
+	}
+	err := s.service.DeleteMessage(ctx, requesterID, uuid.MustParse(req.MessageId))
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "delete message: %v", err)
 	}
@@ -184,7 +202,12 @@ func (s *Server) RemoveReaction(ctx context.Context, req *pb.RemoveReactionReque
 }
 
 func (s *Server) PinMessage(ctx context.Context, req *pb.PinMessageRequest) (*pb.PinMessageResponse, error) {
-	err := s.service.PinMessage(ctx, uuid.Nil, uuid.MustParse(req.MessageId))
+	requesterID, ok := CurrentUserID(ctx)
+	if !ok {
+		return nil, status.Error(codes.Unauthenticated, "unauthenticated")
+	}
+
+	err := s.service.PinMessage(ctx, requesterID, uuid.MustParse(req.MessageId))
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "pin message: %v", err)
 	}
