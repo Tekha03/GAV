@@ -21,7 +21,7 @@ final class ChatServiceAPI: ChatUseCase, @unchecked Sendable {
             "/api/v1/chats/private",
             method: "POST",
             body: try JSONEncoder().encode(request),
-            requiresAuth: false
+            requiresAuth: true
         )
         return try chatDecoder.decode(ChatEnvelope.self, from: data).chat.domain
     }
@@ -32,18 +32,18 @@ final class ChatServiceAPI: ChatUseCase, @unchecked Sendable {
             "/api/v1/chats/group",
             method: "POST",
             body: try JSONEncoder().encode(request),
-            requiresAuth: false
+            requiresAuth: true
         )
         return try chatDecoder.decode(ChatEnvelope.self, from: data).chat.domain
     }
 
     func getChatByID(id: UUID) async throws -> Chat {
-        let data = try await base.request("/api/v1/chats/\(id.uuidString)", requiresAuth: false)
+        let data = try await base.request("/api/v1/chats/\(id.uuidString)", requiresAuth: true)
         return try chatDecoder.decode(ChatEnvelope.self, from: data).chat.domain
     }
 
     func getUserChats(userID: UUID) async throws -> [Chat] {
-        let data = try await base.request("/api/v1/users/\(userID.uuidString)/chats", requiresAuth: false)
+        let data = try await base.request("/api/v1/users/\(userID.uuidString)/chats", requiresAuth: true)
         return try chatDecoder.decode(ChatListEnvelope.self, from: data).chats.map(\.domain)
     }
 
@@ -64,7 +64,7 @@ final class ChatServiceAPI: ChatUseCase, @unchecked Sendable {
     }
 
     func getChatMembers(chatID: UUID) async throws -> [ChatMember] {
-        let data = try await base.request("/api/v1/chats/\(chatID.uuidString)/members", requiresAuth: false)
+        let data = try await base.request("/api/v1/chats/\(chatID.uuidString)/members", requiresAuth: true)
         return try chatDecoder.decode(ChatMemberListEnvelope.self, from: data).members.map(\.domain)
     }
 
@@ -81,7 +81,7 @@ final class ChatServiceAPI: ChatUseCase, @unchecked Sendable {
         if let before {
             path += "&before=\(before.uuidString)"
         }
-        let data = try await base.request(path, requiresAuth: false)
+        let data = try await base.request(path, requiresAuth: true)
         return try chatDecoder.decode(MessageListEnvelope.self, from: data).messages.map(\.domain)
     }
 
@@ -105,7 +105,7 @@ final class ChatServiceAPI: ChatUseCase, @unchecked Sendable {
             "/api/v1/chats/\(chatID.uuidString)/messages",
             method: "POST",
             body: try JSONEncoder().encode(request),
-            requiresAuth: false
+            requiresAuth: true
         )
         return try chatDecoder.decode(MessageEnvelope.self, from: data).message.domain
     }
@@ -116,7 +116,7 @@ final class ChatServiceAPI: ChatUseCase, @unchecked Sendable {
             "/api/v1/chats/\(chatID.uuidString)/read",
             method: "POST",
             body: data,
-            requiresAuth: false
+            requiresAuth: true
         )
     }
 
