@@ -5,7 +5,9 @@ name: Go
 
 on:
   push:
-    branches: [ "release" ]
+    branches:
+      - "release"
+      - "mob/**"
   pull_request:
     branches: [ "release" ]
 
