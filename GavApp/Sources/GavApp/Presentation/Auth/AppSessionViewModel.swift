@@ -75,7 +75,7 @@ final class AppSessionViewModel: ObservableObject {
             appViewModel.applyAuthenticatedUser(user)
             await appViewModel.loadAuthenticatedProfile()
             await appViewModel.loadAuthenticatedContent()
-            await appViewModel.loadChats()
+            try? await appViewModel.loadChats()
             isAuthenticated = true
         } catch {
             authManager.clearTokens()
@@ -109,7 +109,7 @@ final class AppSessionViewModel: ObservableObject {
             try await afterUserLoaded?(user)
             await appViewModel.loadAuthenticatedProfile()
             await appViewModel.loadAuthenticatedContent()
-            await appViewModel.loadChats()
+            try? await appViewModel.loadChats()
             isAuthenticated = true
         } catch {
             authManager.clearTokens()

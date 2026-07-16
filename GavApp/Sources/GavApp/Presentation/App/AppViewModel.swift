@@ -252,29 +252,24 @@ final class AppViewModel: ObservableObject {
         vaccinations.filter { $0.dogID == dogID }
     }
 
-    func loadChats() async {
-        do {
-            let userChats = try await chatUseCase.getUserChats(userID: currentUserId)
-            var loadedChats: [AppChat] = []
+    func loadChats() async throws {
+        let userChats = try await chatUseCase.getUserChats(userID: currentUserId)
+        var loadedChats: [AppChat] = []
 
-            for chat in userChats {
-                let title = await displayTitle(for: chat)
-                loadedChats.append(
-                    AppChat(
-                        id: chat.id,
-                        title: title,
-                        lastMessage: "Откройте чат",
-                        unreadCount: 0
-                    )
+        for chat in userChats {
+            let title = await displayTitle(for: chat)
+
+            loadedChats.append(
+                AppChat(
+                    id: chat.id,
+                    title: title,
+                    lastMessage: "Откройте чат",
+                    unreadCount: 0
                 )
-            }
-
-            chats = loadedChats
-        } catch {
-            if chats.isEmpty {
-                chats = []
-            }
+            )
         }
+
+        chats = loadedChats
     }
 
     func createPrivateChat(with participantID: UUID) async throws {
@@ -588,15 +583,26 @@ final class AppViewModel: ObservableObject {
         }
     }
 
+    func reloadFeed() async throws {
+        let models = try await feedService.getFeed(
+            userID: currentUserId,
+            before: nil,
+            limit: 50
+        )
+
+        var loadedFeed = models
+            .map { appPost(from: $0) }
+            .sorted { $0.createdAt > $1.createdAt }
+
+        await hydratePostAuthors(&loadedFeed)
+        await hydratePostStats(&loadedFeed)
+
+        feed = loadedFeed
+    }
+
     private func loadFeed() async {
         do {
-            let models = try await feedService.getFeed(userID: currentUserId, before: nil, limit: 50)
-            var loadedFeed = models
-                .map { appPost(from: $0) }
-                .sorted { $0.createdAt > $1.createdAt }
-            await hydratePostAuthors(&loadedFeed)
-            await hydratePostStats(&loadedFeed)
-            feed = loadedFeed
+            try await reloadFeed()
         } catch {
             if feed.isEmpty {
                 feed = posts

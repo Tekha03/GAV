@@ -9,13 +9,44 @@ enum APIError: Error, LocalizedError, CustomNSError {
     var errorDescription: String? {
         switch self {
         case .invalidURL:
-            return "Invalid base URL"
-        case .invalidResponse(let code):
-            return "Invalid server response: \(code)"
+            return "Некорректный адрес сервера"
+
+        case .invalidResponse(let statusCode):
+            return responseManager(for: statusCode)
+
         case .decodingError(_):
-            return "Failed to decode JSON"
+            return "Не удалось обработать ответ сервера"
+
         case .networkError(let error):
-            return "Network error: \(error.localizedDescription)"
+            return error.localizedDescription
+        }
+    }
+
+    private func responseManager(for statusCode: Int) -> String {
+        switch statusCode {
+        case 400:
+            return "Некорректный запрос"
+
+        case 401:
+            return "Необходима авторизация"
+
+        case 403:
+            return "Недостаточно прав для выполнения действия"
+
+        case 404:
+            return "Запрошенные данные не найдены"
+
+        case 409:
+            return "Такие данные уже существуют"
+
+        case 422:
+            return "Проверьте введённые данные"
+
+        case 500...599:
+            return "Сервис временно недоступен"
+
+        default:
+            return "Ошибка сервера: \(statusCode)"
         }
     }
 }

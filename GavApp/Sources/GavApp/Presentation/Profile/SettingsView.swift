@@ -20,62 +20,21 @@ struct ProfileSettingsView: View {
     @State private var avatarPreview: Image?
     @State private var isLoadingAvatar = false
     @State private var isSaving = false
-    @State private var errorMessage: String?
+    @State private var screenState: AppScreenState = .loading(message: "Загружаем настройки...")
+    @State private var actionErrorMessage: String?
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section("Профиль") {
-                    TextField("Имя", text: $firstName)
-                    TextField("Фамилия", text: $lastName)
-                    TextField("Никнейм", text: $username)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                    TextField("Био", text: $bio, axis: .vertical)
-                        .lineLimit(3...6)
-                }
+            Group {
+                switch screenState {
+                case .loading, .error, .offline:
+                    AppStatusView(
+                        state: screenState,
+                        retryAction: loadInitialValues
+                    )
 
-                Section("Фото") {
-                    PhotosPicker(selection: $selectedItem, matching: .images) {
-                        Label("Выбрать фото", systemImage: "photo")
-                    }
-
-                    if let avatarPreview {
-                        avatarPreview
-                            .resizable()
-                            .scaledToFill()
-                            .frame(width: 96, height: 96)
-                            .clipShape(Circle())
-                    }
-
-                    if isLoadingAvatar {
-                        ProgressView()
-                    }
-                }
-
-                if let errorMessage {
-                    Section {
-                        Text(errorMessage)
-                            .foregroundStyle(.red)
-                    }
-                }
-
-                Section("Приватность") {
-                    Toggle("Приватный профиль", isOn: $isPrivateProfile)
-                    Toggle("Показывать на карте", isOn: $showOnMap)
-                }
-
-                Section {
-                    Button {
-                        Task { await saveProfile() }
-                    } label: {
-                        if isSaving {
-                            ProgressView()
-                        } else {
-                            Text("Сохранить")
-                        }
-                    }
-                    .disabled(isSaving)
+                case .content:
+                    settingsContent
                 }
             }
             .navigationTitle("Настройки")
@@ -87,7 +46,7 @@ struct ProfileSettingsView: View {
                 }
             }
             .task {
-                setupInitialValues()
+                loadInitialValues()
             }
             .task(id: selectedItem) {
                 await loadAvatar()
@@ -95,14 +54,121 @@ struct ProfileSettingsView: View {
         }
     }
 
-    private func setupInitialValues() {
-        let parts = appViewModel.profile.fullName.split(separator: " ", maxSplits: 1, omittingEmptySubsequences: true)
+    private var settingsForm: some View {
+        Form {
+            Section("Профиль") {
+                TextField("Имя", text: $firstName)
+                TextField("Фамилия", text: $lastName)
+
+                TextField("Никнейм", text: $username)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+
+                TextField("Био", text: $bio, axis: .vertical)
+                    .lineLimit(3...6)
+            }
+
+            Section("Фото") {
+                PhotosPicker(
+                    selection: $selectedItem,
+                    matching: .images
+                ) {
+                    Label(
+                        "Выбрать фото",
+                        systemImage: "photo"
+                    )
+                }
+
+                if let avatarPreview {
+                    avatarPreview
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 96, height: 96)
+                        .clipShape(Circle())
+                }
+
+                if isLoadingAvatar {
+                    ProgressView()
+                }
+            }
+
+            if let actionErrorMessage {
+                Section {
+                    HStack(spacing: 10) {
+                        Image(
+                            systemName: "exclamationmark.circle.fill"
+                        )
+                        .foregroundStyle(.orange)
+
+                        Text(actionErrorMessage)
+                            .foregroundStyle(.red)
+
+                        Spacer()
+
+                        Button {
+                            self.actionErrorMessage = nil
+                        } label: {
+                            Image(systemName: "xmark")
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+
+            Section("Приватность") {
+                Toggle(
+                    "Приватный профиль",
+                    isOn: $isPrivateProfile
+                )
+
+                Toggle(
+                    "Показывать на карте",
+                    isOn: $showOnMap
+                )
+            }
+
+            Section {
+                Button {
+                    Task {
+                        await saveProfile()
+                    }
+                } label: {
+                    if isSaving {
+                        ProgressView()
+                    } else {
+                        Text("Сохранить")
+                    }
+                }
+                .disabled(isSaving)
+            }
+        }
+    }
+
+    private func loadInitialValues() {
+        screenState = .loading(
+            message: "Загружаем настройки..."
+        )
+
+        let parts = appViewModel.profile.fullName.split(
+            separator: " ",
+            maxSplits: 1,
+            omittingEmptySubsequences: true
+        )
+
         firstName = parts.first.map(String.init) ?? ""
-        lastName = parts.count > 1 ? String(parts[1]) : ""
-        username = appViewModel.profile.handle.trimmingCharacters(in: CharacterSet(charactersIn: "@"))
+        lastName = parts.count > 1
+            ? String(parts[1])
+            : ""
+
+        username = appViewModel.profile.handle
+            .trimmingCharacters(
+                in: CharacterSet(charactersIn: "@")
+            )
+
         bio = appViewModel.profile.bio
         isPrivateProfile = false
         showOnMap = true
+        screenState = .content
     }
 
     private func loadAvatar() async {
@@ -126,12 +192,13 @@ struct ProfileSettingsView: View {
         } catch {
             selectedAvatarData = nil
             avatarPreview = nil
+            actionErrorMessage = error.localizedDescription
         }
     }
 
     private func saveProfile() async {
         isSaving = true
-        errorMessage = nil
+        actionErrorMessage = nil
         defer { isSaving = false }
 
         let fullName = [firstName, lastName]
@@ -140,12 +207,14 @@ struct ProfileSettingsView: View {
         let cleanUsername = normalizedUsername(username)
 
         guard cleanUsername.count >= 3 else {
-            errorMessage = "Никнейм должен быть не короче 3 символов"
+            actionErrorMessage = "Никнейм должен быть не короче 3 символов"
             return
         }
 
         let uploadedAvatar = await uploadAvatarIfNeeded()
-        if errorMessage != nil { return }
+        if actionErrorMessage != nil {
+            return
+        }
 
         do {
             try await saveRemoteProfile(
@@ -153,10 +222,10 @@ struct ProfileSettingsView: View {
                 profilePhotoUrl: uploadedAvatar?.rawURL
             )
         } catch APIError.invalidResponse(let statusCode) where statusCode == 409 {
-            errorMessage = "Этот никнейм уже занят"
+            actionErrorMessage = "Этот никнейм уже занят"
             return
         } catch {
-            errorMessage = "Не удалось сохранить профиль"
+            actionErrorMessage = "Не удалось сохранить профиль"
             return
         }
 
@@ -172,6 +241,7 @@ struct ProfileSettingsView: View {
     }
 
     private func uploadAvatarIfNeeded() async -> UploadedMedia? {
+        actionErrorMessage = error.localizedDescription
         guard let selectedAvatarData else { return nil }
 
         do {
@@ -184,7 +254,7 @@ struct ProfileSettingsView: View {
                 resolvedURL: MediaURLResolver.resolve(media.url)
             )
         } catch {
-            errorMessage = "Не удалось загрузить аватар"
+            actionErrorMessage = "Не удалось загрузить аватар"
             return nil
         }
     }
