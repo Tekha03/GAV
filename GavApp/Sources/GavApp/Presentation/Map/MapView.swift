@@ -10,49 +10,103 @@ struct MapView: View {
             span: MKCoordinateSpan(latitudeDelta: 0.03, longitudeDelta: 0.03)
         )
     )
+    @State private var screenState: AppScreenState = .content
     @State private var isRefreshing = false
-    @State private var errorMessage: String?
+    @State private var actionErrorMessage: String?
     @State private var didCenterOnUser = false
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 18) {
-                    mapCard
+            ZStack {
+                mapBackground
 
-                    if let errorMessage {
-                        Text(errorMessage)
-                            .font(.footnote)
-                            .foregroundStyle(.red)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
+                switch screenState {
+                case .loading, .error, .offline:
+                    AppStatusView(
+                        state: screenState,
+                        retryAction: {
+                            Task {
+                                await refreshNearby()
+                            }
+                        }
+                    )
+                    .foregroundStyle(.white)
 
-                    infoCard
+                case .content:
+                    mapContent
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 20)
             }
-            .background(
-                LinearGradient(
-                    colors: [
-                        Color(red: 0.42, green: 0.22, blue: 0.72),
-                        .black
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .ignoresSafeArea()
-            )
             .navigationTitle("Карта")
             .preferredColorScheme(.dark)
             .onAppear {
                 userLocation.startUpdatingLocation()
             }
             .onReceive(userLocation.$location) { location in
-                guard !didCenterOnUser, let coordinate = location?.coordinate else { return }
+                guard
+                    !didCenterOnUser,
+                    let coordinate = location?.coordinate
+                else {
+                    return
+                }
+
                 didCenterOnUser = true
                 centerMap(on: coordinate)
             }
+        }
+    }
+
+    private var mapBackground: some View {
+        LinearGradient(
+            colors: [
+                Color(red: 0.42, green: 0.22, blue: 0.72),
+                .black
+            ],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+        .ignoresSafeArea()
+    }
+
+    private var mapContent: some View {
+        ScrollView {
+            VStack(spacing: 18) {
+                mapCard
+
+                if let actionErrorMessage {
+                    HStack(spacing: 10) {
+                        Image(
+                            systemName: "exclamationmark.circle.fill"
+                        )
+                        .foregroundStyle(.orange)
+
+                        Text(actionErrorMessage)
+                            .font(.footnote)
+                            .foregroundStyle(.white)
+                            .frame(
+                                maxWidth: .infinity,
+                                alignment: .leading
+                            )
+
+                        Button {
+                            self.actionErrorMessage = nil
+                        } label: {
+                            Image(systemName: "xmark")
+                                .foregroundStyle(
+                                    .white.opacity(0.7)
+                                )
+                        }
+                    }
+                    .padding(12)
+                    .background(
+                        .black.opacity(0.35),
+                        in: RoundedRectangle(cornerRadius: 14)
+                    )
+                }
+
+                infoCard
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 20)
         }
     }
 
@@ -196,13 +250,24 @@ struct MapView: View {
 
     private func refreshNearby() async {
         guard let location = userLocation.location else {
-            errorMessage = userLocation.errorMessage ?? "Геолокация еще не определена"
+            actionErrorMessage =
+                userLocation.errorMessage ??
+                "Геолокация ещё не определена"
             return
         }
 
+        if appViewModel.walkers.isEmpty {
+            screenState = .loading(
+                message: "Ищем прогулки рядом..."
+            )
+        }
+
         isRefreshing = true
-        errorMessage = nil
-        defer { isRefreshing = false }
+        actionErrorMessage = nil
+
+        defer {
+            isRefreshing = false
+        }
 
         let coordinate = location.coordinate
 
@@ -213,8 +278,14 @@ struct MapView: View {
             )
 
             centerMap(on: coordinate)
+            screenState = .content
         } catch {
-            errorMessage = "Не удалось обновить прогулки рядом"
+            if appViewModel.walkers.isEmpty {
+                screenState = .from(error)
+            } else {
+                screenState = .content
+                actionErrorMessage = error.localizedDescription
+            }
         }
     }
 

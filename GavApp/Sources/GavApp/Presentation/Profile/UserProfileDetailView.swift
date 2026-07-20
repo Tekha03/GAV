@@ -6,42 +6,40 @@ struct UserProfileDetailView: View {
 
     @State private var isFollowing = false
     @State private var isBusy = false
-    @State private var isLoadingContent = false
-    @State private var errorMessage: String?
+    @State private var screenState: AppScreenState = .loading(
+        message: "Загружаем профиль..."
+    )
+    @State private var actionErrorMessage: String?
     @State private var dogs: [AppDog] = []
     @State private var posts: [AppPost] = []
     @State private var stats: ProfileStatsModel?
     @State private var selectedCommentsPost: AppPost?
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 18) {
-                header
-                dogsSection
-                postsSection
+        ZStack {
+            profileBackground
 
-                if let errorMessage {
-                    Text(errorMessage)
-                        .font(.footnote)
-                        .foregroundStyle(.red)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
+            switch screenState {
+            case .loading, .error, .offline:
+                AppStatusView(
+                    state: screenState,
+                    retryAction: {
+                        Task {
+                            await loadInitialState()
+                        }
+                    }
+                )
+                .foregroundStyle(.white)
+
+            case .content:
+                profileContent
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 20)
         }
-        .background(
-            LinearGradient(
-                colors: [
-                    Color(red: 0.42, green: 0.22, blue: 0.72),
-                    .black
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .ignoresSafeArea()
+        .navigationTitle(
+            profile.username.isEmpty
+                ? "Профиль"
+                : "@\(profile.username)"
         )
-        .navigationTitle(profile.username.isEmpty ? "Профиль" : "@\(profile.username)")
         .navigationBarTitleDisplayMode(.inline)
         .preferredColorScheme(.dark)
         .task {
@@ -49,11 +47,73 @@ struct UserProfileDetailView: View {
         }
         .sheet(item: $selectedCommentsPost) { post in
             CommentsView(post: post) { count in
-                if let index = posts.firstIndex(where: { $0.id == post.id }) {
+                if let index = posts.firstIndex(
+                    where: {
+                        $0.id == post.id
+                    }
+                ) {
                     posts[index].comments = count
                 }
             }
-                .environmentObject(appViewModel)
+            .environmentObject(appViewModel)
+        }
+    }
+
+    private var profileBackground: some View {
+        LinearGradient(
+            colors: [
+                Color(red: 0.42, green: 0.22, blue: 0.72),
+                .black
+            ],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+        .ignoresSafeArea()
+    }
+
+    private var profileContent: some View {
+        ScrollView {
+            VStack(spacing: 18) {
+                header
+                dogsSection
+                postsSection
+
+                if let actionErrorMessage {
+                    HStack(spacing: 10) {
+                        Image(
+                            systemName: "exclamationmark.circle.fill"
+                        )
+                        .foregroundStyle(.orange)
+
+                        Text(actionErrorMessage)
+                            .font(.footnote)
+                            .foregroundStyle(.white)
+                            .frame(
+                                maxWidth: .infinity,
+                                alignment: .leading
+                            )
+
+                        Button {
+                            self.actionErrorMessage = nil
+                        } label: {
+                            Image(systemName: "xmark")
+                                .foregroundStyle(
+                                    .white.opacity(0.7)
+                                )
+                        }
+                    }
+                    .padding(12)
+                    .background(
+                        .black.opacity(0.35),
+                        in: RoundedRectangle(cornerRadius: 14)
+                    )
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 20)
+        }
+        .refreshable {
+            await loadInitialState(showLoading: false)
         }
     }
 
@@ -162,12 +222,7 @@ struct UserProfileDetailView: View {
                 .font(.headline)
                 .foregroundStyle(.white)
 
-            if isLoadingContent {
-                ProgressView()
-                    .tint(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 18)
-            } else if dogs.isEmpty {
+            if dogs.isEmpty {
                 emptyState("Собак пока нет", systemImage: "pawprint")
             } else {
                 ScrollView(.horizontal, showsIndicators: false) {
@@ -189,12 +244,7 @@ struct UserProfileDetailView: View {
                 .font(.headline)
                 .foregroundStyle(.white)
 
-            if isLoadingContent {
-                ProgressView()
-                    .tint(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 18)
-            } else if posts.isEmpty {
+            if posts.isEmpty {
                 emptyState("Постов пока нет", systemImage: "photo.on.rectangle")
             } else {
                 ForEach(posts) { post in
@@ -272,29 +322,57 @@ struct UserProfileDetailView: View {
         return fullName.isEmpty ? "@\(profile.username)" : fullName
     }
 
-    private func loadInitialState() async {
-        isLoadingContent = true
-        errorMessage = nil
-
-        isFollowing = await appViewModel.isFollowing(profile.userId)
-
-        do {
-            let content = try await appViewModel.loadProfileContent(for: profile)
-            stats = try? await appViewModel.loadProfileStats(for: profile.userId)
-            dogs = content.dogs
-            posts = content.posts
-        } catch {
-            dogs = []
-            posts = []
-            errorMessage = "Не удалось загрузить профиль"
+    private func loadInitialState(
+        showLoading: Bool = true
+    ) async {
+        if showLoading && dogs.isEmpty && posts.isEmpty {
+            screenState = .loading(
+                message: "Загружаем профиль..."
+            )
         }
 
-        isLoadingContent = false
+        actionErrorMessage = nil
+
+        do {
+            async let followingTask = appViewModel.isFollowing(
+                profile.userId
+            )
+
+            async let contentTask = appViewModel.loadProfileContent(
+                for: profile
+            )
+
+            async let statsTask = appViewModel.loadProfileStats(
+                for: profile.userId
+            )
+
+            let following = await followingTask
+            let content = try await contentTask
+
+            isFollowing = following
+            dogs = content.dogs
+            posts = content.posts
+
+            do {
+                stats = try await statsTask
+            } catch {
+                stats = nil
+            }
+
+            screenState = .content
+        } catch {
+            if dogs.isEmpty && posts.isEmpty {
+                screenState = .from(error)
+            } else {
+                screenState = .content
+                actionErrorMessage = error.localizedDescription
+            }
+        }
     }
 
     private func toggleFollow() async {
         isBusy = true
-        errorMessage = nil
+        actionErrorMessage = nil
         defer { isBusy = false }
 
         do {
@@ -312,7 +390,7 @@ struct UserProfileDetailView: View {
             }
         } catch {
             adjustFollowerCount(by: isFollowing ? 1 : -1)
-            errorMessage = "Не удалось обновить подписку"
+            actionErrorMessage = "Не удалось обновить подписку"
         }
     }
 
@@ -353,13 +431,13 @@ struct UserProfileDetailView: View {
 
     private func createChat() async {
         isBusy = true
-        errorMessage = nil
+        actionErrorMessage = nil
         defer { isBusy = false }
 
         do {
             try await appViewModel.createPrivateChat(with: profile.userId)
         } catch {
-            errorMessage = "Не удалось создать чат"
+            actionErrorMessage = "Не удалось создать чат"
         }
     }
 }

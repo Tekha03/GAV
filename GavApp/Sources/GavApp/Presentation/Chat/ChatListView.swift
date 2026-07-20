@@ -2,36 +2,36 @@ import SwiftUI
 
 struct ChatListView: View {
     @EnvironmentObject private var appViewModel: AppViewModel
+
     @State private var showAddChat = false
+    @State private var state: AppScreenState = .loading(
+        message: "Загружаем чаты..."
+    )
 
     var body: some View {
-
         let vm = appViewModel
 
         NavigationStack {
             ZStack {
                 chatBackground
 
-                if appViewModel.chats.isEmpty {
-                    emptyState
-                } else {
-                    ScrollView {
-                        LazyVStack(spacing: 12) {
-                            ForEach(appViewModel.chats) { chat in
-                                NavigationLink {
-                                    ChatDetailView(
-                                        chat: chat.domainChat,
-                                        currentUserId: vm.currentUserId,
-                                        useCase: vm.chatUseCase
-                                    )
-                                } label: {
-                                    chatRow(chat)
-                                }
-                                .buttonStyle(.plain)
+                switch state {
+                case .loading, .error, .offline:
+                    AppStatusView(
+                        state: state,
+                        retryAction: {
+                            Task {
+                                await loadChats()
                             }
                         }
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 20)
+                    )
+                    .foregroundStyle(.white)
+
+                case .content:
+                    if appViewModel.chats.isEmpty {
+                        emptyState
+                    } else {
+                        chatList(viewModel: vm)
                     }
                 }
             }
@@ -52,7 +52,7 @@ struct ChatListView: View {
             }
             .preferredColorScheme(.dark)
             .task {
-                await appViewModel.loadChats()
+                await loadChats()
             }
         }
     }
@@ -67,6 +67,30 @@ struct ChatListView: View {
             endPoint: .bottom
         )
         .ignoresSafeArea()
+    }
+
+    private func chatList(viewModel: AppViewModel) -> some View {
+        ScrollView {
+            LazyVStack(spacing: 12) {
+                ForEach(viewModel.chats) { chat in
+                    NavigationLink {
+                        ChatDetailView(
+                            chat: chat.domainChat,
+                            currentUserId: viewModel.currentUserId,
+                            useCase: viewModel.chatUseCase
+                        )
+                    } label: {
+                        chatRow(chat)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 20)
+        }
+        .refreshable {
+            await loadChats(showLoading: false)
+        }
     }
 
     private var emptyState: some View {
@@ -92,7 +116,10 @@ struct ChatListView: View {
                     .font(.headline.weight(.semibold))
                     .padding(.horizontal, 18)
                     .frame(height: 46)
-                    .background(Color.orange, in: RoundedRectangle(cornerRadius: 8))
+                    .background(
+                        Color.orange,
+                        in: RoundedRectangle(cornerRadius: 8)
+                    )
                     .foregroundStyle(.black)
             }
             .padding(.top, 4)
@@ -106,10 +133,12 @@ struct ChatListView: View {
             Circle()
                 .fill(Color.orange.opacity(0.15))
                 .frame(width: 46, height: 46)
-                .overlay(
-                    Image(systemName: "bubble.left.and.bubble.right.fill")
-                        .foregroundStyle(.orange)
-                )
+                .overlay {
+                    Image(
+                        systemName: "bubble.left.and.bubble.right.fill"
+                    )
+                    .foregroundStyle(.orange)
+                }
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(chat.title)
@@ -133,7 +162,27 @@ struct ChatListView: View {
             }
         }
         .padding(14)
-        .background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 18))
+        .background(
+            .white.opacity(0.08),
+            in: RoundedRectangle(cornerRadius: 18)
+        )
+    }
+
+    private func loadChats(showLoading: Bool = true) async {
+        if showLoading && appViewModel.chats.isEmpty {
+            state = .loading(message: "Загружаем чаты...")
+        }
+
+        do {
+            try await appViewModel.loadChats()
+            state = .content
+        } catch {
+            if appViewModel.chats.isEmpty {
+                state = .from(error)
+            } else {
+                state = .content
+            }
+        }
     }
 }
 
