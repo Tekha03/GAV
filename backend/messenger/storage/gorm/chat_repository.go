@@ -5,6 +5,7 @@ import (
 	"errors"
 	"messenger/internal/model"
 	"messenger/internal/repository"
+	apperrors "shared/app_errors"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -19,26 +20,29 @@ func NewChatRepository(repo *Repository) repository.ChatRepository {
 }
 
 func (cr *ChatRepository) Create(ctx context.Context, chat *model.Chat) error {
-	return cr.repo.WithContext(ctx).Create(chat).Error
+	err := cr.repo.WithContext(ctx).Create(chat).Error
+	return createError(err, apperrors.ChatAlreadyExists, "chat already exists", "failed to create chat")
 }
 
 func (cr *ChatRepository) UpdateTitle(ctx context.Context, chatID uuid.UUID, title string) error {
-	return cr.repo.WithContext(ctx).
+	result := cr.repo.WithContext(ctx).
 		Model(&model.Chat{}).
 		Where("id = ?", chatID).
-		Update("title", title).Error
+		Update("title", title)
+	return mutationError(result, apperrors.ChatNotFound, "chat not found", "failed to update chat title")
 }
 
 func (cr *ChatRepository) UpdatePhoto(ctx context.Context, chatID uuid.UUID, photoURL string) error {
-	return cr.repo.WithContext(ctx).
+	result := cr.repo.WithContext(ctx).
 		Model(&model.Chat{}).
 		Where("id = ?", chatID).
-		Update("photo_url", photoURL).Error
+		Update("photo_url", photoURL)
+	return mutationError(result, apperrors.ChatNotFound, "chat not found", "failed to update chat photo")
 }
 
 func (cr *ChatRepository) Delete(ctx context.Context, chatID uuid.UUID) error {
-	return cr.repo.WithContext(ctx).
-		Delete(&model.Chat{}, "id = ?", chatID).Error
+	result := cr.repo.WithContext(ctx).Delete(&model.Chat{}, "id = ?", chatID)
+	return mutationError(result, apperrors.ChatNotFound, "chat not found", "failed to delete chat")
 }
 
 func (cr *ChatRepository) GetByID(ctx context.Context, chatID uuid.UUID) (*model.Chat, error) {
@@ -46,9 +50,9 @@ func (cr *ChatRepository) GetByID(ctx context.Context, chatID uuid.UUID) (*model
 	err := cr.repo.WithContext(ctx).First(&chat, "id = ?", chatID).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, repository.ErrChatNotFound
+			return nil, apperrors.New(apperrors.ChatNotFound, "chat not found")
 		}
-		return nil, err
+		return nil, internalError("failed to get chat by ID", err)
 	}
 	return &chat, nil
 }

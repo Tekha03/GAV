@@ -2,15 +2,25 @@
 package client
 
 import (
-	pb "api/gen/social/v1"
+	authv1 "api/gen/auth/v1"
+	socialv1 "api/gen/social/v1"
 	"context"
+
 	uuid "github.com/google/uuid"
 	"google.golang.org/grpc"
 )
 
 type SocialNetworkClient struct {
-	socialClient pb.SocialServiceClient
+	socialClient socialv1.SocialServiceClient
+	authClient   authv1.AuthServiceClient
 	conn         *grpc.ClientConn
+}
+
+func (c *SocialNetworkClient) Close() error {
+	if c == nil || c.conn == nil {
+		return nil
+	}
+	return c.conn.Close()
 }
 
 func NewSocialNetworkClient(addr string) (*SocialNetworkClient, error) {
@@ -19,17 +29,20 @@ func NewSocialNetworkClient(addr string) (*SocialNetworkClient, error) {
 		return nil, err
 	}
 	return &SocialNetworkClient{
-		socialClient: pb.NewSocialServiceClient(conn),
+		socialClient: socialv1.NewSocialServiceClient(conn),
+		authClient:   authv1.NewAuthServiceClient(conn),
 		conn:         conn,
 	}, nil
 }
 
-func (c *SocialNetworkClient) GetUserProfile(ctx context.Context, userID uuid.UUID) (*pb.UserProfile, error) {
-	resp, err := c.socialClient.GetProfile(ctx, &pb.GetProfileRequest{UserId: userID.String()})
+func (c *SocialNetworkClient) GetUserProfile(ctx context.Context, userID uuid.UUID) (*socialv1.UserProfile, error) {
+	resp, err := c.socialClient.GetProfile(ctx, &socialv1.GetProfileRequest{UserId: userID.String()})
 	return resp, err
 }
 
-func (c *SocialNetworkClient) Login(ctx context.Context, email, password string) (*pb.LoginResponse, error) {
-	// return c.socialClient.Login(ctx, &pb.LoginRequest{Email: email, Password: password})
-	return nil, nil
+func (c *SocialNetworkClient) Login(ctx context.Context, email, password string) (*authv1.LoginResponse, error) {
+	return c.authClient.Login(ctx, &authv1.LoginRequest{
+		Email:    email,
+		Password: password,
+	})
 }

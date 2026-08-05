@@ -13,6 +13,13 @@ type NotificationClient struct {
 	conn   *grpc.ClientConn
 }
 
+func (nc *NotificationClient) Close() error {
+	if nc == nil || nc.conn == nil {
+		return nil
+	}
+	return nc.conn.Close()
+}
+
 func NewNotificationClient(addr string) (*NotificationClient, error) {
 	conn, err := grpc.Dial(addr, grpc.WithInsecure())
 	if err != nil {
