@@ -73,9 +73,12 @@ const (
 	CodeChatMemberAlreadyExists Code = "CHAT_MEMBER_ALREADY_EXISTS"
 
 	CodeMessageNotFound        Code = "MESSAGE_NOT_FOUND"
+	CodeMessageAlreadyExists   Code = "MESSAGE_ALREADY_EXISTS"
 	CodeMessageContentRequired Code = "MESSAGE_CONTENT_REQUIRED"
 	CodeMessageTextTooLong     Code = "MESSAGE_TEXT_TOO_LONG"
 
-	CodeAttachmentNotFound Code = "ATTACHMENT_NOT_FOUND"
-	CodeReactionNotFound   Code = "REACTION_NOT_FOUND"
+	CodeAttachmentNotFound      Code = "ATTACHMENT_NOT_FOUND"
+	CodeAttachmentAlreadyExists Code = "ATTACHMENT_ALREADY_EXISTS"
+	CodeReactionNotFound        Code = "REACTION_NOT_FOUND"
+	CodeReactionAlreadyExists   Code = "REACTION_ALREADY_EXISTS"
 )

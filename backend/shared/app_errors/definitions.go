@@ -71,9 +71,12 @@ var (
 	ChatMemberAlreadyExists = define(CodeChatMemberAlreadyExists, CategoryConflict)
 
 	MessageNotFound        = define(CodeMessageNotFound, CategoryNotFound)
+	MessageAlreadyExists   = define(CodeMessageAlreadyExists, CategoryConflict)
 	MessageContentRequired = define(CodeMessageContentRequired, CategoryValidation)
 	MessageTextTooLong     = define(CodeMessageTextTooLong, CategoryValidation)
 
-	AttachmentNotFound = define(CodeAttachmentNotFound, CategoryNotFound)
-	ReactionNotFound   = define(CodeReactionNotFound, CategoryNotFound)
+	AttachmentNotFound      = define(CodeAttachmentNotFound, CategoryNotFound)
+	AttachmentAlreadyExists = define(CodeAttachmentAlreadyExists, CategoryConflict)
+	ReactionNotFound        = define(CodeReactionNotFound, CategoryNotFound)
+	ReactionAlreadyExists   = define(CodeReactionAlreadyExists, CategoryConflict)
 )
