@@ -176,7 +176,12 @@ func (s *Server) DeleteMessage(ctx context.Context, req *pb.DeleteMessageRequest
 }
 
 func (s *Server) MarkAsRead(ctx context.Context, req *pb.MarkAsReadRequest) (*pb.MarkAsReadResponse, error) {
-	err := s.service.MarkAsRead(ctx, uuid.MustParse(req.ChatId), uuid.MustParse(req.UserId))
+	requesterID, ok := CurrentUserID(ctx)
+	if !ok {
+		return nil, status.Error(codes.Unauthenticated, "unauthenticated")
+	}
+	
+	err := s.service.MarkAsRead(ctx, uuid.MustParse(req.ChatId), requesterID)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "mark as read: %v", err)
 	}
