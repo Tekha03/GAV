@@ -68,14 +68,17 @@ const (
 	CodeChatAlreadyExists  Code = "CHAT_ALREADY_EXISTS"
 	CodeChatAccessDenied   Code = "CHAT_ACCESS_DENIED"
 	CodeChatSelfNotAllowed Code = "CHAT_SELF_NOT_ALLOWED"
+	CodeChatGroupRequired  Code = "CHAT_GROUP_REQUIRED"
 
 	CodeChatMemberNotFound      Code = "CHAT_MEMBER_NOT_FOUND"
 	CodeChatMemberAlreadyExists Code = "CHAT_MEMBER_ALREADY_EXISTS"
 
-	CodeMessageNotFound        Code = "MESSAGE_NOT_FOUND"
-	CodeMessageAlreadyExists   Code = "MESSAGE_ALREADY_EXISTS"
-	CodeMessageContentRequired Code = "MESSAGE_CONTENT_REQUIRED"
-	CodeMessageTextTooLong     Code = "MESSAGE_TEXT_TOO_LONG"
+	CodeMessageNotFound                 Code = "MESSAGE_NOT_FOUND"
+	CodeMessageAlreadyExists            Code = "MESSAGE_ALREADY_EXISTS"
+	CodeMessageContentRequired          Code = "MESSAGE_CONTENT_REQUIRED"
+	CodeMessageTextTooLong              Code = "MESSAGE_TEXT_TOO_LONG"
+	CodeMessageAttachmentsLimitExceeded Code = "MESSAGE_ATTACHMENTS_LIMIT_EXCEEDED"
+	CodeMessageReplyInvalid             Code = "MESSAGE_REPLY_INVALID"
 
 	CodeAttachmentNotFound      Code = "ATTACHMENT_NOT_FOUND"
 	CodeAttachmentAlreadyExists Code = "ATTACHMENT_ALREADY_EXISTS"

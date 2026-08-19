@@ -2,8 +2,8 @@ package service
 
 import (
 	"context"
-	"messenger/internal/errors"
 	"messenger/internal/model"
+	apperrors "shared/app_errors"
 
 	"github.com/google/uuid"
 )
@@ -14,7 +14,7 @@ func (s *ChatService) PinMessage(ctx context.Context, requesterID, messageID uui
 		return err
 	}
 	if msg == nil {
-		return errors.ErrMessageNotFound
+		return apperrors.New(apperrors.MessageNotFound, "message not found")
 	}
 	if err := s.requireChatMember(ctx, msg.ChatID, requesterID); err != nil {
 		return err
@@ -29,7 +29,7 @@ func (s *ChatService) UnpinMessage(ctx context.Context, requesterID, messageID u
 		return err
 	}
 	if msg == nil {
-		return errors.ErrMessageNotFound
+		return apperrors.New(apperrors.MessageNotFound, "message not found")
 	}
 	if err := s.requireChatMember(ctx, msg.ChatID, requesterID); err != nil {
 		return err
@@ -43,7 +43,10 @@ func (s *ChatService) GetPinnedMessages(ctx context.Context, chatID, requesterID
 		return nil, err
 	}
 
-	ids := s.pinnedRepo.GetByChatID(ctx, chatID)
+	ids, err := s.pinnedRepo.GetByChatID(ctx, chatID)
+	if err != nil {
+		return nil, err
+	}
 	messages := []*model.Message{}
 
 	for _, id := range ids {

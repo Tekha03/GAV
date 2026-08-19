@@ -1,6 +1,7 @@
 package gorm
 
 import (
+	"context"
 	"errors"
 	apperrors "shared/app_errors"
 
@@ -30,6 +31,9 @@ func mutationError(result *gorm.DB, notFound apperrors.Definition, notFoundMessa
 func internalError(operation string, err error) error {
 	if err == nil {
 		return nil
+	}
+	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		return apperrors.Normalize(err)
 	}
 	return apperrors.Wrap(apperrors.Internal, operation, err)
 }

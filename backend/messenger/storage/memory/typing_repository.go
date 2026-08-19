@@ -20,7 +20,7 @@ func NewTypingRepository() repository.TypingRepository {
 	}
 }
 
-func (tr *TypingRepository) SetTyping(ctx context.Context, chatID, userID uuid.UUID) {
+func (tr *TypingRepository) SetTyping(ctx context.Context, chatID, userID uuid.UUID) error {
 	tr.mu.Lock()
 	defer tr.mu.Unlock()
 
@@ -29,9 +29,10 @@ func (tr *TypingRepository) SetTyping(ctx context.Context, chatID, userID uuid.U
 	}
 
 	tr.typing[chatID][userID] = time.Now()
+	return nil
 }
 
-func (tr *TypingRepository) GetTypingUsers(ctx context.Context, chatID uuid.UUID, timeout time.Duration) []uuid.UUID {
+func (tr *TypingRepository) GetTypingUsers(ctx context.Context, chatID uuid.UUID, timeout time.Duration) ([]uuid.UUID, error) {
 	tr.mu.Lock()
 	defer tr.mu.Unlock()
 
@@ -46,10 +47,10 @@ func (tr *TypingRepository) GetTypingUsers(ctx context.Context, chatID uuid.UUID
 		}
 	}
 
-	return users
+	return users, nil
 }
 
-func (tr *TypingRepository) Cleanup(ctx context.Context, timeout time.Duration) {
+func (tr *TypingRepository) Cleanup(ctx context.Context, timeout time.Duration) error {
 	tr.mu.Lock()
 	defer tr.mu.Unlock()
 
@@ -61,4 +62,5 @@ func (tr *TypingRepository) Cleanup(ctx context.Context, timeout time.Duration) 
 			}
 		}
 	}
+	return nil
 }

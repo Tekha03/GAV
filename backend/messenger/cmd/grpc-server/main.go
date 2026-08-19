@@ -55,7 +55,9 @@ func main() {
 	chatv1.RegisterChatServiceServer(grpcServer, gr.NewServer(container.ChatService()))
 	go func() {
 		log.Printf("gRPC on %s", cfg.GRPCAddr)
-		grpcServer.Serve(grpcLis)
+		if err := grpcServer.Serve(grpcLis); err != nil {
+			log.Printf("gRPC server stopped with error: %v", err)
+		}
 	}()
 
 	httpServer := gateway.NewHTTPServer(cfg.HTTPAddr, container.ChatService(), cfg.JWTSecret)

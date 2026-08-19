@@ -3,8 +3,8 @@ package service
 import (
 	"context"
 	"encoding/json"
-	"messenger/internal/errors"
 	"messenger/internal/model"
+	apperrors "shared/app_errors"
 	"shared/events"
 	"time"
 
@@ -13,7 +13,7 @@ import (
 
 func (s *ChatService) AddReaction(ctx context.Context, messageID, userID, requesterID uuid.UUID, emoji string) error {
 	if userID != requesterID {
-		return errors.ErrChatAccessDenied
+		return apperrors.New(apperrors.ChatAccessDenied, "chat access denied")
 	}
 
 	msg, err := s.messageRepo.GetByID(ctx, messageID)
@@ -21,7 +21,7 @@ func (s *ChatService) AddReaction(ctx context.Context, messageID, userID, reques
 		return err
 	}
 	if msg == nil {
-		return errors.ErrMessageNotFound
+		return apperrors.New(apperrors.MessageNotFound, "message not found")
 	}
 	if err := s.requireChatMember(ctx, msg.ChatID, requesterID); err != nil {
 		return err
@@ -44,7 +44,7 @@ func (s *ChatService) AddReaction(ctx context.Context, messageID, userID, reques
 		Reaction:  emoji,
 	})
 	if err != nil {
-		return err
+		return apperrors.Wrap(apperrors.Internal, "failed to encode reaction added event", err)
 	}
 
 	event := events.Event{
@@ -59,7 +59,7 @@ func (s *ChatService) AddReaction(ctx context.Context, messageID, userID, reques
 
 func (s *ChatService) RemoveReaction(ctx context.Context, messageID, userID, requesterID uuid.UUID) error {
 	if userID != requesterID {
-		return errors.ErrChatAccessDenied
+		return apperrors.New(apperrors.ChatAccessDenied, "chat access denied")
 	}
 
 	msg, err := s.messageRepo.GetByID(ctx, messageID)
@@ -67,7 +67,7 @@ func (s *ChatService) RemoveReaction(ctx context.Context, messageID, userID, req
 		return err
 	}
 	if msg == nil {
-		return errors.ErrMessageNotFound
+		return apperrors.New(apperrors.MessageNotFound, "message not found")
 	}
 	if err := s.requireChatMember(ctx, msg.ChatID, requesterID); err != nil {
 		return err
@@ -82,7 +82,7 @@ func (s *ChatService) RemoveReaction(ctx context.Context, messageID, userID, req
 		UserID:    userID,
 	})
 	if err != nil {
-		return err
+		return apperrors.Wrap(apperrors.Internal, "failed to encode reaction removed event", err)
 	}
 
 	event := events.Event{

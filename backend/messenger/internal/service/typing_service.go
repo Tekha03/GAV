@@ -11,6 +11,5 @@ func (s *ChatService) SendTyping(ctx context.Context, chatID, userID uuid.UUID) 
 		return err
 	}
 
-	s.typingRepo.SetTyping(ctx, chatID, userID)
-	return nil
+	return s.typingRepo.SetTyping(ctx, chatID, userID)
 }

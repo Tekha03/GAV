@@ -66,14 +66,17 @@ var (
 	ChatAlreadyExists  = define(CodeChatAlreadyExists, CategoryConflict)
 	ChatAccessDenied   = define(CodeChatAccessDenied, CategoryPermissionDenied)
 	ChatSelfNotAllowed = define(CodeChatSelfNotAllowed, CategoryValidation)
+	ChatGroupRequired  = define(CodeChatGroupRequired, CategoryValidation)
 
 	ChatMemberNotFound      = define(CodeChatMemberNotFound, CategoryNotFound)
 	ChatMemberAlreadyExists = define(CodeChatMemberAlreadyExists, CategoryConflict)
 
-	MessageNotFound        = define(CodeMessageNotFound, CategoryNotFound)
-	MessageAlreadyExists   = define(CodeMessageAlreadyExists, CategoryConflict)
-	MessageContentRequired = define(CodeMessageContentRequired, CategoryValidation)
-	MessageTextTooLong     = define(CodeMessageTextTooLong, CategoryValidation)
+	MessageNotFound                 = define(CodeMessageNotFound, CategoryNotFound)
+	MessageAlreadyExists            = define(CodeMessageAlreadyExists, CategoryConflict)
+	MessageContentRequired          = define(CodeMessageContentRequired, CategoryValidation)
+	MessageTextTooLong              = define(CodeMessageTextTooLong, CategoryValidation)
+	MessageAttachmentsLimitExceeded = define(CodeMessageAttachmentsLimitExceeded, CategoryValidation)
+	MessageReplyInvalid             = define(CodeMessageReplyInvalid, CategoryValidation)
 
 	AttachmentNotFound      = define(CodeAttachmentNotFound, CategoryNotFound)
 	AttachmentAlreadyExists = define(CodeAttachmentAlreadyExists, CategoryConflict)

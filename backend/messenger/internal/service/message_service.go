@@ -3,9 +3,10 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"log/slog"
 	"messenger/internal/constatnts"
-	"messenger/internal/errors"
 	"messenger/internal/model"
+	apperrors "shared/app_errors"
 	"shared/events"
 	"time"
 
@@ -18,24 +19,24 @@ func (s *ChatService) SendMessage(ctx context.Context, requesterID uuid.UUID, in
 		return nil, err
 	}
 	if chat == nil {
-		return nil, errors.ErrChatNotFound
+		return nil, apperrors.New(apperrors.ChatNotFound, "chat not found")
 	}
 
 	if input.SenderID != requesterID {
-		return nil, errors.ErrChatAccessDenied
+		return nil, apperrors.New(apperrors.ChatAccessDenied, "chat access denied")
 	}
 	if err := s.requireChatMember(ctx, input.ChatID, requesterID); err != nil {
 		return nil, err
 	}
 
 	if input.Text == nil && len(input.Attachments) == 0 {
-		return nil, errors.ErrEmptyMessage
+		return nil, apperrors.New(apperrors.MessageContentRequired, "message content is required")
 	}
 	if input.Text != nil && len(*input.Text) > constatnts.MaxMessageLength {
-		return nil, errors.ErrTextOverLength
+		return nil, apperrors.New(apperrors.MessageTextTooLong, "message text is too long")
 	}
 	if len(input.Attachments) > constatnts.MaxAttachments {
-		return nil, errors.ErrAttachmentsOverLength
+		return nil, apperrors.New(apperrors.MessageAttachmentsLimitExceeded, "message attachments limit exceeded")
 	}
 	if input.ReplyToID != nil {
 		msg, err := s.messageRepo.GetByID(ctx, *input.ReplyToID)
@@ -43,7 +44,7 @@ func (s *ChatService) SendMessage(ctx context.Context, requesterID uuid.UUID, in
 			return nil, err
 		}
 		if msg == nil || msg.ChatID != input.ChatID {
-			return nil, errors.ErrInvalidReply
+			return nil, apperrors.New(apperrors.MessageReplyInvalid, "reply message belongs to another chat")
 		}
 	}
 
@@ -58,7 +59,7 @@ func (s *ChatService) SendMessage(ctx context.Context, requesterID uuid.UUID, in
 
 	msgID, err := s.messageRepo.Create(ctx, message)
 	if err != nil {
-		return nil, err
+		return nil, apperrors.Wrap(apperrors.Internal, "failed to encode message sent event", err)
 	}
 	message.ID = msgID
 
@@ -89,13 +90,15 @@ func (s *ChatService) SendMessage(ctx context.Context, requesterID uuid.UUID, in
 			text := messageText(input.Text)
 
 			go func() {
-				_ = s.notClient.SendNewMessage(
+				if err := s.notClient.SendNewMessage(
 					context.Background(),
 					receiverID,
 					senderName,
 					text,
 					input.ChatID.String(),
-				)
+				); err != nil {
+					slog.Error("failed to send new message notification", "error", err, "chat_id", input.ChatID)
+				}
 			}()
 		}
 	}
@@ -107,7 +110,7 @@ func (s *ChatService) SendMessage(ctx context.Context, requesterID uuid.UUID, in
 		Text:      messageText(input.Text),
 	})
 	if err != nil {
-		return nil, err
+		return nil, apperrors.Wrap(apperrors.Internal, "failed to encode message sent event", err)
 	}
 
 	event := events.Event{
@@ -130,10 +133,10 @@ func (s *ChatService) EditMessage(ctx context.Context, requesterID, messageID uu
 		return nil, err
 	}
 	if message == nil {
-		return nil, errors.ErrMessageNotFound
+		return nil, apperrors.New(apperrors.MessageNotFound, "message not found")
 	}
 	if message.SenderID != requesterID {
-		return nil, errors.ErrChatAccessDenied
+		return nil, apperrors.New(apperrors.ChatAccessDenied, "chat access denied")
 	}
 	if err := s.requireChatMember(ctx, message.ChatID, requesterID); err != nil {
 		return nil, err
@@ -148,7 +151,7 @@ func (s *ChatService) EditMessage(ctx context.Context, requesterID, messageID uu
 		return nil, err
 	}
 	if message == nil {
-		return nil, errors.ErrMessageNotFound
+		return nil, apperrors.New(apperrors.MessageNotFound, "message not found")
 	}
 
 	payload, err := json.Marshal(events.MessageEditedData{
@@ -157,7 +160,7 @@ func (s *ChatService) EditMessage(ctx context.Context, requesterID, messageID uu
 		Text:      messageText(message.Text),
 	})
 	if err != nil {
-		return nil, err
+		return nil, apperrors.Wrap(apperrors.Internal, "failed to encode message edited event", err)
 	}
 
 	event := events.Event{
@@ -180,10 +183,10 @@ func (s *ChatService) DeleteMessage(ctx context.Context, requesterID, messageID 
 		return err
 	}
 	if message == nil {
-		return errors.ErrMessageNotFound
+		return apperrors.New(apperrors.MessageNotFound, "message not found")
 	}
 	if message.SenderID != requesterID {
-		return errors.ErrChatAccessDenied
+		return apperrors.New(apperrors.ChatAccessDenied, "chat access denied")
 	}
 	if err := s.requireChatMember(ctx, message.ChatID, requesterID); err != nil {
 		return err
@@ -198,7 +201,7 @@ func (s *ChatService) DeleteMessage(ctx context.Context, requesterID, messageID 
 		ChatID:    message.ChatID,
 	})
 	if err != nil {
-		return err
+		return apperrors.Wrap(apperrors.Internal, "failed to encode message deleted event", err)
 	}
 
 	event := events.Event{
@@ -217,7 +220,7 @@ func (s *ChatService) GetMessages(ctx context.Context, chatID, requesterID uuid.
 		return nil, err
 	}
 	if chat == nil {
-		return nil, errors.ErrChatNotFound
+		return nil, apperrors.New(apperrors.ChatNotFound, "chat not found")
 	}
 	if err := s.requireChatMember(ctx, chatID, requesterID); err != nil {
 		return nil, err
@@ -227,10 +230,6 @@ func (s *ChatService) GetMessages(ctx context.Context, chatID, requesterID uuid.
 	if err != nil {
 		return nil, err
 	}
-	if messages == nil {
-		return nil, errors.ErrMessageNotFound
-	}
-
 	for _, message := range messages {
 		attachments, err := s.attachmentRepo.GetByMessage(ctx, message.ID)
 		if err != nil {
@@ -250,7 +249,7 @@ func (s *ChatService) MarkAsRead(ctx context.Context, chatID, requesterID uuid.U
 		return err
 	}
 	if chat == nil {
-		return errors.ErrChatNotFound
+		return apperrors.New(apperrors.ChatNotFound, "chat not found")
 	}
 	if err := s.requireChatMember(ctx, chatID, requesterID); err != nil {
 		return err
@@ -265,7 +264,7 @@ func (s *ChatService) ForwardMessage(ctx context.Context, requesterID, messageID
 		return nil, err
 	}
 	if origMsg == nil {
-		return nil, errors.ErrMessageNotFound
+		return nil, apperrors.New(apperrors.MessageNotFound, "message not found")
 	}
 
 	if err := s.requireChatMember(ctx, origMsg.ChatID, requesterID); err != nil {
@@ -311,7 +310,7 @@ func (s *ChatService) findChatReceiver(ctx context.Context, chatID, senderID uui
 		}
 	}
 
-	return uuid.Nil, errors.ErrNoMembers
+	return uuid.Nil, apperrors.New(apperrors.ChatMemberNotFound, "chat receiver not found")
 }
 
 func messageText(text *string) string {

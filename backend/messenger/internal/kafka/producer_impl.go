@@ -2,7 +2,7 @@ package kafka
 
 import (
 	"encoding/json"
-	"fmt"
+	apperrors "shared/app_errors"
 	"shared/events"
 
 	"github.com/IBM/sarama"
@@ -25,7 +25,7 @@ func NewProducer(brokers []string) (*Producer, error) {
 
 	producer, err := sarama.NewSyncProducer(brokers, config)
 	if err != nil {
-		return nil, err
+		return nil, apperrors.Wrap(apperrors.ServiceUnavailable, "failed to create Kafka producer", err)
 	}
 
 	return &Producer{producer: producer}, nil
@@ -38,7 +38,7 @@ func (p *Producer) PublishEvent(event events.Event) error {
 
 	bytes, err := json.Marshal(event)
 	if err != nil {
-		return err
+		return apperrors.Wrap(apperrors.Internal, "failed to encode event", err)
 	}
 
 	topic, err := resolveTopic(event.EventType)
@@ -53,14 +53,14 @@ func (p *Producer) PublishEvent(event events.Event) error {
 	}
 
 	_, _, err = p.producer.SendMessage(message)
-	return err
+	return apperrors.Wrap(apperrors.ServiceUnavailable, "failed to publish event", err)
 }
 
 func (p *Producer) Close() error {
 	if p == nil || p.producer == nil {
 		return nil
 	}
-	return p.producer.Close()
+	return apperrors.Wrap(apperrors.Internal, "failed to close Kafka producer", p.producer.Close())
 }
 
 func resolveTopic(eventType events.EventType) (string, error) {
@@ -82,6 +82,6 @@ func resolveTopic(eventType events.EventType) (string, error) {
 		return reactionTopic, nil
 
 	default:
-		return "", fmt.Errorf("unknown event type: %s", eventType)
+		return "", apperrors.New(apperrors.Internal, "unknown event type", apperrors.WithDetail("event_type", eventType))
 	}
 }

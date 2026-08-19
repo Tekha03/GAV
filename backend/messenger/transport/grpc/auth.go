@@ -2,14 +2,13 @@ package grpc
 
 import (
 	"context"
+	apperrors "shared/app_errors"
 	"strings"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	grpcpkg "google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
-	"google.golang.org/grpc/status"
 )
 
 type authContextKey struct{}
@@ -37,7 +36,7 @@ func AuthUnaryInterceptor(jwtSecret string) grpcpkg.UnaryServerInterceptor {
 	) (any, error) {
 		userID, err := userIDFromMetadata(ctx, secret)
 		if err != nil {
-			return nil, status.Error(codes.Unauthenticated, "unauthenticated")
+			return nil, toGRPCError(err)
 		}
 
 		ctx = context.WithValue(ctx, userIDContextKey, userID)
@@ -56,7 +55,7 @@ func AuthStreamInterceptor(jwtSecret string) grpcpkg.StreamServerInterceptor {
 	) error {
 		userID, err := userIDFromMetadata(stream.Context(), secret)
 		if err != nil {
-			return status.Error(codes.Unauthenticated, "unauthenticated")
+			return toGRPCError(err)
 		}
 
 		ctx := context.WithValue(stream.Context(), userIDContextKey, userID)
@@ -79,12 +78,12 @@ func CurrentUserID(ctx context.Context) (uuid.UUID, bool) {
 func userIDFromMetadata(ctx context.Context, secret []byte) (uuid.UUID, error) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
-		return uuid.Nil, ErrMissingMetadata
+		return uuid.Nil, apperrors.New(apperrors.AuthTokenMissing, "authorization metadata is missing")
 	}
 
 	values := md.Get("authorization")
 	if len(values) == 0 {
-		return uuid.Nil, ErrMissingAuthMetadata
+		return uuid.Nil, apperrors.New(apperrors.AuthTokenMissing, "authorization token is required")
 	}
 
 	return parseBearerToken(values[0], secret)
@@ -95,25 +94,28 @@ func parseBearerToken(header string, secret []byte) (uuid.UUID, error) {
 	parts := strings.Fields(header)
 
 	if len(parts) != 2 || parts[0] != "Bearer" || strings.TrimSpace(parts[1]) == "" {
-		return uuid.Nil, ErrIvalidAuthorization
+		return uuid.Nil, apperrors.New(apperrors.AuthTokenInvalid, "invalid authorization token")
 	}
 
 	claims := &authClaims{}
 	token, err := jwt.ParseWithClaims(parts[1], claims, func(token *jwt.Token) (any, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, ErrInvalidSignMethod
+			return nil, apperrors.New(apperrors.AuthTokenInvalid, "invalid authorization token")
 		}
 
 		return secret, nil
 	})
 
-	if err != nil || !token.Valid {
-		return uuid.Nil, ErrInvalidToken
+	if err != nil {
+		return uuid.Nil, apperrors.Wrap(apperrors.AuthTokenInvalid, "invalid authorization token", err)
+	}
+	if token == nil || !token.Valid {
+		return uuid.Nil, apperrors.New(apperrors.AuthTokenInvalid, "invalid authorization token")
 	}
 
 	userID, err := uuid.Parse(claims.Subject)
 	if err != nil || userID == uuid.Nil {
-		return uuid.Nil, ErrInvalidSubject
+		return uuid.Nil, apperrors.New(apperrors.AuthTokenInvalid, "invalid authorization token")
 	}
 
 	return userID, nil
