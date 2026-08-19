@@ -1,11 +1,11 @@
 package post
 
-import "errors"
+import apperrors "shared/app_errors"
 
 var (
-	ErrPostNotFound = errors.New("post not found")
-	ErrForbidden    = errors.New("forbidden")
-	ErrEmptyContent = errors.New("empty content")
+	ErrPostNotFound = apperrors.New(apperrors.PostNotFound, "post not found")
+	ErrForbidden    = apperrors.New(apperrors.PostAccessDenied, "forbidden")
+	ErrEmptyContent = apperrors.New(apperrors.PostContentRequired, "post content is required")
 
-	ErrRepoNil = errors.New("post service: repo is nil")
+	ErrRepoNil = apperrors.New(apperrors.Internal, "post service: repo is nil")
 )

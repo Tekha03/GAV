@@ -1,8 +1,8 @@
 package comment
 
-import "errors"
+import apperrors "shared/app_errors"
 
 var (
-	ErrRepoEmpty = errors.New("comment service: repo is nil")
-	ErrDB        = errors.New("db error")
+	ErrRepoEmpty = apperrors.New(apperrors.Internal, "comment service: repo is nil")
+	ErrDB        = apperrors.New(apperrors.Internal, "database error")
 )

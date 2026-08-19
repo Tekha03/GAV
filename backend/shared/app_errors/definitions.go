@@ -29,6 +29,8 @@ var (
 	ProfileNotFound        = define(CodeProfileNotFound, CategoryNotFound)
 	ProfileAlreadyExists   = define(CodeProfileAlreadyExists, CategoryConflict)
 	ProfileLocationInvalid = define(CodeProfileLocationInvalid, CategoryValidation)
+	SettingsNotFound       = define(CodeSettingsNotFound, CategoryNotFound)
+	StatsNotFound          = define(CodeStatsNotFound, CategoryNotFound)
 )
 
 // Dogs
@@ -49,8 +51,9 @@ var (
 	PostContentRequired = define(CodePostContentRequired, CategoryValidation)
 	PostAccessDenied    = define(CodePostAccessDenied, CategoryPermissionDenied)
 
-	CommentNotFound     = define(CodeCommentNotFound, CategoryNotFound)
-	CommentAccessDenied = define(CodeCommentAccessDenied, CategoryPermissionDenied)
+	CommentNotFound        = define(CodeCommentNotFound, CategoryNotFound)
+	CommentAccessDenied    = define(CodeCommentAccessDenied, CategoryPermissionDenied)
+	CommentContentRequired = define(CodeCommentContentRequired, CategoryValidation)
 
 	LikeAlreadyExists = define(CodeLikeAlreadyExists, CategoryConflict)
 	LikeNotFound      = define(CodeLikeNotFound, CategoryNotFound)
@@ -58,6 +61,13 @@ var (
 	FollowSelfNotAllowed = define(CodeFollowSelfNotAllowed, CategoryValidation)
 	FollowAlreadyExists  = define(CodeFollowAlreadyExists, CategoryConflict)
 	FollowNotFound       = define(CodeFollowNotFound, CategoryNotFound)
+
+	VaccinationNotFound     = define(CodeVaccinationNotFound, CategoryNotFound)
+	VaccinationAccessDenied = define(CodeVaccinationAccessDenied, CategoryPermissionDenied)
+	MediaFileTooLarge       = define(CodeMediaFileTooLarge, CategoryValidation)
+	MediaTypeInvalid        = define(CodeMediaTypeInvalid, CategoryValidation)
+	MediaURLInvalid         = define(CodeMediaURLInvalid, CategoryValidation)
+	NotificationNotFound    = define(CodeNotificationNotFound, CategoryNotFound)
 )
 
 // Messenger

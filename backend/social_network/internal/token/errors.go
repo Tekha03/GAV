@@ -1,10 +1,10 @@
 package token
 
-import "errors"
+import apperrors "shared/app_errors"
 
 var (
-	ErrRepoNil        = errors.New("token service: repo is nil")
-	ErrInvalidRefresh = errors.New("token service: invalid refresh")
-	ErrTokenNotFound  = errors.New("token not found")
-	ErrFail           = errors.New("fail")
+	ErrRepoNil        = apperrors.New(apperrors.Internal, "token service: repo is nil")
+	ErrInvalidRefresh = apperrors.New(apperrors.AuthRefreshInvalid, "invalid refresh token")
+	ErrTokenNotFound  = apperrors.New(apperrors.AuthRefreshInvalid, "token not found")
+	ErrFail           = apperrors.New(apperrors.Internal, "fail")
 )

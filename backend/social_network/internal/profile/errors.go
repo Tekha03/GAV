@@ -1,12 +1,12 @@
 package profile
 
-import appErrors "social_network/internal/errors"
+import apperrors "shared/app_errors"
 
 var (
-	ErrProfileAlreadyExists = appErrors.New(appErrors.CodeConflict, "profile already exists")
-	ErrProfileNotFound      = appErrors.New(appErrors.CodeNotFound, "profile not found")
-	ErrInvalidUserID        = appErrors.New(appErrors.CodeValidation, "invalid user ID")
-	ErrInvalidProfileID     = appErrors.New(appErrors.CodeValidation, "invalid profile ID")
+	ErrProfileAlreadyExists = apperrors.New(apperrors.ProfileAlreadyExists, "profile already exists")
+	ErrProfileNotFound      = apperrors.New(apperrors.ProfileNotFound, "profile not found")
+	ErrInvalidUserID        = apperrors.New(apperrors.Validation, "invalid user ID", apperrors.WithDetail("field", "user_id"))
+	ErrInvalidProfileID     = apperrors.New(apperrors.Validation, "invalid profile ID", apperrors.WithDetail("field", "profile_id"))
 
-	ErrRepoNil = appErrors.New(appErrors.CodeInternal, "profile service: repo is nil")
+	ErrRepoNil = apperrors.New(apperrors.Internal, "profile service: repo is nil")
 )

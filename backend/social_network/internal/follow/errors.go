@@ -1,14 +1,14 @@
 package follow
 
-import "errors"
+import apperrors "shared/app_errors"
 
 var (
-	ErrCannotFollowYourself = errors.New("you cannot follow yourself.")
-	ErrAlreadyFollowing     = errors.New("already following")
-	ErrInvalidUserID        = errors.New("invalid user id")
+	ErrCannotFollowYourself = apperrors.New(apperrors.FollowSelfNotAllowed, "you cannot follow yourself")
+	ErrAlreadyFollowing     = apperrors.New(apperrors.FollowAlreadyExists, "already following")
+	ErrInvalidUserID        = apperrors.New(apperrors.Validation, "invalid user id", apperrors.WithDetail("field", "user_id"))
 
-	ErrFollowerIDNil  = errors.New("follow model: follower id is nil")
-	ErrFollowingIDNil = errors.New("follow model: following id is nil")
-	ErrRepoNil        = errors.New("follow service: repo is nil")
-	ErrDBError        = errors.New("db error")
+	ErrFollowerIDNil  = apperrors.New(apperrors.Validation, "follow model: follower id is nil")
+	ErrFollowingIDNil = apperrors.New(apperrors.Validation, "follow model: following id is nil")
+	ErrRepoNil        = apperrors.New(apperrors.Internal, "follow service: repo is nil")
+	ErrDBError        = apperrors.New(apperrors.Internal, "database error")
 )

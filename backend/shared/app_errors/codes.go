@@ -31,6 +31,8 @@ const (
 	CodeProfileNotFound        Code = "PROFILE_NOT_FOUND"
 	CodeProfileAlreadyExists   Code = "PROFILE_ALREADY_EXISTS"
 	CodeProfileLocationInvalid Code = "PROFILE_LOCATION_INVALID"
+	CodeSettingsNotFound       Code = "SETTINGS_NOT_FOUND"
+	CodeStatsNotFound          Code = "STATS_NOT_FOUND"
 )
 
 // Dogs
@@ -51,8 +53,9 @@ const (
 	CodePostContentRequired Code = "POST_CONTENT_REQUIRED"
 	CodePostAccessDenied    Code = "POST_ACCESS_DENIED"
 
-	CodeCommentNotFound     Code = "COMMENT_NOT_FOUND"
-	CodeCommentAccessDenied Code = "COMMENT_ACCESS_DENIED"
+	CodeCommentNotFound        Code = "COMMENT_NOT_FOUND"
+	CodeCommentAccessDenied    Code = "COMMENT_ACCESS_DENIED"
+	CodeCommentContentRequired Code = "COMMENT_CONTENT_REQUIRED"
 
 	CodeLikeAlreadyExists Code = "LIKE_ALREADY_EXISTS"
 	CodeLikeNotFound      Code = "LIKE_NOT_FOUND"
@@ -60,6 +63,13 @@ const (
 	CodeFollowSelfNotAllowed Code = "FOLLOW_SELF_NOT_ALLOWED"
 	CodeFollowAlreadyExists  Code = "FOLLOW_ALREADY_EXISTS"
 	CodeFollowNotFound       Code = "FOLLOW_NOT_FOUND"
+
+	CodeVaccinationNotFound     Code = "VACCINATION_NOT_FOUND"
+	CodeVaccinationAccessDenied Code = "VACCINATION_ACCESS_DENIED"
+	CodeMediaFileTooLarge       Code = "MEDIA_FILE_TOO_LARGE"
+	CodeMediaTypeInvalid        Code = "MEDIA_TYPE_INVALID"
+	CodeMediaURLInvalid         Code = "MEDIA_URL_INVALID"
+	CodeNotificationNotFound    Code = "NOTIFICATION_NOT_FOUND"
 )
 
 // Messenger

@@ -1,11 +1,11 @@
 package vaccination
 
-import "errors"
+import apperrors "shared/app_errors"
 
 var (
-	ErrVaccAccessDenied    = errors.New("vaccination access denied")
-	ErrDogIDEmpty          = errors.New("dogID cannot be empty")
-	ErrDBError             = errors.New("db error")
-	ErrRepoNil             = errors.New("vaccination service: repo is nil")
-	ErrVaccinationNotFound = errors.New("vaccination not found")
+	ErrVaccAccessDenied    = apperrors.New(apperrors.VaccinationAccessDenied, "vaccination access denied")
+	ErrDogIDEmpty          = apperrors.New(apperrors.Validation, "dog ID cannot be empty", apperrors.WithDetail("field", "dog_id"))
+	ErrDBError             = apperrors.New(apperrors.Internal, "database error")
+	ErrRepoNil             = apperrors.New(apperrors.Internal, "vaccination service: repo is nil")
+	ErrVaccinationNotFound = apperrors.New(apperrors.VaccinationNotFound, "vaccination not found")
 )
