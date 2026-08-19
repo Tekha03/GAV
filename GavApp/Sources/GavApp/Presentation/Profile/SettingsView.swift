@@ -152,7 +152,7 @@ struct ProfileSettingsView: View {
                 username: cleanUsername,
                 profilePhotoUrl: uploadedAvatar?.rawURL
             )
-        } catch APIError.invalidResponse(let statusCode) where statusCode == 409 {
+        } catch let error as APIError where error.code == .profileAlreadyExists {
             errorMessage = "Этот никнейм уже занят"
             return
         } catch {
@@ -205,7 +205,7 @@ struct ProfileSettingsView: View {
                 userID: appViewModel.currentUserId,
                 input: input
             )
-        } catch APIError.invalidResponse(let statusCode) where statusCode == 404 {
+        } catch let error as APIError where error.category == .notFound {
             let profile = CreateProfileInput(
                 name: cleanFirstName,
                 surname: cleanLastName,
