@@ -61,9 +61,6 @@ func (c *Config) Validate() error {
 	if c.JWTSecret == "" {
 		return apperrors.New(apperrors.Validation, "JWT_SECRET is required", apperrors.WithDetail("field", "JWT_SECRET"))
 	}
-	if c.JWTSecret == "" {
-		return fmt.Errorf("JWT_SECRET is required")
-	}
 	if _, err := parseDSN(c.PostgresDSN); err != nil {
 		return apperrors.Wrap(apperrors.Validation, "invalid POSTGRES_DSN", err, apperrors.WithDetail("field", "POSTGRES_DSN"))
 	}
