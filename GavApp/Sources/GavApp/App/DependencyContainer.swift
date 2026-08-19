@@ -11,6 +11,7 @@ final class DependencyContainer {
         self.configuration = configuration
 
         let authManager = AuthManager()
+      
         MediaURLResolver.configure(socialBaseURL: configuration.socialBaseUrl)
         self.authManager = authManager
         self.authService = AuthServiceAPI(
@@ -19,9 +20,8 @@ final class DependencyContainer {
         )
 
         let chatUseCase = ChatServiceAPI(
-            baseURL: configuration.messengerBaseUrl,
             authManager: authManager,
-            currentUserIdProvider: { authManager.currentUserId() }
+            currentUserIdProvider: { authManager.currentUserID() }
         )
         let profileService = UserProfileServiceAPI(
             baseURL: configuration.socialBaseUrl,

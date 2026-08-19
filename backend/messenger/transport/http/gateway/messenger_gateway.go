@@ -134,6 +134,16 @@ func createPrivateChat(chatService service.Service) http.HandlerFunc {
 			return
 		}
 
+		authenticatedUserID, ok := currentUserID(r.Context())
+		if !ok {
+			writeError(w, http.StatusUnauthorized, errUnauthorized)
+			return
+		}
+		if req.UserID1 != authenticatedUserID && req.UserID2 != authenticatedUserID {
+			writeError(w, http.StatusForbidden, errForbidden)
+			return
+		}
+
 		chat, err := chatService.CreatePrivateChat(r.Context(), req.UserID1, req.UserID2)
 		if err != nil {
 			writeError(w, err)
@@ -162,6 +172,16 @@ func createGroupChat(chatService service.Service) http.HandlerFunc {
 			return
 		}
 
+		authenticatedUserID, ok := currentUserID(r.Context())
+		if !ok {
+			writeError(w, http.StatusUnauthorized, errUnauthorized)
+			return
+		}
+		if req.CreatorID != authenticatedUserID {
+			writeError(w, http.StatusForbidden, errForbidden)
+			return
+		}
+
 		chat, err := chatService.CreateGroupChat(r.Context(), req.Title, req.CreatorID, req.MemberIDs)
 		if err != nil {
 			writeError(w, err)
@@ -187,6 +207,16 @@ func getUserChats(chatService service.Service) http.HandlerFunc {
 		}
 		if userID != authenticatedUserID {
 			writeError(w, apperrors.New(apperrors.AuthForbidden, "operation is forbidden"))
+			return
+		}
+
+		authenticatedUserID, ok := currentUserID(r.Context())
+		if !ok {
+			writeError(w, http.StatusUnauthorized, errUnauthorized)
+			return
+		}
+		if userID != authenticatedUserID {
+			writeError(w, http.StatusForbidden, errForbidden)
 			return
 		}
 
@@ -302,6 +332,16 @@ func sendMessage(chatService service.Service) http.HandlerFunc {
 			return
 		}
 
+		authenticatedUserID, ok := currentUserID(r.Context())
+		if !ok {
+			writeError(w, http.StatusUnauthorized, errUnauthorized)
+			return
+		}
+		if req.SenderID != authenticatedUserID {
+			writeError(w, http.StatusForbidden, errForbidden)
+			return
+		}
+
 		attachments := make([]model.AttachmentInput, 0, len(req.Attachments))
 		for _, attachment := range req.Attachments {
 			attachments = append(attachments, model.AttachmentInput{
@@ -354,6 +394,16 @@ func markAsRead(chatService service.Service) http.HandlerFunc {
 		}
 		if req.UserID != authenticatedUserID {
 			writeError(w, apperrors.New(apperrors.ChatAccessDenied, "chat access denied"))
+			return
+		}
+
+		authenticatedUserID, ok := currentUserID(r.Context())
+		if !ok {
+			writeError(w, http.StatusUnauthorized, errUnauthorized)
+			return
+		}
+		if req.UserID != authenticatedUserID {
+			writeError(w, http.StatusForbidden, err)
 			return
 		}
 

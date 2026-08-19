@@ -21,7 +21,9 @@ struct GavApp: App {
         WindowGroup {
             Group {
                 if sessionViewModel.isLoading {
-                    ProgressView()
+                    AppStatusView(
+                        state: .loading(message: "Загружаем профиль...")
+                    )
                 } else if sessionViewModel.isAuthenticated {
                     AppView(session: sessionViewModel)
                 } else {
