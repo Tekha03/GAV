@@ -17,22 +17,33 @@ func NewTypingRepository(client *redis.Client) repository.TypingRepository {
 	return &TypingRepository{client: client}
 }
 
-func (tr *TypingRepository) SetTyping(ctx context.Context, chatID, userID uuid.UUID) {
+func (tr *TypingRepository) SetTyping(ctx context.Context, chatID, userID uuid.UUID) error {
 	key := "typing:" + chatID.String()
-	tr.client.SAdd(ctx, key, userID.String())
-	tr.client.Expire(ctx, key, 10*time.Second)
+	pipe := tr.client.TxPipeline()
+	pipe.SAdd(ctx, key, userID.String())
+	pipe.Expire(ctx, key, 10*time.Second)
+	_, err := pipe.Exec(ctx)
+	return unavailable("failed to set typing state", err)
 }
 
-func (tr *TypingRepository) GetTypingUsers(ctx context.Context, chatID uuid.UUID, timeout time.Duration) []uuid.UUID {
+func (tr *TypingRepository) GetTypingUsers(ctx context.Context, chatID uuid.UUID, timeout time.Duration) ([]uuid.UUID, error) {
 	key := "typing:" + chatID.String()
-	usersStr, _ := tr.client.SMembers(ctx, key).Result()
-
-	users := make([]uuid.UUID, len(usersStr))
-	for i, userStr := range usersStr {
-		users[i] = uuid.MustParse(userStr)
+	usersStr, err := tr.client.SMembers(ctx, key).Result()
+	if err != nil {
+		return nil, unavailable("failed to get typing users", err)
 	}
-	return users
+
+	users := make([]uuid.UUID, 0, len(usersStr))
+	for _, userStr := range usersStr {
+		userID, err := uuid.Parse(userStr)
+		if err != nil {
+			return nil, internal("invalid typing user ID in redis", err)
+		}
+		users = append(users, userID)
+	}
+	return users, nil
 }
 
-func (tr *TypingRepository) Cleanup(ctx context.Context, timeout time.Duration) {
+func (tr *TypingRepository) Cleanup(ctx context.Context, timeout time.Duration) error {
+	return nil
 }

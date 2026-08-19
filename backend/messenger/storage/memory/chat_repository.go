@@ -3,7 +3,7 @@ package memory
 import (
 	"context"
 	"messenger/internal/model"
-	"messenger/internal/repository"
+	apperrors "shared/app_errors"
 	"sync"
 
 	"github.com/google/uuid"
@@ -15,8 +15,7 @@ type ChatRepository struct {
 }
 
 func NewChatRepository() *ChatRepository {
-	return &ChatRepository{chats: make(map[uuid.UUID]*model.Chat),
-	}
+	return &ChatRepository{chats: make(map[uuid.UUID]*model.Chat)}
 }
 
 func (cr *ChatRepository) Create(ctx context.Context, chat *model.Chat) error {
@@ -25,14 +24,14 @@ func (cr *ChatRepository) Create(ctx context.Context, chat *model.Chat) error {
 
 	if chat.ID != uuid.Nil {
 		if _, found := cr.chats[chat.ID]; found {
-			return repository.ErrChatExists
+			return apperrors.New(apperrors.ChatAlreadyExists, "chat already exists")
 		}
 	} else {
 		chat.ID = uuid.New()
 	}
 
 	if _, found := cr.chats[chat.ID]; found {
-		return repository.ErrChatExists
+		return apperrors.New(apperrors.ChatAlreadyExists, "chat already exists")
 	}
 
 	cr.chats[chat.ID] = chat
@@ -45,7 +44,7 @@ func (cr *ChatRepository) UpdateTitle(ctx context.Context, chatID uuid.UUID, tit
 
 	model, found := cr.chats[chatID]
 	if !found {
-		return repository.ErrChatNotFound
+		return apperrors.New(apperrors.ChatNotFound, "chat not found")
 	}
 
 	model.Title = title
@@ -58,7 +57,7 @@ func (cr *ChatRepository) UpdatePhoto(ctx context.Context, chatID uuid.UUID, pho
 
 	model, found := cr.chats[chatID]
 	if !found {
-		return repository.ErrChatNotFound
+		return apperrors.New(apperrors.ChatNotFound, "chat not found")
 	}
 
 	model.PhotoURL = photoURL
@@ -70,7 +69,7 @@ func (cr *ChatRepository) Delete(ctx context.Context, chatID uuid.UUID) error {
 	defer cr.mu.Unlock()
 
 	if _, found := cr.chats[chatID]; !found {
-		return repository.ErrChatNotFound
+		return apperrors.New(apperrors.ChatNotFound, "chat not found")
 	}
 
 	delete(cr.chats, chatID)
@@ -83,7 +82,7 @@ func (cr *ChatRepository) GetByID(ctx context.Context, chatID uuid.UUID) (*model
 
 	model, found := cr.chats[chatID]
 	if !found {
-		return nil, repository.ErrChatNotFound
+		return nil, apperrors.New(apperrors.ChatNotFound, "chat not found")
 	}
 
 	return model, nil

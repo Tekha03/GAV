@@ -1,7 +1,9 @@
 package websocket
 
 import (
+	"encoding/json"
 	"net/http"
+	apperrors "shared/app_errors"
 	"strings"
 
 	"github.com/google/uuid"
@@ -14,13 +16,13 @@ func ChatHandler(hub *Hub, authVerifier func(w http.ResponseWriter, r *http.Requ
 	return func(w http.ResponseWriter, r *http.Request) {
 		parts := strings.Split(r.URL.Path, "/")
 		if len(parts) < 4 || parts[2] != "chat" {
-			http.Error(w, "bad path", http.StatusBadRequest)
+			writeError(w, apperrors.New(apperrors.Validation, "invalid WebSocket path", apperrors.WithDetail("field", "path")))
 			return
 		}
 
 		chatID, err := uuid.Parse(parts[3])
 		if err != nil {
-			http.Error(w, "bad chat_id", http.StatusBadRequest)
+			writeError(w, apperrors.Wrap(apperrors.Validation, "invalid chat ID", err, apperrors.WithDetail("field", "chat_id")))
 			return
 		}
 
@@ -68,5 +70,45 @@ func ChatHandler(hub *Hub, authVerifier func(w http.ResponseWriter, r *http.Requ
 				}
 			}
 		}()
+	}
+}
+
+func writeError(w http.ResponseWriter, err error) {
+	appErr := apperrors.Normalize(err)
+	message := appErr.Message
+	if appErr.Category == apperrors.CategoryInternal {
+		message = "internal server error"
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(httpStatus(appErr.Category))
+	_ = json.NewEncoder(w).Encode(map[string]any{
+		"error": map[string]any{
+			"code": appErr.Code, "category": appErr.Category,
+			"message": message, "details": appErr.Details,
+		},
+	})
+}
+
+func httpStatus(category apperrors.Category) int {
+	switch category {
+	case apperrors.CategoryValidation:
+		return http.StatusBadRequest
+	case apperrors.CategoryUnauthenticated:
+		return http.StatusUnauthorized
+	case apperrors.CategoryPermissionDenied:
+		return http.StatusForbidden
+	case apperrors.CategoryNotFound:
+		return http.StatusNotFound
+	case apperrors.CategoryConflict:
+		return http.StatusConflict
+	case apperrors.CategoryUnavailable:
+		return http.StatusServiceUnavailable
+	case apperrors.CategoryUnsupported:
+		return http.StatusNotImplemented
+	case apperrors.CategoryCancelled:
+		return 499
+	default:
+		return http.StatusInternalServerError
 	}
 }

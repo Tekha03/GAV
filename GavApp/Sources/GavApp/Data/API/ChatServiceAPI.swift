@@ -1,7 +1,7 @@
 import Foundation
 
 @available(macOS 12.0, *)
-final class ChatServiceAPI: ChatUseCase {
+final class ChatServiceAPI: ChatUseCase, @unchecked Sendable {
     private let base: BaseAPI
     private let currentUserIdProvider: @Sendable () -> UUID?
 
@@ -127,10 +127,7 @@ final class ChatServiceAPI: ChatUseCase {
         decoder.dateDecodingStrategy = .custom { decoder in
             let container = try decoder.singleValueContainer()
             let raw = try container.decode(String.self)
-            if let date = ISO8601DateFormatter.withFractionalSeconds.date(from: raw) {
-                return date
-            }
-            if let date = ISO8601DateFormatter.standard.date(from: raw) {
+            if let date = ISO8601DateFormatter.gavDate(from: raw) {
                 return date
             }
             throw DecodingError.dataCorruptedError(
@@ -379,15 +376,14 @@ private extension AttachmentType {
 }
 
 private extension ISO8601DateFormatter {
-    static let standard: ISO8601DateFormatter = {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime]
-        return formatter
-    }()
-
-    static let withFractionalSeconds: ISO8601DateFormatter = {
+    static func gavDate(from value: String) -> Date? {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        return formatter
-    }()
+        if let date = formatter.date(from: value) {
+            return date
+        }
+
+        formatter.formatOptions = [.withInternetDateTime]
+        return formatter.date(from: value)
+    }
 }

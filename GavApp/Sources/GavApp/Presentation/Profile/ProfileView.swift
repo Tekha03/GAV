@@ -248,34 +248,47 @@ struct ProfileView: View {
                 }
             }
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 14) {
-                    ForEach(appViewModel.dogs) { dog in
-                        Button {
-                            selectedDog = dog
-                        } label: {
-                            dogCard(dog)
-                        }
-                        .buttonStyle(.plain)
-                        .contextMenu {
-                            if appViewModel.canEditProfile {
-                                Button {
-                                    editingDog = dog
-                                } label: {
-                                    Label("Редактировать", systemImage: "pencil")
-                                }
+            if appViewModel.dogs.isEmpty {
+                emptyState(
+                    title: "Собак пока нет",
+                    message: appViewModel.canEditProfile
+                        ? "Добавьте первую собаку, чтобы она появилась в профиле."
+                        : "Когда здесь появятся собаки, вы увидите их карточки.",
+                    systemImage: "pawprint",
+                    actionTitle: appViewModel.canEditProfile ? "Добавить собаку" : nil
+                ) {
+                    showAddDogSheet = true
+                }
+            } else {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 14) {
+                        ForEach(appViewModel.dogs) { dog in
+                            Button {
+                                selectedDog = dog
+                            } label: {
+                                dogCard(dog)
+                            }
+                            .buttonStyle(.plain)
+                            .contextMenu {
+                                if appViewModel.canEditProfile {
+                                    Button {
+                                        editingDog = dog
+                                    } label: {
+                                        Label("Редактировать", systemImage: "pencil")
+                                    }
 
-                                Button(role: .destructive) {
-                                    deletingDog = dog
-                                } label: {
-                                    Label("Удалить", systemImage: "trash")
+                                    Button(role: .destructive) {
+                                        deletingDog = dog
+                                    } label: {
+                                        Label("Удалить", systemImage: "trash")
+                                    }
                                 }
                             }
                         }
                     }
+                    .padding(.horizontal, 2)
+                    .padding(.vertical, 8)
                 }
-                .padding(.horizontal, 2)
-                .padding(.vertical, 8)
             }
         }
     }
@@ -286,11 +299,24 @@ struct ProfileView: View {
                 .font(.headline)
                 .foregroundStyle(.white)
 
-            ForEach(appViewModel.posts) { post in
-                PostView(post: post) {
-                    Task { await appViewModel.toggleLike(postID: post.id) }
-                } onComment: {
-                    selectedCommentsPost = post
+            if appViewModel.posts.isEmpty {
+                emptyState(
+                    title: "Постов пока нет",
+                    message: appViewModel.canEditProfile
+                        ? "Поделитесь первой прогулкой, фото или заметкой."
+                        : "Когда здесь появятся публикации, вы увидите их в профиле.",
+                    systemImage: "photo.on.rectangle.angled",
+                    actionTitle: appViewModel.canEditProfile ? "Создать пост" : nil
+                ) {
+                    showAddPostSheet = true
+                }
+            } else {
+                ForEach(appViewModel.posts) { post in
+                    PostView(post: post) {
+                        Task { await appViewModel.toggleLike(postID: post.id) }
+                    } onComment: {
+                        selectedCommentsPost = post
+                    }
                 }
             }
         }
@@ -401,6 +427,50 @@ struct ProfileView: View {
         .frame(width: 132, height: 180)
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .shadow(color: .black.opacity(0.22), radius: 10, x: 0, y: 6)
+    }
+
+    private func emptyState(
+        title: String,
+        message: String,
+        systemImage: String,
+        actionTitle: String?,
+        action: @escaping () -> Void
+    ) -> some View {
+        VStack(spacing: 12) {
+            Image(systemName: systemImage)
+                .font(.system(size: 34, weight: .semibold))
+                .foregroundStyle(.orange)
+
+            Text(title)
+                .font(.headline)
+                .foregroundStyle(.white)
+
+            Text(message)
+                .font(.subheadline)
+                .multilineTextAlignment(.center)
+                .foregroundStyle(.white.opacity(0.68))
+                .frame(maxWidth: 280)
+
+            if let actionTitle {
+                Button(action: action) {
+                    Text(actionTitle)
+                        .font(.subheadline.weight(.semibold))
+                        .padding(.horizontal, 16)
+                        .frame(height: 42)
+                        .background(Color.orange, in: RoundedRectangle(cornerRadius: 8))
+                        .foregroundStyle(.black)
+                }
+                .padding(.top, 4)
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 24)
+        .frame(maxWidth: .infinity)
+        .background(.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 18))
+        .overlay(
+            RoundedRectangle(cornerRadius: 18)
+                .stroke(.white.opacity(0.08), lineWidth: 1)
+        )
     }
 
     private func deleteDog(_ dog: AppDog) async {

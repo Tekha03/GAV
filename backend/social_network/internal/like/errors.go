@@ -1,11 +1,11 @@
 package like
 
-import "errors"
+import apperrors "shared/app_errors"
 
 var (
-	ErrRepoNil          = errors.New("like service: repo is nil")
-	ErrInvalidLike      = errors.New("invalid like")
-	ErrAlreadyLiked     = errors.New("already liked")
-	ErrLikeDoesNotExist = errors.New("like does not exist")
-	ErrDBError          = errors.New("db error")
+	ErrRepoNil          = apperrors.New(apperrors.Internal, "like service: repo is nil")
+	ErrInvalidLike      = apperrors.New(apperrors.Validation, "invalid like")
+	ErrAlreadyLiked     = apperrors.New(apperrors.LikeAlreadyExists, "already liked")
+	ErrLikeDoesNotExist = apperrors.New(apperrors.LikeNotFound, "like does not exist")
+	ErrDBError          = apperrors.New(apperrors.Internal, "database error")
 )

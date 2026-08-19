@@ -4,6 +4,7 @@ import (
 	"context"
 	"messenger/internal/model"
 	"messenger/internal/repository"
+	apperrors "shared/app_errors"
 
 	"github.com/google/uuid"
 )
@@ -17,11 +18,13 @@ func NewReactionRepository(repo *Repository) repository.ReactionRepository {
 }
 
 func (rr *ReactionRepository) Add(ctx context.Context, reaction *model.Reaction) error {
-	return rr.repo.WithContext(ctx).Create(reaction).Error
+	err := rr.repo.WithContext(ctx).Create(reaction).Error
+	return createError(err, apperrors.ReactionAlreadyExists, "reaction already exists", "failed to add reaction")
 }
 
 func (rr *ReactionRepository) Remove(ctx context.Context, messageID, userID uuid.UUID) error {
-	return rr.repo.WithContext(ctx).
+	result := rr.repo.WithContext(ctx).
 		Where("message_id = ? AND user_id = ?", messageID, userID).
-		Delete(&model.Reaction{}).Error
+		Delete(&model.Reaction{})
+	return mutationError(result, apperrors.ReactionNotFound, "reaction not found", "failed to remove reaction")
 }

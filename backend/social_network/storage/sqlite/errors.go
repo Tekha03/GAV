@@ -1,32 +1,32 @@
 package sqlite
 
-import "errors"
+import apperrors "shared/app_errors"
 
 var (
-	ErrCommentNotFound      = errors.New("comment not found")
-	ErrDogNotFound          = errors.New("dog not found")
-	ErrSettingsNotFound     = errors.New("settings not found")
-	ErrPostNotFound         = errors.New("post not found")
-	ErrVaccinationNotFound  = errors.New("vaccination not found")
-	ErrUserNotFound         = errors.New("user not found")
-	ErrUserExists           = errors.New("user already exists")
-	ErrDBNil                = errors.New("base sqlite: db is nil")
-	ErrRefreshTokenNotFound = errors.New("refresh token not found")
+	ErrCommentNotFound      = apperrors.New(apperrors.CommentNotFound, "comment not found")
+	ErrDogNotFound          = apperrors.New(apperrors.DogNotFound, "dog not found")
+	ErrSettingsNotFound     = apperrors.New(apperrors.SettingsNotFound, "settings not found")
+	ErrPostNotFound         = apperrors.New(apperrors.PostNotFound, "post not found")
+	ErrVaccinationNotFound  = apperrors.New(apperrors.VaccinationNotFound, "vaccination not found")
+	ErrUserNotFound         = apperrors.New(apperrors.UserNotFound, "user not found")
+	ErrUserExists           = apperrors.New(apperrors.AuthEmailExists, "user already exists")
+	ErrDBNil                = apperrors.New(apperrors.Internal, "database is nil")
+	ErrRefreshTokenNotFound = apperrors.New(apperrors.AuthRefreshInvalid, "refresh token not found")
 
-	ErrMemberExists   = errors.New("chat member already exists")
-	ErrMemberNotFound = errors.New("member not found")
+	ErrMemberExists   = apperrors.New(apperrors.ChatMemberAlreadyExists, "chat member already exists")
+	ErrMemberNotFound = apperrors.New(apperrors.ChatMemberNotFound, "member not found")
 
-	ErrChatExists   = errors.New("chat already exists")
-	ErrChatNotFound = errors.New("chat not found")
-	ErrNotGroup     = errors.New("operation allowed only for group chats")
-	ErrEmptyTitle   = errors.New("title can not be empty")
+	ErrChatExists   = apperrors.New(apperrors.ChatAlreadyExists, "chat already exists")
+	ErrChatNotFound = apperrors.New(apperrors.ChatNotFound, "chat not found")
+	ErrNotGroup     = apperrors.New(apperrors.ChatGroupRequired, "operation allowed only for group chats")
+	ErrEmptyTitle   = apperrors.New(apperrors.Validation, "title cannot be empty")
 
-	ErrMessageNotFound = errors.New("messsage not found")
-	ErrMessageExists   = errors.New("message already exists")
+	ErrMessageNotFound = apperrors.New(apperrors.MessageNotFound, "message not found")
+	ErrMessageExists   = apperrors.New(apperrors.MessageAlreadyExists, "message already exists")
 
-	ErrAttachmentNotFound = errors.New("attachment not found")
-	ErrAttachmentExist    = errors.New("attachment exist")
+	ErrAttachmentNotFound = apperrors.New(apperrors.AttachmentNotFound, "attachment not found")
+	ErrAttachmentExist    = apperrors.New(apperrors.AttachmentAlreadyExists, "attachment already exists")
 
-	ErrReactionExists   = errors.New("reaction already exists")
-	ErrReactionNotFound = errors.New("reaction not found")
+	ErrReactionExists   = apperrors.New(apperrors.ReactionAlreadyExists, "reaction already exists")
+	ErrReactionNotFound = apperrors.New(apperrors.ReactionNotFound, "reaction not found")
 )

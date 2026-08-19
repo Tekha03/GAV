@@ -40,12 +40,10 @@ struct BaseAPI: Sendable {
         do {
             let (data, response) = try await session.data(for: request)
 
-            guard let httpResponse = response as? HTTPURLResponse,
-                (200...299).contains(httpResponse.statusCode)
-            else {
-                let statusCode = (response as? HTTPURLResponse)?.statusCode ?? 0
-                throw APIError.invalidResponse(statusCode: statusCode)
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw APIError.invalidResponse(statusCode: 0)
             }
+            try validate(httpResponse, data: data)
 
             return data
         } catch let error as APIError {
@@ -100,12 +98,10 @@ struct BaseAPI: Sendable {
         do {
             let (data, response) = try await session.data(for: request)
 
-            guard let httpResponse = response as? HTTPURLResponse,
-                (200...299).contains(httpResponse.statusCode)
-            else {
-                let statusCode = (response as? HTTPURLResponse)?.statusCode ?? 0
-                throw APIError.invalidResponse(statusCode: statusCode)
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw APIError.invalidResponse(statusCode: 0)
             }
+            try validate(httpResponse, data: data)
 
             return data
 
@@ -118,5 +114,15 @@ struct BaseAPI: Sendable {
 
     private func makeURL(_ path: String) -> URL? {
         URL(string: path, relativeTo: baseURL)?.absoluteURL
+    }
+
+    private func validate(_ response: HTTPURLResponse, data: Data) throws {
+        guard !(200...299).contains(response.statusCode) else { return }
+
+        if let payload = try? JSONDecoder().decode(APIErrorResponse.self, from: data) {
+            throw APIError.server(statusCode: response.statusCode, body: payload.error)
+        }
+
+        throw APIError.invalidResponse(statusCode: response.statusCode)
     }
 }

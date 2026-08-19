@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"encoding/json"
-	"errors"
 	"net/http"
 
 	"social_network/internal/auth"
@@ -85,11 +84,6 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 	token, err := h.service.Login(r.Context(), req.Email, req.Password)
 	if err != nil {
-		if errors.Is(err, auth.ErrInvalidCredentials) {
-			response.Error(w, ErrUnauthorized)
-			return
-		}
-
 		response.Error(w, err)
 		return
 	}

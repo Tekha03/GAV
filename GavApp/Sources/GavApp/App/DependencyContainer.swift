@@ -11,65 +11,54 @@ final class DependencyContainer {
         self.configuration = configuration
 
         let authManager = AuthManager()
-        MediaURLResolver.configure(socialBaseURL: configuration.socialBaseURL)
-
-        let authService = AuthServiceAPI(
-            baseURL: configuration.socialBaseURL,
-            authManager: authManager,
+      
+        MediaURLResolver.configure(socialBaseURL: configuration.socialBaseUrl)
+        self.authManager = authManager
+        self.authService = AuthServiceAPI(
+            baseURL: configuration.socialBaseUrl,
+            authManager: authManager
         )
 
-        let chatService = ChatServiceAPI(
-            baseURL: configuration.messengerBaseURL,
+        let chatUseCase = ChatServiceAPI(
             authManager: authManager,
             currentUserIdProvider: { authManager.currentUserID() }
         )
-
         let profileService = UserProfileServiceAPI(
-            baseURL: configuration.socialBaseURL,
+            baseURL: configuration.socialBaseUrl,
             authManager: authManager
         )
-
         let uploadService = UploadServiceAPI(
-            baseURL: configuration.socialBaseURL,
+            baseURL: configuration.socialBaseUrl,
             authManager: authManager
         )
-
         let dogService = DogServiceAPI(
-            baseURL: configuration.socialBaseURL,
+            baseURL: configuration.socialBaseUrl,
             authManager: authManager
         )
-
         let postService = PostServiceAPI(
-            baseURL: configuration.socialBaseURL,
+            baseURL: configuration.socialBaseUrl,
             authManager: authManager
         )
-
         let feedService = FeedServiceAPI(
-            baseURL: configuration.socialBaseURL,
+            baseURL: configuration.socialBaseUrl,
             authManager: authManager
         )
-
         let userService = UserServiceAPI(
-            baseURL: configuration.socialBaseURL,
+            baseURL: configuration.socialBaseUrl,
             authManager: authManager
         )
-
         let followService = FollowServiceAPI(
-            baseURL: configuration.socialBaseURL,
+            baseURL: configuration.socialBaseUrl,
             authManager: authManager
         )
-
         let statsService = StatsServiceAPI(
-            baseURL: configuration.socialBaseURL,
+            baseURL: configuration.socialBaseUrl,
             authManager: authManager
         )
 
-        self.authManager = authManager
-        self.authService = authService
-
-        self.AppViewModel = AppViewModel.runtime(
-            currentUserId: authManager.currentUserId(),
-            chatUseCase: chatService,
+        appViewModel = AppViewModel.runtime(
+            currentUserId: authManager.currentUserId() ?? UUID(),
+            chatUseCase: chatUseCase,
             profileService: profileService,
             uploadService: uploadService,
             dogService: dogService,

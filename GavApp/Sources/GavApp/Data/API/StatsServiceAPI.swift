@@ -7,7 +7,7 @@ protocol StatsServiceAPIProtocol: Sendable {
 }
 
 @available(macOS 12.0, *)
-final class StatsServiceAPI: StatsServiceAPIProtocol {
+final class StatsServiceAPI: StatsServiceAPIProtocol, @unchecked Sendable {
     private let base: BaseAPI
 
     init(

@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"errors"
-	internalErrors "social_network/internal/errors"
+	apperrors "shared/app_errors"
 )
 
 var (
@@ -24,8 +24,8 @@ var (
 	ErrInvalidLimit    = errors.New("invalid limit")
 	ErrServiceError    = errors.New("service error")
 
-	ErrInvalidInput  = internalErrors.New("VALIDATION_ERROR", "invalid input")
-	ErrUnauthorized  = internalErrors.New("UNAUTHORIZED", "unauthorized")
-	ErrForbidden     = internalErrors.New("FORBIDDEN", "forbidden")
-	ErrInvalidCursor = internalErrors.New("VALIDATION_ERROR", "invalid cursor")
+	ErrInvalidInput  = apperrors.New(apperrors.Validation, "invalid input")
+	ErrUnauthorized  = apperrors.New(apperrors.AuthTokenMissing, "unauthorized")
+	ErrForbidden     = apperrors.New(apperrors.AuthForbidden, "forbidden")
+	ErrInvalidCursor = apperrors.New(apperrors.Validation, "invalid cursor", apperrors.WithDetail("field", "cursor"))
 )

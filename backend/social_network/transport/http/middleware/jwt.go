@@ -6,8 +6,9 @@ import (
 	"strings"
 
 	"social_network/internal/auth"
-	"social_network/internal/errors"
 )
+
+type authErrorKey struct{}
 
 func JWTAuth(cfg auth.JWTConfig) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
@@ -19,28 +20,28 @@ func JWTAuth(cfg auth.JWTConfig) func(http.Handler) http.Handler {
 
 			header := strings.TrimSpace(r.Header.Get("Authorization"))
 			if header == "" {
-				ctx := context.WithValue(r.Context(), errors.CodeAuthError, errors.ErrMissingToken.Error())
+				ctx := context.WithValue(r.Context(), authErrorKey{}, ErrUnauthorized)
 				next.ServeHTTP(w, r.WithContext(ctx))
 				return
 			}
 
 			parts := strings.Split(header, " ")
 			if len(parts) != 2 || parts[0] != "Bearer" {
-				ctx := context.WithValue(r.Context(), errors.CodeAuthError, errors.ErrInvalidToken.Error())
+				ctx := context.WithValue(r.Context(), authErrorKey{}, auth.ErrInvalidToken)
 				next.ServeHTTP(w, r.WithContext(ctx))
 				return
 			}
 
 			token := strings.TrimSpace(parts[1])
 			if token == "" {
-				ctx := context.WithValue(r.Context(), errors.CodeAuthError, errors.ErrInvalidToken.Error())
+				ctx := context.WithValue(r.Context(), authErrorKey{}, auth.ErrInvalidToken)
 				next.ServeHTTP(w, r.WithContext(ctx))
 				return
 			}
 
 			claims, err := auth.ParseToken(token, cfg)
 			if err != nil {
-				ctx := context.WithValue(r.Context(), errors.CodeAuthError, err.Error())
+				ctx := context.WithValue(r.Context(), authErrorKey{}, err)
 				next.ServeHTTP(w, r.WithContext(ctx))
 				return
 			}

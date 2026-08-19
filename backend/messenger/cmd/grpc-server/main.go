@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"messenger/internal/config"
 	"messenger/internal/kafka"
@@ -30,7 +31,13 @@ func main() {
 		log.Print("Kafka disabled")
 	}
 
-	container, err := container.NewHybridContainer(cfg.PostgresDSN, cfg.RedisAddr, cfg.SocialNetworkAddr, producer)
+	container, err := container.NewHybridContainer(
+		context.Background(),
+		cfg.PostgresDSN,
+		cfg.RedisAddr,
+		cfg.SocialNetworkAddr,
+		producer,
+	)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -40,11 +47,17 @@ func main() {
 		log.Fatal(err)
 	}
 
-	grpcServer := grpc.NewServer()
+	grpcServer := grpc.NewServer(
+		grpc.UnaryInterceptor(gr.AuthUnaryInterceptor(cfg.JWTSecret)),
+		grpc.StreamInterceptor(gr.AuthStreamInterceptor(cfg.JWTSecret)),
+	)
+
 	chatv1.RegisterChatServiceServer(grpcServer, gr.NewServer(container.ChatService()))
 	go func() {
 		log.Printf("gRPC on %s", cfg.GRPCAddr)
-		grpcServer.Serve(grpcLis)
+		if err := grpcServer.Serve(grpcLis); err != nil {
+			log.Printf("gRPC server stopped with error: %v", err)
+		}
 	}()
 
 	httpServer := gateway.NewHTTPServer(cfg.HTTPAddr, container.ChatService(), cfg.JWTSecret)

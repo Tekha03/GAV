@@ -2,15 +2,15 @@ package comment
 
 import (
 	"context"
-	"errors"
+	apperrors "shared/app_errors"
 	"social_network/internal/stats"
 
 	"github.com/google/uuid"
 )
 
 var (
-	ErrCommentNotFound = errors.New("comment not found")
-	ErrForbiddenDelete = errors.New("forbidden: cannot delete someone else's comment")
+	ErrCommentNotFound = apperrors.New(apperrors.CommentNotFound, "comment not found")
+	ErrForbiddenDelete = apperrors.New(apperrors.CommentAccessDenied, "cannot delete someone else's comment")
 )
 
 type service struct {

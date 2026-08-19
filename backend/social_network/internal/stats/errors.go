@@ -1,8 +1,8 @@
 package stats
 
-import "errors"
+import apperrors "shared/app_errors"
 
 var (
-	ErrStatsNotFound = errors.New("user stats not found")
-	ErrRepoNil       = errors.New("stats service: repo is nil")
+	ErrStatsNotFound = apperrors.New(apperrors.StatsNotFound, "user stats not found")
+	ErrRepoNil       = apperrors.New(apperrors.Internal, "stats service: repo is nil")
 )

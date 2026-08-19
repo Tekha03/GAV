@@ -5,6 +5,7 @@ import (
 	"context"
 	"messenger/internal/model"
 	"messenger/internal/repository"
+	apperrors "shared/app_errors"
 	"sort"
 	"sync"
 	"time"
@@ -27,7 +28,7 @@ func (mr *MessageRepository) Create(ctx context.Context, msg *model.Message) (uu
 
 	if msg.ID != uuid.Nil {
 		if _, found := mr.messages[msg.ID]; found {
-			return msg.ID, repository.ErrMessageExists
+			return msg.ID, apperrors.New(apperrors.MessageAlreadyExists, "message already exists")
 		}
 	} else {
 		msg.ID = uuid.New()
@@ -44,7 +45,7 @@ func (mr *MessageRepository) UpdateText(ctx context.Context, msgID uuid.UUID, ne
 
 	msg, ok := mr.messages[msgID]
 	if !ok {
-		return repository.ErrMessageNotFound
+		return apperrors.New(apperrors.MessageNotFound, "message not found")
 	}
 
 	msg.Text = &newText
@@ -59,7 +60,7 @@ func (mr *MessageRepository) Delete(ctx context.Context, msgID uuid.UUID) error 
 
 	msg, ok := mr.messages[msgID]
 	if !ok {
-		return repository.ErrMessageNotFound
+		return apperrors.New(apperrors.MessageNotFound, "message not found")
 	}
 
 	now := time.Now()
@@ -73,7 +74,7 @@ func (mr *MessageRepository) GetByID(ctx context.Context, msgID uuid.UUID) (*mod
 
 	msg, ok := mr.messages[msgID]
 	if !ok {
-		return nil, repository.ErrMessageNotFound
+		return nil, apperrors.New(apperrors.MessageNotFound, "message not found")
 	}
 
 	return msg, nil

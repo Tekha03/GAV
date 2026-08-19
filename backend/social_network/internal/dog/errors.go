@@ -1,15 +1,15 @@
 package dog
 
-import "errors"
+import apperrors "shared/app_errors"
 
 var (
-	ErrOwnerIDNil      = errors.New("dog model: owner id is nil")
-	ErrNameEmpty       = errors.New("dog model: name is empty")
-	ErrBreedEmpty      = errors.New("dog model: breed is empty")
-	ErrGenderEmpty     = errors.New("dog model: gender is empty")
-	ErrStatusEmpty     = errors.New("dog model: status is empty")
-	ErrAgeEmpty        = errors.New("dog model: age is empty")
-	ErrPhotoURLEmpty   = errors.New("dog model: photo url is empty")
-	ErrRepoNil         = errors.New("dog service: repo is nil")
-	ErrDogAccessDenied = errors.New("dog access denied")
+	ErrOwnerIDNil      = apperrors.New(apperrors.Validation, "dog owner id is required", apperrors.WithDetail("field", "owner_id"))
+	ErrNameEmpty       = apperrors.New(apperrors.DogNameRequired, "dog name is required")
+	ErrBreedEmpty      = apperrors.New(apperrors.DogBreedRequired, "dog breed is required")
+	ErrGenderEmpty     = apperrors.New(apperrors.DogGenderInvalid, "dog gender is required")
+	ErrStatusEmpty     = apperrors.New(apperrors.DogStatusInvalid, "dog status is required")
+	ErrAgeEmpty        = apperrors.New(apperrors.DogAgeInvalid, "dog age is required")
+	ErrPhotoURLEmpty   = apperrors.New(apperrors.Validation, "dog photo URL is required", apperrors.WithDetail("field", "photo_url"))
+	ErrRepoNil         = apperrors.New(apperrors.Internal, "dog service: repo is nil")
+	ErrDogAccessDenied = apperrors.New(apperrors.DogAccessDenied, "dog access denied")
 )

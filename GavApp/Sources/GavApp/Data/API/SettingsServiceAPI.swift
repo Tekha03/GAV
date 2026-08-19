@@ -6,7 +6,7 @@ protocol SettingsServiceAPIProtocol: Sendable {
 }
 
 @available(macOS 12.0, *)
-final class SettingsServiceAPI: SettingsServiceAPIProtocol {
+final class SettingsServiceAPI: SettingsServiceAPIProtocol, @unchecked Sendable {
     private let base: BaseAPI
 
     init(

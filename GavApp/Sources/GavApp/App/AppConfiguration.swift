@@ -1,6 +1,6 @@
 import Foundation
 
-enum AppEnvironment {
+enum AppEnvironment: String, Sendable {
     case debug = "Debug"
     case staging = "Staging"
     case production = "Production"
@@ -38,7 +38,7 @@ struct AppConfiguration : Sendable {
     }
 
     private static func requiredString(_ key: String, bundle: Bundle) -> String {
-        guard let value = bundle.object(forInfoDictionaryKey: key) as ? String else {
+        guard let value = bundle.object(forInfoDictionaryKey: key) as? String else {
             preconditionFailure("Missing Info.plist key: \(key)")
         }
 

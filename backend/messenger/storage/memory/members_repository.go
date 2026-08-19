@@ -4,6 +4,7 @@ import (
 	"context"
 	"messenger/internal/model"
 	"messenger/internal/repository"
+	apperrors "shared/app_errors"
 	"sync"
 
 	"github.com/google/uuid"
@@ -27,7 +28,7 @@ func (mr *MembersRepository) AddMember(ctx context.Context, member *model.ChatMe
 	}
 
 	if _, exists := mr.members[member.ChatID][member.UserID]; exists {
-		return repository.ErrMemberExists
+		return apperrors.New(apperrors.ChatMemberAlreadyExists, "chat member already exists")
 	}
 
 	mr.members[member.ChatID][member.UserID] = member
@@ -39,11 +40,11 @@ func (mr *MembersRepository) RemoveMember(ctx context.Context, memberID, chatID 
 	defer mr.mu.Unlock()
 
 	if _, ok := mr.members[chatID]; !ok {
-		return repository.ErrMemberNotFound
+		return apperrors.New(apperrors.ChatMemberNotFound, "chat member not found")
 	}
 
 	if _, exists := mr.members[chatID][memberID]; !exists {
-		return repository.ErrMemberNotFound
+		return apperrors.New(apperrors.ChatMemberNotFound, "chat member not found")
 	}
 
 	delete(mr.members[chatID], memberID)
@@ -73,11 +74,11 @@ func (mr *MembersRepository) UpdateRole(ctx context.Context, chatID, userID uuid
 	defer mr.mu.Unlock()
 
 	if _, ok := mr.members[chatID]; !ok {
-		return repository.ErrMemberNotFound
+		return apperrors.New(apperrors.ChatMemberNotFound, "chat member not found")
 	}
 
 	if _, exists := mr.members[chatID][userID]; !exists {
-		return repository.ErrMemberNotFound
+		return apperrors.New(apperrors.ChatMemberNotFound, "chat member not found")
 	}
 
 	mr.members[chatID][userID].Role = *role
@@ -89,11 +90,11 @@ func (mr *MembersRepository) SetMuted(ctx context.Context, chatID, userID uuid.U
 	defer mr.mu.Unlock()
 
 	if _, ok := mr.members[chatID]; !ok {
-		return repository.ErrMemberNotFound
+		return apperrors.New(apperrors.ChatMemberNotFound, "chat member not found")
 	}
 
 	if _, exists := mr.members[chatID][userID]; !exists {
-		return repository.ErrMemberNotFound
+		return apperrors.New(apperrors.ChatMemberNotFound, "chat member not found")
 	}
 
 	mr.members[chatID][userID].Muted = muted
@@ -106,12 +107,12 @@ func (mr *MembersRepository) GetLastReadMessageID(ctx context.Context, chatID, u
 
 	membersMap, ok := mr.members[chatID]
 	if !ok {
-		return uuid.Nil, repository.ErrChatNotFound
+		return uuid.Nil, apperrors.New(apperrors.ChatMemberNotFound, "chat member not found")
 	}
 
 	member, exists := membersMap[userID]
 	if !exists {
-		return uuid.Nil, repository.ErrMemberNotFound
+		return uuid.Nil, apperrors.New(apperrors.ChatMemberNotFound, "chat member not found")
 	}
 
 	return member.LastReadMessageID, nil
@@ -143,4 +144,38 @@ func (mr *MembersRepository) FindPrivateChatBetween(ctx context.Context, userID1
 	}
 
 	return uuid.Nil, nil
+}
+
+func (mr *MembersRepository) MemberExists(ctx context.Context, userID, chatID uuid.UUID) (bool, error) {
+	members, err := mr.GetMembers(ctx, chatID)
+	if err != nil {
+		return false, err
+	}
+
+	ok := false
+
+	for _, member := range members {
+		if userID == member.UserID {
+			ok = true
+		}
+	}
+
+	return ok, nil
+}
+
+func (mr *MembersRepository) GetRole(ctx context.Context, userID, chatID uuid.UUID) (*model.MemberRole, error) {
+	mr.mu.RLock()
+	defer mr.mu.RUnlock()
+
+	membersMap, ok := mr.members[chatID]
+	if !ok {
+		return nil, apperrors.New(apperrors.ChatMemberNotFound, "chat member not found")
+	}
+
+	member, exists := membersMap[userID]
+	if !exists {
+		return nil, apperrors.New(apperrors.ChatMemberNotFound, "chat member not found")
+	}
+
+	return &member.Role, nil
 }
