@@ -56,3 +56,15 @@ func (cr *ChatRepository) GetByID(ctx context.Context, chatID uuid.UUID) (*model
 	}
 	return &chat, nil
 }
+
+func (cr *ChatRepository) GetByPrivateKey(ctx context.Context, privateKey string) (*model.Chat, error) {
+	var chat model.Chat
+	err := cr.repo.WithContext(ctx).First(&chat, "private_key = ?", privateKey).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, internalError("failed to get private chat", err)
+	}
+	return &chat, nil
+}

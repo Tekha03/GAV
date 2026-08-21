@@ -7,6 +7,7 @@ import (
 	pb "api/gen/chat/v1"
 	"messenger/internal/model"
 	"messenger/internal/service"
+	apperrors "shared/app_errors"
 
 	"github.com/google/uuid"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -22,6 +23,10 @@ func NewServer(service service.Service) *Server {
 }
 
 func (s *Server) CreatePrivateChat(ctx context.Context, req *pb.CreatePrivateChatRequest) (*pb.CreatePrivateChatResponse, error) {
+	requesterID, err := requireCurrentUserID(CurrentUserID(ctx))
+	if err != nil {
+		return nil, toGRPCError(err)
+	}
 	userID1, err := parseUUID(req.UserId_1, "user_id_1")
 	if err != nil {
 		return nil, toGRPCError(err)
@@ -29,6 +34,9 @@ func (s *Server) CreatePrivateChat(ctx context.Context, req *pb.CreatePrivateCha
 	userID2, err := parseUUID(req.UserId_2, "user_id_2")
 	if err != nil {
 		return nil, toGRPCError(err)
+	}
+	if requesterID != userID1 && requesterID != userID2 {
+		return nil, toGRPCError(apperrors.New(apperrors.ChatAccessDenied, "chat access denied"))
 	}
 	chat, err := s.service.CreatePrivateChat(ctx, userID1, userID2)
 	if err != nil {
@@ -38,6 +46,10 @@ func (s *Server) CreatePrivateChat(ctx context.Context, req *pb.CreatePrivateCha
 }
 
 func (s *Server) CreateGroupChat(ctx context.Context, req *pb.CreateGroupChatRequest) (*pb.CreateGroupChatResponse, error) {
+	creatorID, err := requireCurrentUserID(CurrentUserID(ctx))
+	if err != nil {
+		return nil, toGRPCError(err)
+	}
 	memberIDs := make([]uuid.UUID, len(req.MemberIds))
 	for i, id := range req.MemberIds {
 		memberID, err := parseUUID(id, "member_ids")
@@ -45,10 +57,6 @@ func (s *Server) CreateGroupChat(ctx context.Context, req *pb.CreateGroupChatReq
 			return nil, toGRPCError(err)
 		}
 		memberIDs[i] = memberID
-	}
-	creatorID, err := parseUUID(req.CreatorId, "creator_id")
-	if err != nil {
-		return nil, toGRPCError(err)
 	}
 	chat, err := s.service.CreateGroupChat(ctx, req.Title, creatorID, memberIDs)
 	if err != nil {
@@ -82,6 +90,10 @@ func (s *Server) GetChat(ctx context.Context, req *pb.GetChatRequest) (*pb.GetCh
 }
 
 func (s *Server) AddMember(ctx context.Context, req *pb.AddMemberRequest) (*pb.AddMemberResponse, error) {
+	requesterID, err := requireCurrentUserID(CurrentUserID(ctx))
+	if err != nil {
+		return nil, toGRPCError(err)
+	}
 	chatID, err := parseUUID(req.ChatId, "chat_id")
 	if err != nil {
 		return nil, toGRPCError(err)
@@ -90,7 +102,7 @@ func (s *Server) AddMember(ctx context.Context, req *pb.AddMemberRequest) (*pb.A
 	if err != nil {
 		return nil, toGRPCError(err)
 	}
-	err = s.service.AddMember(ctx, chatID, userID)
+	err = s.service.AddMember(ctx, chatID, userID, requesterID)
 	if err != nil {
 		return nil, toGRPCError(err)
 	}
@@ -106,23 +118,23 @@ func (s *Server) SendMessage(ctx context.Context, req *pb.SendMessageRequest) (*
 		}
 		replyTo = &id
 	}
-	chatID, err := parseUUID(req.ChatId, "chat_id")
+	requesterID, err := requireCurrentUserID(CurrentUserID(ctx))
 	if err != nil {
 		return nil, toGRPCError(err)
 	}
-	senderID, err := parseUUID(req.SenderId, "sender_id")
+	chatID, err := parseUUID(req.ChatId, "chat_id")
 	if err != nil {
 		return nil, toGRPCError(err)
 	}
 
 	input := model.SendMessageInput{
 		ChatID:    chatID,
-		SenderID:  senderID,
+		SenderID:  requesterID,
 		Text:      &req.Text,
 		ReplyToID: replyTo,
 	}
 
-	msg, err := s.service.SendMessage(ctx, input.SenderID, input)
+	msg, err := s.service.SendMessage(ctx, requesterID, input)
 	if err != nil {
 		return nil, toGRPCError(err)
 	}
@@ -237,7 +249,7 @@ func (s *Server) MarkAsRead(ctx context.Context, req *pb.MarkAsReadRequest) (*pb
 }
 
 func (s *Server) AddReaction(ctx context.Context, req *pb.AddReactionRequest) (*pb.AddReactionResponse, error) {
-	userID, err := parseUUID(req.UserId, "user_id")
+	requesterID, err := requireCurrentUserID(CurrentUserID(ctx))
 	if err != nil {
 		return nil, toGRPCError(err)
 	}
@@ -245,7 +257,7 @@ func (s *Server) AddReaction(ctx context.Context, req *pb.AddReactionRequest) (*
 	if err != nil {
 		return nil, toGRPCError(err)
 	}
-	err = s.service.AddReaction(ctx, messageID, userID, userID, req.Emoji)
+	err = s.service.AddReaction(ctx, messageID, requesterID, requesterID, req.Emoji)
 	if err != nil {
 		return nil, toGRPCError(err)
 	}
@@ -253,7 +265,7 @@ func (s *Server) AddReaction(ctx context.Context, req *pb.AddReactionRequest) (*
 }
 
 func (s *Server) RemoveReaction(ctx context.Context, req *pb.RemoveReactionRequest) (*pb.RemoveReactionResponse, error) {
-	userID, err := parseUUID(req.UserId, "user_id")
+	requesterID, err := requireCurrentUserID(CurrentUserID(ctx))
 	if err != nil {
 		return nil, toGRPCError(err)
 	}
@@ -261,7 +273,7 @@ func (s *Server) RemoveReaction(ctx context.Context, req *pb.RemoveReactionReque
 	if err != nil {
 		return nil, toGRPCError(err)
 	}
-	err = s.service.RemoveReaction(ctx, messageID, userID, userID)
+	err = s.service.RemoveReaction(ctx, messageID, requesterID, requesterID)
 	if err != nil {
 		return nil, toGRPCError(err)
 	}

@@ -21,6 +21,13 @@ func NewChatRepository() *ChatRepository {
 func (cr *ChatRepository) Create(ctx context.Context, chat *model.Chat) error {
 	cr.mu.Lock()
 	defer cr.mu.Unlock()
+	if chat.PrivateKey != nil {
+		for _, existing := range cr.chats {
+			if existing.PrivateKey != nil && *existing.PrivateKey == *chat.PrivateKey {
+				return apperrors.New(apperrors.ChatAlreadyExists, "chat already exists")
+			}
+		}
+	}
 
 	if chat.ID != uuid.Nil {
 		if _, found := cr.chats[chat.ID]; found {
@@ -86,4 +93,16 @@ func (cr *ChatRepository) GetByID(ctx context.Context, chatID uuid.UUID) (*model
 	}
 
 	return model, nil
+}
+
+func (cr *ChatRepository) GetByPrivateKey(ctx context.Context, privateKey string) (*model.Chat, error) {
+	cr.mu.RLock()
+	defer cr.mu.RUnlock()
+
+	for _, chat := range cr.chats {
+		if chat.PrivateKey != nil && *chat.PrivateKey == privateKey {
+			return chat, nil
+		}
+	}
+	return nil, nil
 }

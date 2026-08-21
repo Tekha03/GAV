@@ -8,13 +8,14 @@ import (
 )
 
 type ChatService struct {
-	chatRepo       repository.ChatRepository
-	membersRepo    repository.ChatMemberRepository
-	messageRepo    repository.MessageRepository
-	attachmentRepo repository.AttachmentRepository
-	reactionRepo   repository.ReactionRepository
-	pinnedRepo     repository.PinnedRepository
-	typingRepo     repository.TypingRepository
+	transactionManager repository.TransactionManager
+	chatRepo           repository.ChatRepository
+	membersRepo        repository.ChatMemberRepository
+	messageRepo        repository.MessageRepository
+	attachmentRepo     repository.AttachmentRepository
+	reactionRepo       repository.ReactionRepository
+	pinnedRepo         repository.PinnedRepository
+	typingRepo         repository.TypingRepository
 
 	socialClient *client.SocialNetworkClient
 	notClient    *client.NotificationClient
@@ -23,6 +24,7 @@ type ChatService struct {
 }
 
 func NewService(
+	transactionManager repository.TransactionManager,
 	chatRepo repository.ChatRepository,
 	membersRepo repository.ChatMemberRepository,
 	messageRepo repository.MessageRepository,
@@ -38,16 +40,17 @@ func NewService(
 
 ) Service {
 	s := &ChatService{
-		chatRepo:       chatRepo,
-		membersRepo:    membersRepo,
-		messageRepo:    messageRepo,
-		attachmentRepo: attachmentRepo,
-		reactionRepo:   reactionRepo,
-		pinnedRepo:     pinnedRepo,
-		typingRepo:     typingRepo,
-		socialClient:   socialClient,
-		notClient:      notClient,
-		producer:       producer,
+		transactionManager: transactionManager,
+		chatRepo:           chatRepo,
+		membersRepo:        membersRepo,
+		messageRepo:        messageRepo,
+		attachmentRepo:     attachmentRepo,
+		reactionRepo:       reactionRepo,
+		pinnedRepo:         pinnedRepo,
+		typingRepo:         typingRepo,
+		socialClient:       socialClient,
+		notClient:          notClient,
+		producer:           producer,
 	}
 
 	return s

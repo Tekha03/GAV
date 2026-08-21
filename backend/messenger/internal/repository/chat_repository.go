@@ -13,4 +13,5 @@ type ChatRepository interface {
 	UpdatePhoto(ctx context.Context, chatID uuid.UUID, photoURL string) error
 	Delete(ctx context.Context, chatID uuid.UUID) error
 	GetByID(ctx context.Context, chatID uuid.UUID) (*model.Chat, error)
+	GetByPrivateKey(ctx context.Context, privateKey string) (*model.Chat, error)
 }

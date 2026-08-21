@@ -86,6 +86,7 @@ func (c *HybridContainer) ChatService() service.Service {
 	go websocketHub.Run()
 
 	return service.NewService(
+		c.gormRepo,
 		orm.NewChatRepository(c.gormRepo),
 		orm.NewChatMemberRepository(c.gormRepo),
 		orm.NewMessageRepository(c.gormRepo),

@@ -6,6 +6,8 @@ import (
 	"messenger/internal/model"
 	apperrors "shared/app_errors"
 	"shared/events"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -16,39 +18,78 @@ func (s *ChatService) CreatePrivateChat(ctx context.Context, userID1, userID2 uu
 		return nil, apperrors.New(apperrors.ChatSelfNotAllowed, "cannot create a chat with yourself")
 	}
 
-	existingChatID, err := s.membersRepo.FindPrivateChatBetween(ctx, userID1, userID2)
+	privateKey := privateChatKey(userID1, userID2)
+	var result *model.Chat
+	var createdMembers []*model.ChatMember
+
+	create := func(txCtx context.Context) error {
+		existingChat, err := s.chatRepo.GetByPrivateKey(txCtx, privateKey)
+		if err != nil {
+			return err
+		}
+		if existingChat != nil {
+			result = existingChat
+			return nil
+		}
+
+		// Support private chats created before private_key was introduced.
+		existingChatID, err := s.membersRepo.FindPrivateChatBetween(txCtx, userID1, userID2)
+		if err != nil {
+			return err
+		}
+		if existingChatID != uuid.Nil {
+			result, err = s.chatRepo.GetByID(txCtx, existingChatID)
+			return err
+		}
+
+		chat := &model.Chat{
+			ID:         uuid.New(),
+			IsGroup:    false,
+			PrivateKey: &privateKey,
+			CreatedAt:  time.Now(),
+		}
+		if err := s.chatRepo.Create(txCtx, chat); err != nil {
+			return err
+		}
+
+		members := []*model.ChatMember{
+			{ChatID: chat.ID, UserID: userID1, JoinedAt: time.Now(), Role: model.Member},
+			{ChatID: chat.ID, UserID: userID2, JoinedAt: time.Now(), Role: model.Member},
+		}
+		for _, member := range members {
+			if err := s.membersRepo.AddMember(txCtx, member); err != nil {
+				return err
+			}
+		}
+
+		result = chat
+		createdMembers = members
+		return nil
+	}
+
+	var err error
+	if s.transactionManager != nil {
+		err = s.transactionManager.WithPrivateChatLock(ctx, privateKey, create)
+	} else {
+		err = create(ctx)
+	}
 	if err != nil {
 		return nil, err
 	}
-	if existingChatID != uuid.Nil {
-		return s.chatRepo.GetByID(ctx, existingChatID)
-	}
 
-	chat := &model.Chat{
-		ID:        uuid.New(),
-		IsGroup:   false,
-		CreatedAt: time.Now(),
-	}
-	if err := s.chatRepo.Create(ctx, chat); err != nil {
-		return nil, err
-	}
-
-	members := []*model.ChatMember{
-		{ChatID: chat.ID, UserID: userID1, JoinedAt: time.Now(), Role: model.Member},
-		{ChatID: chat.ID, UserID: userID2, JoinedAt: time.Now(), Role: model.Member},
-	}
-
-	for _, m := range members {
-		if err := s.membersRepo.AddMember(ctx, m); err != nil {
+	if len(createdMembers) > 0 {
+		if err := s.publishChatCreated(result.ID, createdMembers); err != nil {
 			return nil, err
 		}
 	}
 
-	if err := s.publishChatCreated(chat.ID, members); err != nil {
-		return nil, err
-	}
+	return result, nil
+}
 
-	return chat, nil
+func privateChatKey(userID1, userID2 uuid.UUID) string {
+	ids := []string{userID1.String(), userID2.String()}
+	sort.Strings(ids)
+	return strings.Join(ids, ":")
 }
 
 func (s *ChatService) CreateGroupChat(ctx context.Context, title string, creatorID uuid.UUID, membersIDs []uuid.UUID) (*model.Chat, error) {
@@ -114,7 +155,7 @@ func (s *ChatService) GetChatByID(ctx context.Context, chatID, requesterID uuid.
 	return chat, nil
 }
 
-func (s *ChatService) AddMember(ctx context.Context, chatID, requesterID uuid.UUID) error {
+func (s *ChatService) AddMember(ctx context.Context, chatID, userID, requesterID uuid.UUID) error {
 	if err := s.requireChatMember(ctx, chatID, requesterID); err != nil {
 		return err
 	}
@@ -139,7 +180,7 @@ func (s *ChatService) AddMember(ctx context.Context, chatID, requesterID uuid.UU
 
 	member := &model.ChatMember{
 		ChatID:   chatID,
-		UserID:   requesterID,
+		UserID:   userID,
 		JoinedAt: time.Now(),
 		Role:     model.Member,
 	}
@@ -150,7 +191,7 @@ func (s *ChatService) AddMember(ctx context.Context, chatID, requesterID uuid.UU
 
 	payload, err := json.Marshal(events.ChatMemberAddedData{
 		ChatID: chatID,
-		UserID: requesterID,
+		UserID: userID,
 	})
 	if err != nil {
 		return apperrors.Wrap(apperrors.Internal, "failed to encode chat member added event", err)
