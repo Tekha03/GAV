@@ -21,6 +21,13 @@ func (m *serializedTransactionManager) WithPrivateChatLock(ctx context.Context, 
 	return fn(ctx)
 }
 
+func (m *serializedTransactionManager) WithinTransaction(ctx context.Context, fn func(context.Context) error) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	return fn(ctx)
+}
+
 type privateChatRepository struct {
 	repository.ChatRepository
 	chats map[uuid.UUID]*model.Chat

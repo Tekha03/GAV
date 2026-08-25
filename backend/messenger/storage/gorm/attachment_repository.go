@@ -24,6 +24,20 @@ func (ar *AttachmentRepository) Create(ctx context.Context, attachment *model.At
 	return createError(err, apperrors.AttachmentAlreadyExists, "attachment already exists", "failed to create attachment")
 }
 
+func (ar *AttachmentRepository) CreateBatch(ctx context.Context, attachments []model.Attachment) error {
+	if len(attachments) == 0 {
+		return nil
+	}
+
+	err := ar.repo.WithContext(ctx).Create(&attachments).Error
+	return createError(
+		err,
+		apperrors.AttachmentAlreadyExists,
+		"attachment already exists",
+		"failed to create attachments",
+	)
+}
+
 func (ar *AttachmentRepository) GetByID(
 	ctx context.Context,
 	id uuid.UUID,

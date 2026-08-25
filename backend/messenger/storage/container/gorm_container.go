@@ -6,6 +6,8 @@ import (
 	"errors"
 	"messenger/internal/client"
 	"messenger/internal/kafka"
+	"messenger/internal/outbox"
+	"messenger/internal/repository"
 	"messenger/internal/service"
 	orm "messenger/storage/gorm"
 	rds "messenger/storage/redis"
@@ -27,6 +29,7 @@ type HybridContainer struct {
 	socialClient *client.SocialNetworkClient
 	notClient    *client.NotificationClient
 	producer     *kafka.Producer
+	outboxRepo   repository.OutboxRepository
 }
 
 func NewHybridContainer(
@@ -71,13 +74,16 @@ func NewHybridContainer(
 		return nil, apperrors.Wrap(apperrors.Internal, "failed to create notification client", cause)
 	}
 
+	gormRepo := orm.NewRepository(pgDB)
+
 	return &HybridContainer{
-		gormRepo:     orm.NewRepository(pgDB),
+		gormRepo:     gormRepo,
 		sqlDB:        sqlDB,
 		redis:        redisClient,
 		socialClient: socialClient,
 		notClient:    notClient,
 		producer:     producer,
+		outboxRepo:   orm.NewOutboxRepository(gormRepo),
 	}, nil
 }
 
@@ -91,6 +97,7 @@ func (c *HybridContainer) ChatService() service.Service {
 		orm.NewChatMemberRepository(c.gormRepo),
 		orm.NewMessageRepository(c.gormRepo),
 		orm.NewAttachmentRepository(c.gormRepo),
+		c.outboxRepo,
 		orm.NewReactionRepository(c.gormRepo),
 		rds.NewPinnedRepository(c.redis),
 		rds.NewTypingRepository(c.redis),
@@ -98,6 +105,13 @@ func (c *HybridContainer) ChatService() service.Service {
 		c.notClient,
 		c.producer,
 	)
+}
+
+func (c *HybridContainer) RunOutboxWorker(ctx context.Context) {
+	if c == nil {
+		return
+	}
+	outbox.NewWorker(c.outboxRepo, c.producer).Run(ctx)
 }
 
 func (c *HybridContainer) Close() error {

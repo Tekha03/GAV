@@ -57,25 +57,96 @@ func (s *ChatService) SendMessage(ctx context.Context, requesterID uuid.UUID, in
 		CreatedAt: time.Now(),
 	}
 
-	msgID, err := s.messageRepo.Create(ctx, message)
+	eventData, err := json.Marshal(events.MessageSentData{
+		MessageID: message.ID,
+		ChatID:    message.ChatID,
+		SenderID:  message.SenderID,
+		Text:      messageText(message.Text),
+	})
+	if err != nil {
+		return nil, apperrors.Wrap(apperrors.Internal, "failed to encode message sent data", err)
+	}
+
+	event := events.Event{
+		EventID:   uuid.New(),
+		EventType: events.EventTypeMessageSent,
+		Timestamp: time.Now(),
+		Data:      eventData,
+	}
+
+	eventPayload, err := json.Marshal(event)
 	if err != nil {
 		return nil, apperrors.Wrap(apperrors.Internal, "failed to encode message sent event", err)
 	}
-	message.ID = msgID
 
-	for _, att := range input.Attachments {
-		attachment := model.Attachment{
-			MessageID: msgID,
-			URL:       att.URL,
-			Type:      att.Type,
-			FileName:  att.FileName,
-			FileSize:  att.FileSize,
+	saveMessage := func(txCtx context.Context) error {
+		messageID, err := s.messageRepo.Create(
+			txCtx,
+			message,
+		)
+		if err != nil {
+			return err
 		}
 
-		if err := s.attachmentRepo.Create(ctx, &attachment); err != nil {
+		message.ID = messageID
+
+		attachments := make(
+			[]model.Attachment,
+			0,
+			len(input.Attachments),
+		)
+
+		for _, inputAttachment := range input.Attachments {
+			attachment := model.Attachment{
+				ID:        uuid.New(),
+				MessageID: messageID,
+				URL:       inputAttachment.URL,
+				Type:      inputAttachment.Type,
+				FileName:  inputAttachment.FileName,
+				FileSize:  inputAttachment.FileSize,
+			}
+
+			attachments = append(
+				attachments,
+				attachment,
+			)
+		}
+
+		if err := s.attachmentRepo.CreateBatch(
+			txCtx,
+			attachments,
+		); err != nil {
+			return err
+		}
+
+		message.Attachments = attachments
+
+		if s.outboxRepo != nil {
+			if err := s.outboxRepo.Create(txCtx, &model.OutboxEvent{
+				ID:            event.EventID,
+				EventType:     string(event.EventType),
+				Payload:       eventPayload,
+				CreatedAt:     event.Timestamp,
+				NextAttemptAt: event.Timestamp,
+			}); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	}
+
+	if s.transactionManager != nil {
+		if err := s.transactionManager.WithinTransaction(
+			ctx,
+			saveMessage,
+		); err != nil {
 			return nil, err
 		}
-		message.Attachments = append(message.Attachments, attachment)
+	} else {
+		if err := saveMessage(ctx); err != nil {
+			return nil, err
+		}
 	}
 
 	receiverID, err := s.findChatReceiver(ctx, input.ChatID, input.SenderID)
@@ -103,25 +174,12 @@ func (s *ChatService) SendMessage(ctx context.Context, requesterID uuid.UUID, in
 		}
 	}
 
-	payload, err := json.Marshal(events.MessageSentData{
-		MessageID: msgID,
-		ChatID:    input.ChatID,
-		SenderID:  input.SenderID,
-		Text:      messageText(input.Text),
-	})
-	if err != nil {
-		return nil, apperrors.Wrap(apperrors.Internal, "failed to encode message sent event", err)
-	}
-
-	event := events.Event{
-		EventID:   uuid.New(),
-		EventType: events.EventTypeMessageSent,
-		Timestamp: time.Now(),
-		Data:      payload,
-	}
-
-	if err := s.publishEvent(event); err != nil {
-		return nil, err
+	// Keep direct publishing only for alternate service configurations that do not
+	// provide an outbox repository. Production uses the transactional outbox worker.
+	if s.outboxRepo == nil {
+		if err := s.publishEvent(event); err != nil {
+			return nil, err
+		}
 	}
 
 	return message, nil

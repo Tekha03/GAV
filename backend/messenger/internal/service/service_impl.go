@@ -13,6 +13,7 @@ type ChatService struct {
 	membersRepo        repository.ChatMemberRepository
 	messageRepo        repository.MessageRepository
 	attachmentRepo     repository.AttachmentRepository
+	outboxRepo         repository.OutboxRepository
 	reactionRepo       repository.ReactionRepository
 	pinnedRepo         repository.PinnedRepository
 	typingRepo         repository.TypingRepository
@@ -29,6 +30,7 @@ func NewService(
 	membersRepo repository.ChatMemberRepository,
 	messageRepo repository.MessageRepository,
 	attachmentRepo repository.AttachmentRepository,
+	outboxRepo repository.OutboxRepository,
 	reactionRepo repository.ReactionRepository,
 	pinnedRepo repository.PinnedRepository,
 	typingRepo repository.TypingRepository,
@@ -45,6 +47,7 @@ func NewService(
 		membersRepo:        membersRepo,
 		messageRepo:        messageRepo,
 		attachmentRepo:     attachmentRepo,
+		outboxRepo:         outboxRepo,
 		reactionRepo:       reactionRepo,
 		pinnedRepo:         pinnedRepo,
 		typingRepo:         typingRepo,

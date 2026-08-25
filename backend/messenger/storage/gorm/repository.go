@@ -30,3 +30,15 @@ func (r *Repository) WithPrivateChatLock(ctx context.Context, privateKey string,
 		return fn(context.WithValue(ctx, transactionContextKey{}, tx))
 	})
 }
+
+func (r *Repository) WithinTransaction(ctx context.Context, fn func(context.Context) error) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		txCtx := context.WithValue(
+			ctx,
+			transactionContextKey{},
+			tx,
+		)
+
+		return fn(txCtx)
+	})
+}

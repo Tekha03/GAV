@@ -35,6 +35,19 @@ func (ar *AttachmentRepository) Create(ctx context.Context, attachment *model.At
 	return nil
 }
 
+func (ar *AttachmentRepository) CreateBatch(
+	ctx context.Context,
+	attachments []model.Attachment,
+) error {
+	for i := range attachments {
+		if err := ar.Create(ctx, &attachments[i]); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (ar *AttachmentRepository) GetByID(ctx context.Context, id uuid.UUID) (*model.Attachment, error) {
 	ar.mu.RLock()
 	defer ar.mu.RUnlock()

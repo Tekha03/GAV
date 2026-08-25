@@ -13,4 +13,5 @@ type AttachmentRepository interface {
 	GetByID(ctx context.Context, id uuid.UUID) (*model.Attachment, error)
 	Delete(ctx context.Context, id uuid.UUID) error
 	DeleteByMessage(ctx context.Context, messageID uuid.UUID) error
+	CreateBatch(ctx context.Context, attachments []model.Attachment) error
 }
