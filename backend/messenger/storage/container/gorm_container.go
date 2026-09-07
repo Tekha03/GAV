@@ -23,6 +23,7 @@ import (
 const dependencyCheckTimeout = 5 * time.Second
 
 type HybridContainer struct {
+	websocket    *websocket.Hub
 	gormRepo     *orm.Repository
 	sqlDB        *sql.DB
 	redis        *redis.Client
@@ -42,6 +43,9 @@ func NewHybridContainer(
 	if ctx == nil {
 		ctx = context.Background()
 	}
+
+	websocketHub := websocket.NewHub()
+	go websocketHub.Run()
 
 	pgDB, err := gorm.Open(postgres.Open(postgresDSN), &gorm.Config{TranslateError: true})
 	if err != nil {
@@ -77,6 +81,7 @@ func NewHybridContainer(
 	gormRepo := orm.NewRepository(pgDB)
 
 	return &HybridContainer{
+		websocket:    websocketHub,
 		gormRepo:     gormRepo,
 		sqlDB:        sqlDB,
 		redis:        redisClient,
@@ -88,8 +93,6 @@ func NewHybridContainer(
 }
 
 func (c *HybridContainer) ChatService() service.Service {
-	websocketHub := websocket.NewHub()
-	go websocketHub.Run()
 
 	return service.NewService(
 		c.gormRepo,
@@ -104,6 +107,7 @@ func (c *HybridContainer) ChatService() service.Service {
 		c.socialClient,
 		c.notClient,
 		c.producer,
+		c.websocket,
 	)
 }
 
@@ -165,4 +169,8 @@ func closeSQL(db *sql.DB) error {
 		return nil
 	}
 	return db.Close()
+}
+
+func (c *HybridContainer) WebSocketHub() *websocket.Hub {
+	return c.websocket
 }

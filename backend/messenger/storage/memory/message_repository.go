@@ -107,7 +107,7 @@ func (mr *MessageRepository) GetByChatID(ctx context.Context, chatID uuid.UUID, 
 
 	return result, nil
 }
-func (mr *MessageRepository) UpdateReadAtForChat(ctx context.Context, chatID, userID uuid.UUID, readAt time.Time) error {
+func (mr *MessageRepository) UpdateLastReadMessageForChat(ctx context.Context, chatID, userID uuid.UUID) error {
 	mr.mu.Lock()
 	defer mr.mu.Unlock()
 	return nil

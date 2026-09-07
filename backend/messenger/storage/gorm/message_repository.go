@@ -67,11 +67,28 @@ func (mr *MessageRepository) GetByID(ctx context.Context, messageID uuid.UUID) (
 func (mr *MessageRepository) GetByChatID(ctx context.Context, chatID uuid.UUID, limit int, cursorID *uuid.UUID) ([]*model.Message, error) {
 	query := mr.repo.WithContext(ctx).
 		Where("chat_id = ? AND deleted_at IS NULL", chatID).
-		Order("created_at DESC").
+		Order("created_at DESC, id DESC").
 		Limit(limit)
 
 	if cursorID != nil {
-		query = query.Where("created_at < ?", *cursorID)
+		var cursorMessage model.Message
+		err := mr.repo.WithContext(ctx).
+			Select("id", "created_at").
+			Where("id = ? AND chat_id = ? AND deleted_at IS NULL", *cursorID, chatID).
+			First(&cursorMessage).Error
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return nil, apperrors.New(apperrors.MessageNotFound, "cursor message not found")
+			}
+			return nil, internalError("failed to get cursor message", err)
+		}
+
+		query = query.Where(
+			"(created_at < ?) OR (created_at = ? AND id < ?)",
+			cursorMessage.CreatedAt,
+			cursorMessage.CreatedAt,
+			cursorMessage.ID,
+		)
 	}
 
 	var messages []*model.Message
@@ -81,6 +98,28 @@ func (mr *MessageRepository) GetByChatID(ctx context.Context, chatID uuid.UUID, 
 	return messages, nil
 }
 
-func (mr *MessageRepository) UpdateReadAtForChat(ctx context.Context, chatID, userID uuid.UUID, readAt time.Time) error {
-	return nil
+func (mr *MessageRepository) UpdateLastReadMessageForChat(ctx context.Context, chatID, userID uuid.UUID) error {
+	var lastMessage model.Message
+	lastMessageID := uuid.Nil
+
+	err := mr.repo.WithContext(ctx).
+		Select("id").
+		Where("chat_id = ? AND deleted_at IS NULL", chatID).
+		Order("created_at DESC, id DESC").
+		Limit(1).
+		First(&lastMessage).Error
+	if err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return internalError("failed to get last chat message", err)
+		}
+	} else {
+		lastMessageID = lastMessage.ID
+	}
+
+	result := mr.repo.WithContext(ctx).
+		Model(&model.ChatMember{}).
+		Where("chat_id = ? AND user_id = ?", chatID, userID).
+		Update("last_read_message_id", lastMessageID)
+
+	return mutationError(result, apperrors.ChatMemberNotFound, "chat member not found", "failed to update last read message")
 }
