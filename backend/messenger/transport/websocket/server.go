@@ -2,32 +2,33 @@ package websocket
 
 import (
 	"encoding/json"
+	"messenger/internal/service"
 	"net/http"
 	apperrors "shared/app_errors"
-	"strings"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 )
 
 var upgrader = websocket.Upgrader{}
 
-func ChatHandler(hub *Hub, authVerifier func(w http.ResponseWriter, r *http.Request) (uuid.UUID, error)) http.HandlerFunc {
+func ChatHandler(hub *Hub, chatService service.Service, authVerifier func(r *http.Request) (uuid.UUID, error)) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		parts := strings.Split(r.URL.Path, "/")
-		if len(parts) < 4 || parts[2] != "chat" {
-			writeError(w, apperrors.New(apperrors.Validation, "invalid WebSocket path", apperrors.WithDetail("field", "path")))
-			return
-		}
-
-		chatID, err := uuid.Parse(parts[3])
+		chatID, err := uuid.Parse(chi.URLParam(r, "chat_id"))
 		if err != nil {
 			writeError(w, apperrors.Wrap(apperrors.Validation, "invalid chat ID", err, apperrors.WithDetail("field", "chat_id")))
 			return
 		}
 
-		userID, err := authVerifier(w, r)
+		userID, err := authVerifier(r)
 		if err != nil {
+			writeError(w, err)
+			return
+		}
+
+		if err := chatService.RequireChatMember(r.Context(), chatID, userID); err != nil {
+			writeError(w, err)
 			return
 		}
 
@@ -40,36 +41,39 @@ func ChatHandler(hub *Hub, authVerifier func(w http.ResponseWriter, r *http.Requ
 			UserID: userID,
 			ChatID: chatID,
 			Conn:   conn,
-			Send:   make(chan []byte),
+			Send:   make(chan OutgoingMessage, 256),
 		}
 
 		hub.Register <- client
 
-		go func() {
-			for {
-				_, _, err := client.Conn.ReadMessage()
-				if err != nil {
-					hub.Unregister <- client
-					break
-				}
-			}
-		}()
+		go client.readPump(hub)
+		go client.writePump(hub)
+	}
+}
 
-		go func() {
-			for {
-				select {
-				case message, ok := <-client.Send:
-					if !ok {
-						return
-					}
-					err := client.Conn.WriteMessage(websocket.TextMessage, message)
-					if err != nil {
-						hub.Unregister <- client
-						return
-					}
-				}
-			}
-		}()
+func (c *Client) readPump(hub *Hub) {
+	defer func() {
+		hub.Unregister <- c
+		_ = c.Conn.Close()
+	}()
+
+	for {
+		if _, _, err := c.Conn.ReadMessage(); err != nil {
+			return
+		}
+	}
+}
+
+func (c *Client) writePump(hub *Hub) {
+	defer func() {
+		hub.Unregister <- c
+		_ = c.Conn.Close()
+	}()
+
+	for message := range c.Send {
+		if err := c.Conn.WriteMessage(websocket.TextMessage, message.Data); err != nil {
+			return
+		}
 	}
 }
 

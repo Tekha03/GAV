@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"messenger/internal/model"
 	"messenger/internal/service"
+	"messenger/transport/websocket"
 	"net/http"
 	apperrors "shared/app_errors"
 	"strconv"
@@ -67,7 +68,7 @@ type sendMessageRequest struct {
 	Attachments []attachmentDTO `json:"attachments"`
 }
 
-func NewHTTPServer(addr string, chatService service.Service, jwtSecret string) *http.Server {
+func NewHTTPServer(addr string, chatService service.Service, jwtSecret string, hub *websocket.Hub) *http.Server {
 	r := chi.NewRouter()
 	r.Use(corsMiddleware())
 
@@ -82,6 +83,17 @@ func NewHTTPServer(addr string, chatService service.Service, jwtSecret string) *
 		r.Get("/chats/{chat_id}/messages", getMessages(chatService))
 		r.Post("/chats/{chat_id}/messages", sendMessage(chatService))
 		r.Post("/chats/{chat_id}/read", markAsRead(chatService))
+		r.Get("/ws/chats/{chat_id}", websocket.ChatHandler(
+			hub,
+			chatService,
+			func(r *http.Request) (uuid.UUID, error) {
+				claims, err := parseBearerToken(r.Header.Get("Authorization"), []byte(jwtSecret))
+				if err != nil {
+					return uuid.Nil, err
+				}
+				return claims.UserID, nil
+			},
+		))
 	})
 
 	return &http.Server{Addr: addr, Handler: r}
