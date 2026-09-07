@@ -8,7 +8,7 @@ import (
 )
 
 func (s *ChatService) GetChatUnreadCount(ctx context.Context, chatID, userID uuid.UUID) (int, error) {
-	if err := s.requireChatMember(ctx, chatID, userID); err != nil {
+	if err := s.RequireChatMember(ctx, chatID, userID); err != nil {
 		return 0, err
 	}
 

@@ -13,6 +13,38 @@ import (
 	"github.com/google/uuid"
 )
 
+const (
+	maxLimit = 100
+	minLimit = 0
+	midLimit = 50
+)
+
+type realtimeMessageEvent struct {
+	Type    string             `json:"type"`
+	ChatID  uuid.UUID          `json:"chat_id"`
+	Message realtimeMessageDTO `json:"message"`
+}
+
+type realtimeMessageDTO struct {
+	ID          uuid.UUID               `json:"id"`
+	ChatID      uuid.UUID               `json:"chat_id"`
+	SenderID    uuid.UUID               `json:"sender_id"`
+	Text        *string                 `json:"text"`
+	ReplyToID   *uuid.UUID              `json:"reply_to_id"`
+	CreatedAt   time.Time               `json:"created_at"`
+	EditedAt    *time.Time              `json:"edited_at"`
+	Attachments []realtimeAttachmentDTO `json:"attachments"`
+}
+
+type realtimeAttachmentDTO struct {
+	ID        uuid.UUID `json:"id"`
+	MessageID uuid.UUID `json:"message_id"`
+	URL       string    `json:"url"`
+	Type      string    `json:"type"`
+	FileName  string    `json:"file_name"`
+	FileSize  int64     `json:"file_size"`
+}
+
 func (s *ChatService) SendMessage(ctx context.Context, requesterID uuid.UUID, input model.SendMessageInput) (*model.Message, error) {
 	chat, err := s.chatRepo.GetByID(ctx, input.ChatID)
 	if err != nil {
@@ -25,7 +57,7 @@ func (s *ChatService) SendMessage(ctx context.Context, requesterID uuid.UUID, in
 	if input.SenderID != requesterID {
 		return nil, apperrors.New(apperrors.ChatAccessDenied, "chat access denied")
 	}
-	if err := s.requireChatMember(ctx, input.ChatID, requesterID); err != nil {
+	if err := s.RequireChatMember(ctx, input.ChatID, requesterID); err != nil {
 		return nil, err
 	}
 
@@ -149,6 +181,8 @@ func (s *ChatService) SendMessage(ctx context.Context, requesterID uuid.UUID, in
 		}
 	}
 
+	s.sendRealtimeMessageSent(message)
+
 	receiverID, err := s.findChatReceiver(ctx, input.ChatID, input.SenderID)
 	if err == nil && s.notClient != nil {
 		var senderName string
@@ -174,8 +208,6 @@ func (s *ChatService) SendMessage(ctx context.Context, requesterID uuid.UUID, in
 		}
 	}
 
-	// Keep direct publishing only for alternate service configurations that do not
-	// provide an outbox repository. Production uses the transactional outbox worker.
 	if s.outboxRepo == nil {
 		if err := s.publishEvent(event); err != nil {
 			return nil, err
@@ -183,6 +215,49 @@ func (s *ChatService) SendMessage(ctx context.Context, requesterID uuid.UUID, in
 	}
 
 	return message, nil
+}
+
+func (s *ChatService) sendRealtimeMessageSent(message *model.Message) {
+	if s.realtime == nil || message == nil {
+		return
+	}
+
+	payload, err := json.Marshal(realtimeMessageEvent{
+		Type:    "message.sent",
+		ChatID:  message.ChatID,
+		Message: toRealtimeMessageDTO(message),
+	})
+	if err != nil {
+		slog.Error("failed to encode realtime message event", "error", err, "chat_id", message.ChatID)
+		return
+	}
+
+	s.realtime.SendToChat(message.ChatID, payload)
+}
+
+func toRealtimeMessageDTO(message *model.Message) realtimeMessageDTO {
+	attachments := make([]realtimeAttachmentDTO, 0, len(message.Attachments))
+	for _, attachment := range message.Attachments {
+		attachments = append(attachments, realtimeAttachmentDTO{
+			ID:        attachment.ID,
+			MessageID: attachment.MessageID,
+			URL:       attachment.URL,
+			Type:      string(attachment.Type),
+			FileName:  attachment.FileName,
+			FileSize:  attachment.FileSize,
+		})
+	}
+
+	return realtimeMessageDTO{
+		ID:          message.ID,
+		ChatID:      message.ChatID,
+		SenderID:    message.SenderID,
+		Text:        message.Text,
+		ReplyToID:   message.ReplyToID,
+		CreatedAt:   message.CreatedAt,
+		EditedAt:    message.EditedAt,
+		Attachments: attachments,
+	}
 }
 
 func (s *ChatService) EditMessage(ctx context.Context, requesterID, messageID uuid.UUID, newText string) (*model.Message, error) {
@@ -196,7 +271,7 @@ func (s *ChatService) EditMessage(ctx context.Context, requesterID, messageID uu
 	if message.SenderID != requesterID {
 		return nil, apperrors.New(apperrors.ChatAccessDenied, "chat access denied")
 	}
-	if err := s.requireChatMember(ctx, message.ChatID, requesterID); err != nil {
+	if err := s.RequireChatMember(ctx, message.ChatID, requesterID); err != nil {
 		return nil, err
 	}
 
@@ -246,7 +321,7 @@ func (s *ChatService) DeleteMessage(ctx context.Context, requesterID, messageID 
 	if message.SenderID != requesterID {
 		return apperrors.New(apperrors.ChatAccessDenied, "chat access denied")
 	}
-	if err := s.requireChatMember(ctx, message.ChatID, requesterID); err != nil {
+	if err := s.RequireChatMember(ctx, message.ChatID, requesterID); err != nil {
 		return err
 	}
 
@@ -273,6 +348,14 @@ func (s *ChatService) DeleteMessage(ctx context.Context, requesterID, messageID 
 }
 
 func (s *ChatService) GetMessages(ctx context.Context, chatID, requesterID uuid.UUID, limit int, cursorID *uuid.UUID) ([]*model.Message, error) {
+	if limit <= minLimit {
+		limit = midLimit
+	}
+
+	if limit > maxLimit {
+		limit = maxLimit
+	}
+
 	chat, err := s.chatRepo.GetByID(ctx, chatID)
 	if err != nil {
 		return nil, err
@@ -280,7 +363,7 @@ func (s *ChatService) GetMessages(ctx context.Context, chatID, requesterID uuid.
 	if chat == nil {
 		return nil, apperrors.New(apperrors.ChatNotFound, "chat not found")
 	}
-	if err := s.requireChatMember(ctx, chatID, requesterID); err != nil {
+	if err := s.RequireChatMember(ctx, chatID, requesterID); err != nil {
 		return nil, err
 	}
 
@@ -309,11 +392,11 @@ func (s *ChatService) MarkAsRead(ctx context.Context, chatID, requesterID uuid.U
 	if chat == nil {
 		return apperrors.New(apperrors.ChatNotFound, "chat not found")
 	}
-	if err := s.requireChatMember(ctx, chatID, requesterID); err != nil {
+	if err := s.RequireChatMember(ctx, chatID, requesterID); err != nil {
 		return err
 	}
 
-	return s.messageRepo.UpdateReadAtForChat(ctx, chatID, requesterID, time.Now())
+	return s.messageRepo.UpdateLastReadMessageForChat(ctx, chatID, requesterID)
 }
 
 func (s *ChatService) ForwardMessage(ctx context.Context, requesterID, messageID, targetChatID uuid.UUID) (*model.Message, error) {
@@ -325,10 +408,10 @@ func (s *ChatService) ForwardMessage(ctx context.Context, requesterID, messageID
 		return nil, apperrors.New(apperrors.MessageNotFound, "message not found")
 	}
 
-	if err := s.requireChatMember(ctx, origMsg.ChatID, requesterID); err != nil {
+	if err := s.RequireChatMember(ctx, origMsg.ChatID, requesterID); err != nil {
 		return nil, err
 	}
-	if err := s.requireChatMember(ctx, targetChatID, requesterID); err != nil {
+	if err := s.RequireChatMember(ctx, targetChatID, requesterID); err != nil {
 		return nil, err
 	}
 

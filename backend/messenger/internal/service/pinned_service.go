@@ -16,7 +16,7 @@ func (s *ChatService) PinMessage(ctx context.Context, requesterID, messageID uui
 	if msg == nil {
 		return apperrors.New(apperrors.MessageNotFound, "message not found")
 	}
-	if err := s.requireChatMember(ctx, msg.ChatID, requesterID); err != nil {
+	if err := s.RequireChatMember(ctx, msg.ChatID, requesterID); err != nil {
 		return err
 	}
 
@@ -31,7 +31,7 @@ func (s *ChatService) UnpinMessage(ctx context.Context, requesterID, messageID u
 	if msg == nil {
 		return apperrors.New(apperrors.MessageNotFound, "message not found")
 	}
-	if err := s.requireChatMember(ctx, msg.ChatID, requesterID); err != nil {
+	if err := s.RequireChatMember(ctx, msg.ChatID, requesterID); err != nil {
 		return err
 	}
 
@@ -39,7 +39,7 @@ func (s *ChatService) UnpinMessage(ctx context.Context, requesterID, messageID u
 }
 
 func (s *ChatService) GetPinnedMessages(ctx context.Context, chatID, requesterID uuid.UUID) ([]*model.Message, error) {
-	if err := s.requireChatMember(ctx, chatID, requesterID); err != nil {
+	if err := s.RequireChatMember(ctx, chatID, requesterID); err != nil {
 		return nil, err
 	}
 

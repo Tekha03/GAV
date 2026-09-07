@@ -40,4 +40,6 @@ type Service interface {
 
 	AddReaction(ctx context.Context, messageID, userID, requesterID uuid.UUID, emoji string) error
 	RemoveReaction(ctx context.Context, messageID, userID, requesterID uuid.UUID) error
+
+	RequireChatMember(ctx context.Context, chatID, userID uuid.UUID) error
 }

@@ -7,7 +7,7 @@ import (
 )
 
 func (s *ChatService) SendTyping(ctx context.Context, chatID, userID uuid.UUID) error {
-	if err := s.requireChatMember(ctx, chatID, userID); err != nil {
+	if err := s.RequireChatMember(ctx, chatID, userID); err != nil {
 		return err
 	}
 

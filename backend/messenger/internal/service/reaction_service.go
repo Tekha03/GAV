@@ -23,7 +23,7 @@ func (s *ChatService) AddReaction(ctx context.Context, messageID, userID, reques
 	if msg == nil {
 		return apperrors.New(apperrors.MessageNotFound, "message not found")
 	}
-	if err := s.requireChatMember(ctx, msg.ChatID, requesterID); err != nil {
+	if err := s.RequireChatMember(ctx, msg.ChatID, requesterID); err != nil {
 		return err
 	}
 
@@ -69,7 +69,7 @@ func (s *ChatService) RemoveReaction(ctx context.Context, messageID, userID, req
 	if msg == nil {
 		return apperrors.New(apperrors.MessageNotFound, "message not found")
 	}
-	if err := s.requireChatMember(ctx, msg.ChatID, requesterID); err != nil {
+	if err := s.RequireChatMember(ctx, msg.ChatID, requesterID); err != nil {
 		return err
 	}
 

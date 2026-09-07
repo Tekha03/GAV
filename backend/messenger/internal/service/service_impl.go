@@ -5,7 +5,13 @@ import (
 	"messenger/internal/kafka"
 	"messenger/internal/repository"
 	"shared/events"
+
+	"github.com/google/uuid"
 )
+
+type RealtimeNotifier interface {
+	SendToChat(chatID uuid.UUID, data []byte)
+}
 
 type ChatService struct {
 	transactionManager repository.TransactionManager
@@ -22,6 +28,7 @@ type ChatService struct {
 	notClient    *client.NotificationClient
 
 	producer kafka.EventProducer
+	realtime RealtimeNotifier
 }
 
 func NewService(
@@ -39,6 +46,7 @@ func NewService(
 	notClient *client.NotificationClient,
 
 	producer kafka.EventProducer,
+	realtime RealtimeNotifier,
 
 ) Service {
 	s := &ChatService{
@@ -54,6 +62,7 @@ func NewService(
 		socialClient:       socialClient,
 		notClient:          notClient,
 		producer:           producer,
+		realtime:           realtime,
 	}
 
 	return s

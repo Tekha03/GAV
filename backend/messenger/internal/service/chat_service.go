@@ -148,7 +148,7 @@ func (s *ChatService) GetChatByID(ctx context.Context, chatID, requesterID uuid.
 		return nil, apperrors.New(apperrors.ChatNotFound, "chat not found")
 	}
 
-	if err := s.requireChatMember(ctx, chatID, requesterID); err != nil {
+	if err := s.RequireChatMember(ctx, chatID, requesterID); err != nil {
 		return nil, err
 	}
 
@@ -156,7 +156,7 @@ func (s *ChatService) GetChatByID(ctx context.Context, chatID, requesterID uuid.
 }
 
 func (s *ChatService) AddMember(ctx context.Context, chatID, userID, requesterID uuid.UUID) error {
-	if err := s.requireChatMember(ctx, chatID, requesterID); err != nil {
+	if err := s.RequireChatMember(ctx, chatID, requesterID); err != nil {
 		return err
 	}
 
@@ -208,7 +208,7 @@ func (s *ChatService) AddMember(ctx context.Context, chatID, userID, requesterID
 }
 
 func (s *ChatService) RemoveMember(ctx context.Context, userID, chatID, requesterID uuid.UUID) error {
-	if err := s.requireChatMember(ctx, chatID, requesterID); err != nil {
+	if err := s.RequireChatMember(ctx, chatID, requesterID); err != nil {
 		return err
 	}
 
@@ -253,7 +253,7 @@ func (s *ChatService) RemoveMember(ctx context.Context, userID, chatID, requeste
 }
 
 func (s *ChatService) GetChatMembers(ctx context.Context, chatID, requesterID uuid.UUID) ([]*model.ChatMember, error) {
-	if err := s.requireChatMember(ctx, chatID, requesterID); err != nil {
+	if err := s.RequireChatMember(ctx, chatID, requesterID); err != nil {
 		return nil, err
 	}
 
@@ -267,7 +267,7 @@ func (s *ChatService) GetChatMembers(ctx context.Context, chatID, requesterID uu
 
 func (s *ChatService) LeaveChat(ctx context.Context, chatID, requesterID uuid.UUID) error {
 
-	if err := s.requireChatMember(ctx, chatID, requesterID); err != nil {
+	if err := s.RequireChatMember(ctx, chatID, requesterID); err != nil {
 		return err
 	}
 
@@ -302,7 +302,7 @@ func (s *ChatService) UpdateChatTitle(ctx context.Context, chatID, requesterID u
 		return apperrors.New(apperrors.ChatGroupRequired, "operation is available only for group chats")
 	}
 
-	if err := s.requireChatMember(ctx, chatID, requesterID); err != nil {
+	if err := s.RequireChatMember(ctx, chatID, requesterID); err != nil {
 		return err
 	}
 
@@ -322,7 +322,7 @@ func (s *ChatService) UpdateChatPhoto(ctx context.Context, chatID, requesterID u
 		return apperrors.New(apperrors.ChatGroupRequired, "operation is available only for group chats")
 	}
 
-	if err := s.requireChatMember(ctx, chatID, requesterID); err != nil {
+	if err := s.RequireChatMember(ctx, chatID, requesterID); err != nil {
 		return err
 	}
 
@@ -359,7 +359,7 @@ func getMemberIDs(members []*model.ChatMember) []uuid.UUID {
 	return ids
 }
 
-func (s *ChatService) requireChatMember(ctx context.Context, chatID, userID uuid.UUID) error {
+func (s *ChatService) RequireChatMember(ctx context.Context, chatID, userID uuid.UUID) error {
 	ok, err := s.membersRepo.MemberExists(ctx, userID, chatID)
 	if err != nil {
 		return err
