@@ -96,11 +96,8 @@ func (s *ChatService) CreateGroupChat(ctx context.Context, title string, creator
 	chat := &model.Chat{
 		ID:        uuid.New(),
 		IsGroup:   true,
+		Title:     title,
 		CreatedAt: time.Now(),
-	}
-
-	if err := s.chatRepo.Create(ctx, chat); err != nil {
-		return nil, err
 	}
 
 	seenUsers := map[uuid.UUID]struct{}{creatorID: {}}
@@ -125,8 +122,26 @@ func (s *ChatService) CreateGroupChat(ctx context.Context, title string, creator
 		})
 	}
 
-	for _, member := range members {
-		if err := s.membersRepo.AddMember(ctx, member); err != nil {
+	create := func(txCtx context.Context) error {
+		if err := s.chatRepo.Create(txCtx, chat); err != nil {
+			return err
+		}
+
+		for _, member := range members {
+			if err := s.membersRepo.AddMember(txCtx, member); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	}
+
+	if s.transactionManager != nil {
+		if err := s.transactionManager.WithinTransaction(ctx, create); err != nil {
+			return nil, err
+		}
+	} else {
+		if err := create(ctx); err != nil {
 			return nil, err
 		}
 	}

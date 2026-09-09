@@ -13,5 +13,6 @@ type MessageRepository interface {
 	Delete(ctx context.Context, messageID uuid.UUID) error
 	GetByID(ctx context.Context, messageID uuid.UUID) (*model.Message, error)
 	GetByChatID(ctx context.Context, chatID uuid.UUID, limit int, cursorID *uuid.UUID) ([]*model.Message, error)
-	UpdateLastReadMessageForChat(ctx context.Context, chatID, userID uuid.UUID) error
+	GetLastMessageIDForChat(ctx context.Context, chatID uuid.UUID) (uuid.UUID, error)
+	CountUnreadForChat(ctx context.Context, chatID, userID, lastReadMessageID uuid.UUID) (int, error)
 }

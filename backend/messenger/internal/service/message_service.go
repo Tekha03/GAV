@@ -183,18 +183,20 @@ func (s *ChatService) SendMessage(ctx context.Context, requesterID uuid.UUID, in
 
 	s.sendRealtimeMessageSent(message)
 
-	receiverID, err := s.findChatReceiver(ctx, input.ChatID, input.SenderID)
+	recipients, err := s.findChatRecipients(ctx, input.ChatID, input.SenderID)
 	if err == nil && s.notClient != nil {
-		var senderName string
+		senderName := "Новое сообщение"
 		if s.socialClient != nil {
 			usr, err := s.socialClient.GetUserProfile(ctx, input.SenderID)
 			if err == nil && usr != nil {
 				senderName = usr.Username
 			}
+		}
 
-			text := messageText(input.Text)
+		text := messageText(input.Text)
 
-			go func() {
+		go func() {
+			for _, receiverID := range recipients {
 				if err := s.notClient.SendNewMessage(
 					context.Background(),
 					receiverID,
@@ -204,8 +206,8 @@ func (s *ChatService) SendMessage(ctx context.Context, requesterID uuid.UUID, in
 				); err != nil {
 					slog.Error("failed to send new message notification", "error", err, "chat_id", input.ChatID)
 				}
-			}()
-		}
+			}
+		}()
 	}
 
 	if s.outboxRepo == nil {
@@ -396,7 +398,12 @@ func (s *ChatService) MarkAsRead(ctx context.Context, chatID, requesterID uuid.U
 		return err
 	}
 
-	return s.messageRepo.UpdateLastReadMessageForChat(ctx, chatID, requesterID)
+	lastMessageID, err := s.messageRepo.GetLastMessageIDForChat(ctx, chatID)
+	if err != nil {
+		return err
+	}
+
+	return s.membersRepo.UpdateLastReadMessageID(ctx, chatID, requesterID, lastMessageID)
 }
 
 func (s *ChatService) ForwardMessage(ctx context.Context, requesterID, messageID, targetChatID uuid.UUID) (*model.Message, error) {
@@ -439,19 +446,24 @@ func (s *ChatService) ForwardMessage(ctx context.Context, requesterID, messageID
 	return s.SendMessage(ctx, requesterID, input)
 }
 
-func (s *ChatService) findChatReceiver(ctx context.Context, chatID, senderID uuid.UUID) (uuid.UUID, error) {
+func (s *ChatService) findChatRecipients(ctx context.Context, chatID, senderID uuid.UUID) ([]uuid.UUID, error) {
 	members, err := s.membersRepo.GetMembers(ctx, chatID)
+	var recipients []uuid.UUID
 	if err != nil {
-		return uuid.Nil, err
+		return recipients, err
 	}
 
 	for _, m := range members {
 		if m.UserID != senderID {
-			return m.UserID, nil
+			recipients = append(recipients, m.UserID)
 		}
 	}
 
-	return uuid.Nil, apperrors.New(apperrors.ChatMemberNotFound, "chat receiver not found")
+	if len(recipients) == 0 {
+		return recipients, apperrors.New(apperrors.ChatMemberNotFound, "chat receiver not found")
+	}
+
+	return recipients, nil
 }
 
 func messageText(text *string) string {

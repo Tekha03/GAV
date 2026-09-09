@@ -127,3 +127,33 @@ func TestCreatePrivateChatIsIdempotentForConcurrentAndReversedRequests(t *testin
 		t.Fatalf("member count = %d, want 2", len(membersRepo.members[chatID]))
 	}
 }
+
+func TestCreateGroupChatStoresTitleAndMembers(t *testing.T) {
+	chatRepo := &privateChatRepository{chats: make(map[uuid.UUID]*model.Chat)}
+	membersRepo := &privateMembersRepository{members: make(map[uuid.UUID]map[uuid.UUID]*model.ChatMember)}
+	svc := &ChatService{
+		transactionManager: &serializedTransactionManager{},
+		chatRepo:           chatRepo,
+		membersRepo:        membersRepo,
+	}
+
+	creatorID := uuid.New()
+	memberID := uuid.New()
+	chat, err := svc.CreateGroupChat(context.Background(), "Парк Горького", creatorID, []uuid.UUID{memberID, memberID})
+	if err != nil {
+		t.Fatalf("CreateGroupChat() error = %v", err)
+	}
+
+	if chat.Title != "Парк Горького" {
+		t.Fatalf("chat title = %q, want %q", chat.Title, "Парк Горького")
+	}
+	if !chat.IsGroup {
+		t.Fatal("chat IsGroup = false, want true")
+	}
+	if got := len(membersRepo.members[chat.ID]); got != 2 {
+		t.Fatalf("member count = %d, want 2", got)
+	}
+	if membersRepo.members[chat.ID][creatorID].Role != model.Admin {
+		t.Fatalf("creator role = %s, want %s", membersRepo.members[chat.ID][creatorID].Role, model.Admin)
+	}
+}

@@ -188,6 +188,54 @@ func TestMessageRepositoryUpdateLastReadMessageForChatRejectsNonMember(t *testin
 	}
 }
 
+func TestMessageRepositoryCountUnreadForChatCountsOnlyMessagesAfterLastReadFromOthers(t *testing.T) {
+	ctx := context.Background()
+	repo := newTestMessageRepository(t)
+
+	chatID := uuid.New()
+	userID := uuid.New()
+	otherID := uuid.New()
+	oldID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+	readID := uuid.MustParse("00000000-0000-0000-0000-000000000002")
+	ownID := uuid.MustParse("00000000-0000-0000-0000-000000000003")
+	unreadID := uuid.MustParse("00000000-0000-0000-0000-000000000004")
+	baseTime := time.Date(2026, 9, 9, 12, 0, 0, 0, time.UTC)
+
+	insertTestMessage(t, repo, model.Message{ID: oldID, ChatID: chatID, SenderID: otherID, CreatedAt: baseTime})
+	insertTestMessage(t, repo, model.Message{ID: readID, ChatID: chatID, SenderID: otherID, CreatedAt: baseTime.Add(time.Minute)})
+	insertTestMessage(t, repo, model.Message{ID: ownID, ChatID: chatID, SenderID: userID, CreatedAt: baseTime.Add(2 * time.Minute)})
+	insertTestMessage(t, repo, model.Message{ID: unreadID, ChatID: chatID, SenderID: otherID, CreatedAt: baseTime.Add(3 * time.Minute)})
+
+	count, err := repo.CountUnreadForChat(ctx, chatID, userID, readID)
+	if err != nil {
+		t.Fatalf("CountUnreadForChat() error = %v", err)
+	}
+	if count != 1 {
+		t.Fatalf("unread count = %d, want 1", count)
+	}
+}
+
+func TestMessageRepositoryGetLastMessageIDForChatUsesStableOrder(t *testing.T) {
+	ctx := context.Background()
+	repo := newTestMessageRepository(t)
+
+	chatID := uuid.New()
+	lowerTieID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+	higherTieID := uuid.MustParse("00000000-0000-0000-0000-000000000002")
+	sameTime := time.Date(2026, 9, 9, 12, 0, 0, 0, time.UTC)
+
+	insertTestMessage(t, repo, model.Message{ID: lowerTieID, ChatID: chatID, SenderID: uuid.New(), CreatedAt: sameTime})
+	insertTestMessage(t, repo, model.Message{ID: higherTieID, ChatID: chatID, SenderID: uuid.New(), CreatedAt: sameTime})
+
+	got, err := repo.GetLastMessageIDForChat(ctx, chatID)
+	if err != nil {
+		t.Fatalf("GetLastMessageIDForChat() error = %v", err)
+	}
+	if got != higherTieID {
+		t.Fatalf("last message ID = %s, want %s", got, higherTieID)
+	}
+}
+
 func newTestMessageRepository(t *testing.T) *MessageRepository {
 	t.Helper()
 

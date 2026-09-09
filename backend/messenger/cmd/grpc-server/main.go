@@ -42,6 +42,7 @@ func main() {
 		log.Fatal(err)
 	}
 	go container.RunOutboxWorker(context.Background())
+	chatService := container.ChatService()
 
 	grpcLis, err := net.Listen("tcp", cfg.GRPCAddr)
 	if err != nil {
@@ -53,7 +54,7 @@ func main() {
 		grpc.StreamInterceptor(gr.AuthStreamInterceptor(cfg.JWTSecret)),
 	)
 
-	chatv1.RegisterChatServiceServer(grpcServer, gr.NewServer(container.ChatService()))
+	chatv1.RegisterChatServiceServer(grpcServer, gr.NewServer(chatService))
 	go func() {
 		log.Printf("gRPC on %s", cfg.GRPCAddr)
 		if err := grpcServer.Serve(grpcLis); err != nil {
@@ -61,7 +62,7 @@ func main() {
 		}
 	}()
 
-	httpServer := gateway.NewHTTPServer(cfg.HTTPAddr, container.ChatService(), cfg.JWTSecret)
+	httpServer := gateway.NewHTTPServer(cfg.HTTPAddr, chatService, cfg.JWTSecret, container.WebSocketHub())
 	log.Printf("HTTP gateway on %s", cfg.HTTPAddr)
 	log.Fatal(httpServer.ListenAndServe())
 }

@@ -98,9 +98,8 @@ func (mr *MessageRepository) GetByChatID(ctx context.Context, chatID uuid.UUID, 
 	return messages, nil
 }
 
-func (mr *MessageRepository) UpdateLastReadMessageForChat(ctx context.Context, chatID, userID uuid.UUID) error {
+func (mr *MessageRepository) GetLastMessageIDForChat(ctx context.Context, chatID uuid.UUID) (uuid.UUID, error) {
 	var lastMessage model.Message
-	lastMessageID := uuid.Nil
 
 	err := mr.repo.WithContext(ctx).
 		Select("id").
@@ -109,11 +108,56 @@ func (mr *MessageRepository) UpdateLastReadMessageForChat(ctx context.Context, c
 		Limit(1).
 		First(&lastMessage).Error
 	if err != nil {
-		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			return internalError("failed to get last chat message", err)
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return uuid.Nil, nil
 		}
-	} else {
-		lastMessageID = lastMessage.ID
+		return uuid.Nil, internalError("failed to get last chat message", err)
+	}
+
+	return lastMessage.ID, nil
+}
+
+func (mr *MessageRepository) CountUnreadForChat(ctx context.Context, chatID, userID, lastReadMessageID uuid.UUID) (int, error) {
+	query := mr.repo.WithContext(ctx).
+		Model(&model.Message{}).
+		Where("chat_id = ? AND deleted_at IS NULL", chatID).
+		Where("sender_id <> ?", userID)
+
+	if lastReadMessageID != uuid.Nil {
+		var lastReadMessage model.Message
+		err := mr.repo.WithContext(ctx).
+			Select("id", "created_at").
+			Where("id = ? AND chat_id = ? AND deleted_at IS NULL", lastReadMessageID, chatID).
+			First(&lastReadMessage).Error
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return 0, apperrors.New(apperrors.MessageNotFound, "last read message not found")
+			}
+			return 0, internalError("failed to get last read message", err)
+		}
+
+		query = query.Where(
+			"(created_at > ?) OR (created_at = ? AND id > ?)",
+			lastReadMessage.CreatedAt,
+			lastReadMessage.CreatedAt,
+			lastReadMessage.ID,
+		)
+	}
+
+	var count int64
+	if err := query.Count(&count).Error; err != nil {
+		return 0, internalError("failed to count unread messages", err)
+	}
+
+	return int(count), nil
+}
+
+// UpdateLastReadMessageForChat is kept for repository-level compatibility tests.
+// Runtime code updates chat_members through ChatMemberRepository.
+func (mr *MessageRepository) UpdateLastReadMessageForChat(ctx context.Context, chatID, userID uuid.UUID) error {
+	lastMessageID, err := mr.GetLastMessageIDForChat(ctx, chatID)
+	if err != nil {
+		return err
 	}
 
 	result := mr.repo.WithContext(ctx).

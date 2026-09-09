@@ -119,6 +119,15 @@ func (cmr *ChatMemberRepository) GetLastReadMessageID(ctx context.Context, chatI
 	return member.LastReadMessageID, nil
 }
 
+func (cmr *ChatMemberRepository) UpdateLastReadMessageID(ctx context.Context, chatID, userID, messageID uuid.UUID) error {
+	result := cmr.repo.WithContext(ctx).
+		Model(&model.ChatMember{}).
+		Where("chat_id = ? AND user_id = ?", chatID, userID).
+		Update("last_read_message_id", messageID)
+
+	return mutationError(result, apperrors.ChatMemberNotFound, "chat member not found", "failed to update last read message")
+}
+
 func (cmr *ChatMemberRepository) MemberExists(ctx context.Context, userID uuid.UUID, chatID uuid.UUID) (bool, error) {
 	members, err := cmr.GetMembers(ctx, chatID)
 	if err != nil {

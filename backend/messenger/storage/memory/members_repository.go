@@ -118,6 +118,24 @@ func (mr *MembersRepository) GetLastReadMessageID(ctx context.Context, chatID, u
 	return member.LastReadMessageID, nil
 }
 
+func (mr *MembersRepository) UpdateLastReadMessageID(ctx context.Context, chatID, userID, messageID uuid.UUID) error {
+	mr.mu.Lock()
+	defer mr.mu.Unlock()
+
+	membersMap, ok := mr.members[chatID]
+	if !ok {
+		return apperrors.New(apperrors.ChatMemberNotFound, "chat member not found")
+	}
+
+	member, exists := membersMap[userID]
+	if !exists {
+		return apperrors.New(apperrors.ChatMemberNotFound, "chat member not found")
+	}
+
+	member.LastReadMessageID = messageID
+	return nil
+}
+
 func (mr *MembersRepository) GetUserChats(ctx context.Context, userID uuid.UUID) ([]uuid.UUID, error) {
 	mr.mu.RLock()
 	defer mr.mu.RUnlock()
