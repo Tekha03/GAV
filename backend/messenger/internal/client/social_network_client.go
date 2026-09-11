@@ -6,6 +6,7 @@ import (
 	socialv1 "api/gen/social/v1"
 	"context"
 	apperrors "shared/app_errors"
+	"shared/retry"
 
 	uuid "github.com/google/uuid"
 	"google.golang.org/grpc"
@@ -37,9 +38,19 @@ func NewSocialNetworkClient(addr string) (*SocialNetworkClient, error) {
 }
 
 func (c *SocialNetworkClient) GetUserProfile(ctx context.Context, userID uuid.UUID) (*socialv1.UserProfile, error) {
-	resp, err := c.socialClient.GetProfile(ctx, &socialv1.GetProfileRequest{UserId: userID.String()})
+	resp, err := retry.DoValue(ctx, retry.DefaultConfig(), func(ctx context.Context) (*socialv1.UserProfile, error) {
+		return c.getUserProfileOnce(ctx, userID)
+	})
 	if err != nil {
 		return nil, apperrors.Wrap(apperrors.ServiceUnavailable, "failed to get user profile", err)
+	}
+	return resp, nil
+}
+
+func (c *SocialNetworkClient) getUserProfileOnce(ctx context.Context, userID uuid.UUID) (*socialv1.UserProfile, error) {
+	resp, err := c.socialClient.GetProfile(ctx, &socialv1.GetProfileRequest{UserId: userID.String()})
+	if err != nil {
+		return nil, err
 	}
 	return resp, nil
 }

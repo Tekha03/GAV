@@ -5,6 +5,7 @@ import (
 	pb "api/gen/notification/v1"
 	"context"
 	apperrors "shared/app_errors"
+	"shared/retry"
 
 	uuid "github.com/google/uuid"
 	"google.golang.org/grpc"
@@ -38,6 +39,17 @@ func (nc *NotificationClient) SendNewMessage(
 	toUserID uuid.UUID,
 	senderName, body, chatID string,
 ) error {
+	err := retry.Do(ctx, retry.DefaultConfig(), func(ctx context.Context) error {
+		return nc.sendNewMessageOnce(ctx, toUserID, senderName, body, chatID)
+	})
+	return apperrors.Wrap(apperrors.ServiceUnavailable, "failed to send notification", err)
+}
+
+func (nc *NotificationClient) sendNewMessageOnce(
+	ctx context.Context,
+	toUserID uuid.UUID,
+	senderName, body, chatID string,
+) error {
 	req := &pb.NotificationRequest{
 		UserId:    toUserID[:],
 		Title:     senderName + " написал вам",
@@ -48,5 +60,5 @@ func (nc *NotificationClient) SendNewMessage(
 		},
 	}
 	_, err := nc.client.SendNotification(ctx, req)
-	return apperrors.Wrap(apperrors.ServiceUnavailable, "failed to send notification", err)
+	return err
 }
