@@ -24,10 +24,14 @@ func TestLoadHTTP(t *testing.T) {
 }
 
 func TestLoadDB(t *testing.T) {
+	t.Setenv("DB_DRIVER", "postgres")
 	t.Setenv("DB_PATH", "./test.db")
+	t.Setenv("POSTGRES_DSN", "postgres://gav:gav@localhost:5432/gav_social?sslmode=disable")
 	cfg := loadDB()
 
+	assert.Equal(t, "postgres", cfg.Driver)
 	assert.Equal(t, "./test.db", cfg.Path)
+	assert.Equal(t, "postgres://gav:gav@localhost:5432/gav_social?sslmode=disable", cfg.PostgresDSN)
 }
 
 func TestLoadJWT(t *testing.T) {
@@ -86,7 +90,8 @@ func TestValidate_Success(t *testing.T) {
 			Port: "8080",
 		},
 		DB: DBConfig{
-			Path: "./db.sqlite",
+			Driver: "sqlite",
+			Path:   "./db.sqlite",
 		},
 		JWT: JWTConfig{
 			Secret: "secret",
@@ -102,7 +107,8 @@ func TestValidate_HTTPPortMissing(t *testing.T) {
 	cfg := &Config{
 		HTTP: HTTPConfig{},
 		DB: DBConfig{
-			Path: "./db",
+			Driver: "sqlite",
+			Path:   "./db",
 		},
 		JWT: JWTConfig{
 			Secret: "secret",
@@ -121,7 +127,9 @@ func TestValidate_DBPathMissing(t *testing.T) {
 		HTTP: HTTPConfig{
 			Port: "8080",
 		},
-		DB: DBConfig{},
+		DB: DBConfig{
+			Driver: "sqlite",
+		},
 		JWT: JWTConfig{
 			Secret: "secret",
 			TTL:    time.Hour,
@@ -134,13 +142,34 @@ func TestValidate_DBPathMissing(t *testing.T) {
 	assert.Contains(t, err.Error(), "DB_PATH")
 }
 
+func TestValidate_PostgresDSNMissing(t *testing.T) {
+	cfg := &Config{
+		HTTP: HTTPConfig{
+			Port: "8080",
+		},
+		DB: DBConfig{
+			Driver: "postgres",
+		},
+		JWT: JWTConfig{
+			Secret: "secret",
+			TTL:    time.Hour,
+		},
+	}
+
+	err := cfg.validate()
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "POSTGRES_DSN")
+}
+
 func TestValidate_JWTSecretMissing(t *testing.T) {
 	cfg := &Config{
 		HTTP: HTTPConfig{
 			Port: "8080",
 		},
 		DB: DBConfig{
-			Path: "./db",
+			Driver: "sqlite",
+			Path:   "./db",
 		},
 		JWT: JWTConfig{
 			TTL: time.Hour,
@@ -159,7 +188,8 @@ func TestValidate_JWTTTLMissing(t *testing.T) {
 			Port: "8080",
 		},
 		DB: DBConfig{
-			Path: "./db",
+			Driver: "sqlite",
+			Path:   "./db",
 		},
 		JWT: JWTConfig{
 			Secret: "secret",
@@ -174,7 +204,9 @@ func TestValidate_JWTTTLMissing(t *testing.T) {
 
 func TestLoad_Success(t *testing.T) {
 	t.Setenv("HTTP_PORT", "8080")
+	t.Setenv("DB_DRIVER", "postgres")
 	t.Setenv("DB_PATH", "./db.sqlite")
+	t.Setenv("POSTGRES_DSN", "postgres://gav:gav@localhost:5432/gav_social?sslmode=disable")
 	t.Setenv("JWT_SECRET", "secret")
 	t.Setenv("JWT_TTL", "1h")
 
@@ -182,14 +214,18 @@ func TestLoad_Success(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Equal(t, "8080", cfg.HTTP.Port)
+	assert.Equal(t, "postgres", cfg.DB.Driver)
 	assert.Equal(t, "./db.sqlite", cfg.DB.Path)
+	assert.Equal(t, "postgres://gav:gav@localhost:5432/gav_social?sslmode=disable", cfg.DB.PostgresDSN)
 	assert.Equal(t, "secret", cfg.JWT.Secret)
 	assert.Equal(t, time.Hour, cfg.JWT.TTL)
 }
 
 func TestLoad_Defaults(t *testing.T) {
 	t.Setenv("HTTP_PORT", "")
+	t.Setenv("DB_DRIVER", "")
 	t.Setenv("DB_PATH", "")
+	t.Setenv("POSTGRES_DSN", "")
 	t.Setenv("JWT_SECRET", "")
 	t.Setenv("JWT_TTL", "")
 
@@ -197,7 +233,9 @@ func TestLoad_Defaults(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Equal(t, "8080", cfg.HTTP.Port)
+	assert.Equal(t, "sqlite", cfg.DB.Driver)
 	assert.Equal(t, "./dbserver/social.db", cfg.DB.Path)
+	assert.Equal(t, "", cfg.DB.PostgresDSN)
 	assert.Equal(t, "dev-secret-change-me", cfg.JWT.Secret)
 	assert.Equal(t, 24*time.Hour, cfg.JWT.TTL)
 }

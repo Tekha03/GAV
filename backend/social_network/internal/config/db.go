@@ -1,11 +1,15 @@
 package config
 
 type DBConfig struct {
-	Path string
+	Driver      string
+	Path        string
+	PostgresDSN string
 }
 
 func loadDB() DBConfig {
 	return DBConfig{
-		Path: getEnv("DB_PATH", "./dbserver/social.db"),
+		Driver:      getEnv("DB_DRIVER", "sqlite"),
+		Path:        getEnv("DB_PATH", "./dbserver/social.db"),
+		PostgresDSN: getEnv("POSTGRES_DSN", ""),
 	}
 }

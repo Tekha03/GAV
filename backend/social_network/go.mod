@@ -14,6 +14,7 @@ require (
 	github.com/swaggo/http-swagger v1.3.4
 	golang.org/x/crypto v0.49.0
 	google.golang.org/api v0.247.0
+	gorm.io/driver/postgres v1.6.0
 	gorm.io/driver/sqlite v1.6.0
 	gorm.io/gorm v1.31.1
 )

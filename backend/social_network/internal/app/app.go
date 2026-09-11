@@ -29,8 +29,14 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 	if cfg == nil {
 		return nil, ErrConfigNil
 	}
-	if cfg.DB.Path == "" {
+	if cfg.DB.Driver == "" {
+		return nil, ErrDBDriverEmpty
+	}
+	if cfg.DB.Driver == "sqlite" && cfg.DB.Path == "" {
 		return nil, ErrDBPathEmpty
+	}
+	if (cfg.DB.Driver == "postgres" || cfg.DB.Driver == "postgresql") && cfg.DB.PostgresDSN == "" {
+		return nil, ErrPostgresDSNEmpty
 	}
 	if cfg.JWT.Secret == "" {
 		return nil, ErrJWTSecretEmpty
@@ -39,13 +45,13 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	logger.Info("initializing application")
 
-	db, err := dbserver.InitDB(cfg.DB.Path, logger)
+	db, err := dbserver.InitDB(cfg.DB.Driver, cfg.DB.Path, cfg.DB.PostgresDSN, logger)
 	if err != nil {
 		logger.Error("failed to open database", "error", err)
 		return nil, err
 	}
 
-	logger.Info("database opened", "path", cfg.DB.Path)
+	logger.Info("database opened", "driver", cfg.DB.Driver)
 
 	if os.Getenv("ENV") != "production" {
 		if err := dbserver.SeedDatabase(db, logger); err != nil {
@@ -61,10 +67,15 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 		return nil, err
 	}
 
-	sqlDB.SetMaxOpenConns(1)
-	sqlDB.SetMaxIdleConns(1)
+	if cfg.DB.Driver == "postgres" || cfg.DB.Driver == "postgresql" {
+		sqlDB.SetMaxOpenConns(10)
+		sqlDB.SetMaxIdleConns(5)
+	} else {
+		sqlDB.SetMaxOpenConns(1)
+		sqlDB.SetMaxIdleConns(1)
+	}
 
-	logger.Info("database pool configured", "max_open_conns", 1)
+	logger.Info("database pool configured", "driver", cfg.DB.Driver)
 
 	jwtConfig := auth.JWTConfig{
 		Secret: []byte(cfg.JWT.Secret),
