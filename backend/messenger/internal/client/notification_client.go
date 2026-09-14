@@ -1,4 +1,3 @@
-// messanger/chat/client/notification_client.go
 package client
 
 import (
@@ -6,14 +5,24 @@ import (
 	"context"
 	apperrors "shared/app_errors"
 	"shared/retry"
+	"time"
 
 	uuid "github.com/google/uuid"
 	"google.golang.org/grpc"
 )
 
 type NotificationClient struct {
-	client pb.NotificationServiceClient
-	conn   *grpc.ClientConn
+	client  pb.NotificationServiceClient
+	conn    *grpc.ClientConn
+	timeout time.Duration
+}
+
+func (nc *NotificationClient) withTimeout(ctx context.Context) (context.Context, context.CancelFunc) {
+	if nc.timeout <= 0 {
+		return ctx, func() {}
+	}
+
+	return context.WithTimeout(ctx, nc.timeout)
 }
 
 func (nc *NotificationClient) Close() error {
@@ -23,15 +32,17 @@ func (nc *NotificationClient) Close() error {
 	return apperrors.Wrap(apperrors.Internal, "failed to close notification client", nc.conn.Close())
 }
 
-func NewNotificationClient(addr string) (*NotificationClient, error) {
+func NewNotificationClient(addr string) (NotifiClient, error) {
 	conn, err := grpc.Dial(addr, grpc.WithInsecure())
 	if err != nil {
 		return nil, apperrors.Wrap(apperrors.ServiceUnavailable, "failed to create notification client", err)
 	}
-	return &NotificationClient{
+	rawClient := &NotificationClient{
 		client: pb.NewNotificationServiceClient(conn),
 		conn:   conn,
-	}, nil
+	}
+
+	return NewProtectedNotificationClient(rawClient), nil
 }
 
 func (nc *NotificationClient) SendNewMessage(
@@ -39,6 +50,9 @@ func (nc *NotificationClient) SendNewMessage(
 	toUserID uuid.UUID,
 	senderName, body, chatID string,
 ) error {
+	ctx, cancel := nc.withTimeout(ctx)
+	defer cancel()
+
 	err := retry.Do(ctx, retry.DefaultConfig(), func(ctx context.Context) error {
 		return nc.sendNewMessageOnce(ctx, toUserID, senderName, body, chatID)
 	})
@@ -50,6 +64,9 @@ func (nc *NotificationClient) sendNewMessageOnce(
 	toUserID uuid.UUID,
 	senderName, body, chatID string,
 ) error {
+	ctx, cancel := nc.withTimeout(ctx)
+	defer cancel()
+
 	req := &pb.NotificationRequest{
 		UserId:    toUserID[:],
 		Title:     senderName + " написал вам",

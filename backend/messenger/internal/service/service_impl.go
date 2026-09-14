@@ -24,8 +24,8 @@ type ChatService struct {
 	pinnedRepo         repository.PinnedRepository
 	typingRepo         repository.TypingRepository
 
-	socialClient *client.SocialNetworkClient
-	notClient    *client.NotificationClient
+	socialClient client.SocialClient
+	notClient    client.NotifiClient
 
 	producer kafka.EventProducer
 	realtime RealtimeNotifier
@@ -42,8 +42,8 @@ func NewService(
 	pinnedRepo repository.PinnedRepository,
 	typingRepo repository.TypingRepository,
 
-	socialClient *client.SocialNetworkClient,
-	notClient *client.NotificationClient,
+	socialClient client.SocialClient,
+	notClient client.NotifiClient,
 
 	producer kafka.EventProducer,
 	realtime RealtimeNotifier,
