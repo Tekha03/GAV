@@ -15,10 +15,11 @@ type User struct {
 	CreatedAt time.Time
 	UpdatedAt time.Time
 
-	Lat            *float64
-	Lon            *float64
-	LocationStatus LocationStatus
-	Visibility     LocationVisibility
+	Lat               *float64
+	Lon               *float64
+	LocationUpdatedAt *time.Time
+	LocationStatus    LocationStatus
+	Visibility        LocationVisibility
 }
 
 func NewUser(email, passwordHash string) (*User, error) {

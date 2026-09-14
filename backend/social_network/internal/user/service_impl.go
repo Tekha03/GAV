@@ -2,6 +2,8 @@ package user
 
 import (
 	"context"
+	"math"
+	"time"
 
 	"social_network/internal/dog"
 
@@ -11,6 +13,12 @@ import (
 type service struct {
 	repo Repository
 }
+
+const (
+	minNearbyRadiusMeters = 50
+	maxNearbyRadiusMeters = 10_000
+	walkingLocationTTL    = 2 * time.Hour
+)
 
 func NewService(repo Repository) (UserService, error) {
 	if repo == nil {
@@ -57,7 +65,14 @@ func (s *service) Delete(ctx context.Context, id uuid.UUID) error {
 }
 
 func (s *service) FindDogsNearby(ctx context.Context, userID uuid.UUID, centerLat, centerLon float64, radiusMeters float64) ([]*dog.Dog, error) {
-	dogs, err := s.repo.FindWalkingNearby(ctx, centerLat, centerLon, radiusMeters)
+	if err := validateCoordinates(centerLat, centerLon); err != nil {
+		return nil, err
+	}
+	if err := validateRadius(radiusMeters); err != nil {
+		return nil, err
+	}
+
+	dogs, err := s.repo.FindWalkingNearby(ctx, centerLat, centerLon, radiusMeters, time.Now().Add(-walkingLocationTTL))
 	if err != nil {
 		return nil, err
 	}
@@ -86,28 +101,108 @@ func (s *service) UpdateLocation(ctx context.Context, userID uuid.UUID, location
 		return err
 	}
 
-	user.Lat = &locationInput.Latitude
-	user.Lon = &locationInput.Longitude
+	if !locationInput.ClearLocation {
+		if err := validateCoordinates(locationInput.Latitude, locationInput.Longitude); err != nil {
+			return err
+		}
+		if err := validateLocationStatus(locationInput.Status); err != nil {
+			return err
+		}
+		if err := validateLocationVisibility(locationInput.Visibility); err != nil {
+			return err
+		}
+	}
+
 	user.LocationStatus = locationInput.Status
 	user.Visibility = locationInput.Visibility
+	now := time.Now()
+	user.LocationUpdatedAt = nil
 
-	if locationInput.ClearLocation {
+	if locationInput.ClearLocation || locationInput.Status != Walking || locationInput.Visibility == VisibilityNoOne {
 		user.Lat = nil
 		user.Lon = nil
 		user.LocationStatus = Inactive
-		user.Visibility = VisibilityNoOne
+		if locationInput.ClearLocation {
+			user.Visibility = VisibilityNoOne
+		}
+		if err := s.repo.EndActiveWalkSession(ctx, userID, now); err != nil {
+			return err
+		}
+		return s.repo.Update(ctx, user)
+	}
+
+	if err := s.repo.UpsertActiveWalkSession(ctx, &WalkSession{
+		ID:         uuid.New(),
+		UserID:     userID,
+		Lat:        locationInput.Latitude,
+		Lon:        locationInput.Longitude,
+		Visibility: locationInput.Visibility,
+		StartedAt:  now,
+		UpdatedAt:  now,
+	}); err != nil {
+		return err
 	}
 
 	return s.repo.Update(ctx, user)
 }
 
 func (s *service) SetLocationVisibility(ctx context.Context, userID uuid.UUID, visibility SetLocationVisibilityInput) error {
+	if err := validateLocationVisibility(visibility.Visibility); err != nil {
+		return err
+	}
+
 	user, err := s.repo.GetByID(ctx, userID)
 	if err != nil {
 		return err
 	}
 
 	user.Visibility = visibility.Visibility
+	if visibility.Visibility == VisibilityNoOne {
+		if err := s.repo.EndActiveWalkSession(ctx, userID, time.Now()); err != nil {
+			return err
+		}
+		user.LocationStatus = Inactive
+	} else {
+		if err := s.repo.UpdateActiveWalkVisibility(ctx, userID, visibility.Visibility); err != nil {
+			return err
+		}
+	}
 
 	return s.repo.Update(ctx, user)
+}
+
+func validateCoordinates(lat, lon float64) error {
+	if math.IsNaN(lat) || math.IsInf(lat, 0) || lat < -90 || lat > 90 {
+		return ErrInvalidLatitude
+	}
+	if math.IsNaN(lon) || math.IsInf(lon, 0) || lon < -180 || lon > 180 {
+		return ErrInvalidLongitude
+	}
+	return nil
+}
+
+func validateRadius(radiusMeters float64) error {
+	if math.IsNaN(radiusMeters) || math.IsInf(radiusMeters, 0) ||
+		radiusMeters < minNearbyRadiusMeters || radiusMeters > maxNearbyRadiusMeters {
+		return ErrInvalidRadius
+	}
+	return nil
+}
+
+func validateLocationStatus(status LocationStatus) error {
+	switch status {
+	case Inactive, Walking, ForcedOffline:
+		return nil
+	default:
+		return ErrInvalidLocationStatus
+	}
+}
+
+func validateLocationVisibility(visibility LocationVisibility) error {
+	switch visibility {
+	case VisibilityEveryone, VisibilityFollowersOnly, VisibilityNoOne:
+		return nil
+	default:
+		return ErrInvalidLocationVisibility
+	}
 }

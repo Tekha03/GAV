@@ -17,6 +17,8 @@ type Dog struct {
 
 	Lat *float64 `json:"lat,omitempty"`
 	Lon *float64 `json:"lon,omitempty"`
+
+	DistanceMeters *float64 `json:"distance_meters,omitempty" gorm:"-"`
 }
 
 func NewDog(
