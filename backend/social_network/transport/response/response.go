@@ -53,6 +53,8 @@ func httpStatus(category apperrors.Category) int {
 		return http.StatusNotFound
 	case apperrors.CategoryConflict:
 		return http.StatusConflict
+	case apperrors.CategoryRateLimited:
+		return http.StatusTooManyRequests
 	case apperrors.CategoryUnavailable:
 		return http.StatusServiceUnavailable
 	case apperrors.CategoryUnsupported:

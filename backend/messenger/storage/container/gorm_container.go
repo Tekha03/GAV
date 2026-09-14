@@ -27,8 +27,8 @@ type HybridContainer struct {
 	gormRepo     *orm.Repository
 	sqlDB        *sql.DB
 	redis        *redis.Client
-	socialClient *client.SocialNetworkClient
-	notClient    *client.NotificationClient
+	socialClient client.SocialClient
+	notClient    client.NotifiClient
 	producer     *kafka.Producer
 	outboxRepo   repository.OutboxRepository
 }
@@ -143,14 +143,14 @@ func appendIfError(errs []error, err error) []error {
 	return errs
 }
 
-func closeNotificationClient(client *client.NotificationClient) error {
+func closeNotificationClient(client client.NotifiClient) error {
 	if client == nil {
 		return nil
 	}
 	return client.Close()
 }
 
-func closeSocialClient(client *client.SocialNetworkClient) error {
+func closeSocialClient(client client.SocialClient) error {
 	if client == nil {
 		return nil
 	}

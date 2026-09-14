@@ -8,6 +8,7 @@ const (
 	CodeValidation         Code = "VALIDATION_ERROR"
 	CodeResourceNotFound   Code = "RESOURCE_NOT_FOUND"
 	CodeServiceUnavailable Code = "SERVICE_UNAVAILABLE"
+	CodeRateLimited        Code = "RATE_LIMITED"
 	CodeRequestCancelled   Code = "REQUEST_CANCELLED"
 	CodeRequestTimeout     Code = "REQUEST_TIMEOUT"
 )

@@ -7,6 +7,7 @@ import (
 	"messenger/transport/websocket"
 	"net/http"
 	apperrors "shared/app_errors"
+	"shared/ratelimit"
 	"strconv"
 	"time"
 
@@ -71,19 +72,53 @@ type sendMessageRequest struct {
 func NewHTTPServer(addr string, chatService service.Service, jwtSecret string, hub *websocket.Hub) *http.Server {
 	r := chi.NewRouter()
 	r.Use(corsMiddleware())
+	r.Use(ratelimit.Middleware(ratelimit.Config{
+		Requests: 300,
+		Window:   time.Minute,
+		Burst:    300,
+		KeyFunc:  ratelimit.IPKey,
+	}))
 
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Use(authMiddleware(jwtSecret))
 
-		r.Post("/chats/private", createPrivateChat(chatService))
-		r.Post("/chats/group", createGroupChat(chatService))
-		r.Get("/users/{user_id}/chats", getUserChats(chatService))
-		r.Get("/chats/{chat_id}", getChat(chatService))
-		r.Get("/chats/{chat_id}/members", getChatMembers(chatService))
-		r.Get("/chats/{chat_id}/messages", getMessages(chatService))
-		r.Post("/chats/{chat_id}/messages", sendMessage(chatService))
-		r.Post("/chats/{chat_id}/read", markAsRead(chatService))
-		r.Get("/ws/chats/{chat_id}", websocket.ChatHandler(
+		userLimiter := ratelimit.Middleware(ratelimit.Config{
+			Requests: 120,
+			Window:   time.Minute,
+			Burst:    120,
+			KeyFunc:  ratelimit.UserIDKey(userIDContextKey),
+		})
+		chatCreateLimiter := ratelimit.Middleware(ratelimit.Config{
+			Requests: 10,
+			Window:   time.Minute,
+			Burst:    10,
+			KeyFunc:  ratelimit.UserIDKey(userIDContextKey),
+		})
+		messageLimiter := ratelimit.Middleware(ratelimit.Config{
+			Requests: 60,
+			Window:   time.Minute,
+			Burst:    60,
+			KeyFunc: func(r *http.Request) string {
+				userKey := ratelimit.UserIDKey(userIDContextKey)(r)
+				return userKey + ":chat:" + chi.URLParam(r, "chat_id")
+			},
+		})
+		wsLimiter := ratelimit.Middleware(ratelimit.Config{
+			Requests: 10,
+			Window:   time.Minute,
+			Burst:    10,
+			KeyFunc:  ratelimit.UserIDKey(userIDContextKey),
+		})
+
+		r.With(chatCreateLimiter).Post("/chats/private", createPrivateChat(chatService))
+		r.With(chatCreateLimiter).Post("/chats/group", createGroupChat(chatService))
+		r.With(userLimiter).Get("/users/{user_id}/chats", getUserChats(chatService))
+		r.With(userLimiter).Get("/chats/{chat_id}", getChat(chatService))
+		r.With(userLimiter).Get("/chats/{chat_id}/members", getChatMembers(chatService))
+		r.With(userLimiter).Get("/chats/{chat_id}/messages", getMessages(chatService))
+		r.With(userLimiter, messageLimiter).Post("/chats/{chat_id}/messages", sendMessage(chatService))
+		r.With(userLimiter).Post("/chats/{chat_id}/read", markAsRead(chatService))
+		r.With(wsLimiter).Get("/ws/chats/{chat_id}", websocket.ChatHandler(
 			hub,
 			chatService,
 			func(r *http.Request) (uuid.UUID, error) {
@@ -437,6 +472,8 @@ func httpStatus(category apperrors.Category) int {
 		return http.StatusNotFound
 	case apperrors.CategoryConflict:
 		return http.StatusConflict
+	case apperrors.CategoryRateLimited:
+		return http.StatusTooManyRequests
 	case apperrors.CategoryUnavailable:
 		return http.StatusServiceUnavailable
 	case apperrors.CategoryUnsupported:

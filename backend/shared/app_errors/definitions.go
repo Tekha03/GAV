@@ -6,6 +6,7 @@ var (
 	Validation         = define(CodeValidation, CategoryValidation)
 	ResourceNotFound   = define(CodeResourceNotFound, CategoryNotFound)
 	ServiceUnavailable = define(CodeServiceUnavailable, CategoryUnavailable)
+	RateLimited        = define(CodeRateLimited, CategoryRateLimited)
 	RequestCancelled   = define(CodeRequestCancelled, CategoryCancelled)
 	RequestTimeout     = define(CodeRequestTimeout, CategoryUnavailable)
 )

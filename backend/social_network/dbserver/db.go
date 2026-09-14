@@ -61,6 +61,7 @@ func InitDB(driver, path, postgresDSN string, logger *slog.Logger) (*gorm.DB, er
 
 	models := []interface{}{
 		&user.User{},
+		&user.WalkSession{},
 		&profile.UserProfile{},
 		&settings.UserSettings{},
 		&post.Post{},
@@ -90,6 +91,9 @@ func InitDB(driver, path, postgresDSN string, logger *slog.Logger) (*gorm.DB, er
 		"CREATE INDEX IF NOT EXISTS idx_follows_following_id ON follows(following_id)",
 		"CREATE INDEX IF NOT EXISTS idx_dogs_owner_id ON dogs(owner_id)",
 		"CREATE INDEX IF NOT EXISTS idx_users_location_status_visibility ON users(location_status, visibility)",
+		"CREATE INDEX IF NOT EXISTS idx_users_location_updated_at ON users(location_updated_at)",
+		"CREATE INDEX IF NOT EXISTS idx_walk_sessions_active_search ON walk_sessions(visibility, updated_at, lat, lon) WHERE ended_at IS NULL",
+		"CREATE UNIQUE INDEX IF NOT EXISTS idx_walk_sessions_active_user ON walk_sessions(user_id) WHERE ended_at IS NULL",
 		"CREATE INDEX IF NOT EXISTS idx_vaccinations_dog_id ON vaccinations(dog_id)",
 		"CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user_id ON refresh_tokens(user_id)",
 		"CREATE INDEX IF NOT EXISTS idx_refresh_tokens_token_hash ON refresh_tokens(token_hash)",
