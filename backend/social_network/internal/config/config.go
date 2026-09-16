@@ -33,13 +33,7 @@ func (c *Config) validate() error {
 	if c.GRPC.Addr == "" {
 		return Err("GRPC_ADDR is required")
 	}
-	if c.DB.Driver == "" {
-		return Err("DB_DRIVER is required")
-	}
-	if c.DB.Driver == "sqlite" && c.DB.Path == "" {
-		return Err("DB_PATH is required")
-	}
-	if (c.DB.Driver == "postgres" || c.DB.Driver == "postgresql") && c.DB.PostgresDSN == "" {
+	if c.DB.PostgresDSN == "" {
 		return Err("POSTGRES_DSN is required")
 	}
 	if c.JWT.Secret == "" {

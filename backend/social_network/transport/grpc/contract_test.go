@@ -13,6 +13,7 @@ import (
 	"social_network/internal/auth"
 	"social_network/internal/config"
 	"social_network/internal/profile"
+	"social_network/internal/testdb"
 	grpctransport "social_network/transport/grpc"
 
 	"github.com/google/uuid"
@@ -27,7 +28,7 @@ func TestMessengerSocialNetworkContract(t *testing.T) {
 	cfg := &config.Config{
 		HTTP:    config.HTTPConfig{Port: "8080"},
 		GRPC:    config.GRPCConfig{Addr: ":9000"},
-		DB:      config.DBConfig{Driver: "sqlite", Path: t.TempDir() + "/contract.db"},
+		DB:      config.DBConfig{PostgresDSN: testdb.DSN(t)},
 		JWT:     config.JWTConfig{Secret: secret, TTL: time.Hour},
 		Storage: config.StorageConfig{Type: "local", LocalPath: t.TempDir()},
 	}

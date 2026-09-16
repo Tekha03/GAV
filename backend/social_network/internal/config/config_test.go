@@ -29,13 +29,9 @@ func TestLoadGRPC(t *testing.T) {
 }
 
 func TestLoadDB(t *testing.T) {
-	t.Setenv("DB_DRIVER", "postgres")
-	t.Setenv("DB_PATH", "./test.db")
 	t.Setenv("POSTGRES_DSN", "postgres://gav:gav@localhost:5432/gav_social?sslmode=disable")
 	cfg := loadDB()
 
-	assert.Equal(t, "postgres", cfg.Driver)
-	assert.Equal(t, "./test.db", cfg.Path)
 	assert.Equal(t, "postgres://gav:gav@localhost:5432/gav_social?sslmode=disable", cfg.PostgresDSN)
 }
 
@@ -95,10 +91,7 @@ func TestValidate_Success(t *testing.T) {
 			Port: "8080",
 		},
 		GRPC: GRPCConfig{Addr: ":9000"},
-		DB: DBConfig{
-			Driver: "sqlite",
-			Path:   "./db.sqlite",
-		},
+		DB:   DBConfig{PostgresDSN: "postgres://localhost/test"},
 		JWT: JWTConfig{
 			Secret: "secret",
 			TTL:    time.Hour,
@@ -113,10 +106,7 @@ func TestValidate_HTTPPortMissing(t *testing.T) {
 	cfg := &Config{
 		HTTP: HTTPConfig{},
 		GRPC: GRPCConfig{Addr: ":9000"},
-		DB: DBConfig{
-			Driver: "sqlite",
-			Path:   "./db",
-		},
+		DB:   DBConfig{PostgresDSN: "postgres://localhost/test"},
 		JWT: JWTConfig{
 			Secret: "secret",
 			TTL:    time.Hour,
@@ -129,36 +119,13 @@ func TestValidate_HTTPPortMissing(t *testing.T) {
 	assert.Contains(t, err.Error(), "HTTP_PORT")
 }
 
-func TestValidate_DBPathMissing(t *testing.T) {
-	cfg := &Config{
-		HTTP: HTTPConfig{
-			Port: "8080",
-		},
-		GRPC: GRPCConfig{Addr: ":9000"},
-		DB: DBConfig{
-			Driver: "sqlite",
-		},
-		JWT: JWTConfig{
-			Secret: "secret",
-			TTL:    time.Hour,
-		},
-	}
-
-	err := cfg.validate()
-
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "DB_PATH")
-}
-
 func TestValidate_PostgresDSNMissing(t *testing.T) {
 	cfg := &Config{
 		HTTP: HTTPConfig{
 			Port: "8080",
 		},
 		GRPC: GRPCConfig{Addr: ":9000"},
-		DB: DBConfig{
-			Driver: "postgres",
-		},
+		DB:   DBConfig{},
 		JWT: JWTConfig{
 			Secret: "secret",
 			TTL:    time.Hour,
@@ -177,10 +144,7 @@ func TestValidate_JWTSecretMissing(t *testing.T) {
 			Port: "8080",
 		},
 		GRPC: GRPCConfig{Addr: ":9000"},
-		DB: DBConfig{
-			Driver: "sqlite",
-			Path:   "./db",
-		},
+		DB:   DBConfig{PostgresDSN: "postgres://localhost/test"},
 		JWT: JWTConfig{
 			TTL: time.Hour,
 		},
@@ -198,10 +162,7 @@ func TestValidate_JWTTTLMissing(t *testing.T) {
 			Port: "8080",
 		},
 		GRPC: GRPCConfig{Addr: ":9000"},
-		DB: DBConfig{
-			Driver: "sqlite",
-			Path:   "./db",
-		},
+		DB:   DBConfig{PostgresDSN: "postgres://localhost/test"},
 		JWT: JWTConfig{
 			Secret: "secret",
 		},
@@ -215,8 +176,6 @@ func TestValidate_JWTTTLMissing(t *testing.T) {
 
 func TestLoad_Success(t *testing.T) {
 	t.Setenv("HTTP_PORT", "8080")
-	t.Setenv("DB_DRIVER", "postgres")
-	t.Setenv("DB_PATH", "./db.sqlite")
 	t.Setenv("POSTGRES_DSN", "postgres://gav:gav@localhost:5432/gav_social?sslmode=disable")
 	t.Setenv("JWT_SECRET", "secret")
 	t.Setenv("JWT_TTL", "1h")
@@ -225,30 +184,21 @@ func TestLoad_Success(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Equal(t, "8080", cfg.HTTP.Port)
-	assert.Equal(t, "postgres", cfg.DB.Driver)
-	assert.Equal(t, "./db.sqlite", cfg.DB.Path)
 	assert.Equal(t, "postgres://gav:gav@localhost:5432/gav_social?sslmode=disable", cfg.DB.PostgresDSN)
 	assert.Equal(t, "secret", cfg.JWT.Secret)
 	assert.Equal(t, time.Hour, cfg.JWT.TTL)
 }
 
-func TestLoad_Defaults(t *testing.T) {
+func TestLoad_RequiresPostgresDSN(t *testing.T) {
 	t.Setenv("HTTP_PORT", "")
-	t.Setenv("DB_DRIVER", "")
-	t.Setenv("DB_PATH", "")
 	t.Setenv("POSTGRES_DSN", "")
 	t.Setenv("JWT_SECRET", "")
 	t.Setenv("JWT_TTL", "")
 
 	cfg, err := Load()
 
-	assert.NoError(t, err)
-	assert.Equal(t, "8080", cfg.HTTP.Port)
-	assert.Equal(t, "sqlite", cfg.DB.Driver)
-	assert.Equal(t, "./dbserver/social.db", cfg.DB.Path)
-	assert.Equal(t, "", cfg.DB.PostgresDSN)
-	assert.Equal(t, "dev-secret-change-me", cfg.JWT.Secret)
-	assert.Equal(t, 24*time.Hour, cfg.JWT.TTL)
+	assert.ErrorContains(t, err, "POSTGRES_DSN")
+	assert.Nil(t, cfg)
 }
 
 func TestLoadEnvFrom(t *testing.T) {

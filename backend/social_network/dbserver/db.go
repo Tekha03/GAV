@@ -3,7 +3,6 @@ package dbserver
 import (
 	"fmt"
 	"log/slog"
-	"strings"
 
 	"social_network/internal/comment"
 	"social_network/internal/device"
@@ -20,46 +19,19 @@ import (
 	"social_network/internal/vaccination"
 
 	"gorm.io/driver/postgres"
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
-func InitDB(driver, path, postgresDSN string, logger *slog.Logger) (*gorm.DB, error) {
-	driver = strings.ToLower(strings.TrimSpace(driver))
-	if driver == "" {
-		driver = "sqlite"
+func InitDB(postgresDSN string, logger *slog.Logger) (*gorm.DB, error) {
+	if postgresDSN == "" {
+		return nil, fmt.Errorf("postgres dsn is empty")
 	}
-
-	var dialector gorm.Dialector
-	var source string
-
-	switch driver {
-	case "sqlite":
-		if path == "" {
-			path = "social.db"
-		}
-		dialector = sqlite.Open(path)
-		source = path
-	case "postgres", "postgresql":
-		if postgresDSN == "" {
-			return nil, fmt.Errorf("postgres dsn is empty")
-		}
-		dialector = postgres.Open(postgresDSN)
-		source = "postgres"
-	default:
-		return nil, fmt.Errorf("%w: %s", ErrUnsupportedDriver, driver)
-	}
-
-	db, err := gorm.Open(dialector, &gorm.Config{})
+	db, err := gorm.Open(postgres.Open(postgresDSN), &gorm.Config{})
 	if err != nil {
-		return nil, fmt.Errorf("cannot open %s: %w", driver, err)
+		return nil, fmt.Errorf("cannot open postgres: %w", err)
 	}
 
-	logger.Info("database opened", "driver", driver, "source", source)
-	if driver == "sqlite" {
-		sqlDB, _ := db.DB()
-		sqlDB.Exec("PRAGMA foreign_keys = ON;")
-	}
+	logger.Info("database opened", "driver", "postgres")
 
 	models := []interface{}{
 		&user.User{},

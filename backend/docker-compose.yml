@@ -64,8 +64,6 @@ services:
     environment:
       HTTP_PORT: "8080"
       GRPC_ADDR: ":9000"
-      DB_DRIVER: postgres
-      DB_PATH: /data/social.db
       POSTGRES_DSN: postgres://gav:gav@postgres:5432/gav_social?sslmode=disable
       JWT_SECRET: dev-secret-change-me
       JWT_TTL: 24h
@@ -81,7 +79,6 @@ services:
       - "8080:8080"
       - "9000:9000"
     volumes:
-      - social-data:/data
       - social-uploads:/uploads
 
   messenger:
@@ -114,5 +111,4 @@ services:
 
 volumes:
   postgres-data:
-  social-data:
   social-uploads:
