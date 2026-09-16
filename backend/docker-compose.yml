@@ -9,6 +9,7 @@ services:
       POSTGRES_DB: gav
     volumes:
       - postgres-data:/var/lib/postgresql/data
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U gav -d gav"]
       interval: 5s
@@ -37,7 +38,20 @@ services:
     command:
       - sh
       - -c
-      - psql -h postgres -U gav -d gav -f /migrations/001_init.sql
+      - for f in /migrations/*.sql; do psql -h postgres -U gav -d gav -f "$$f"; done
+    restart: "no"
+
+  social-db-init:
+    image: postgres:15
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: gav
+    command:
+      - sh
+      - -c
+      - test "$$(psql -h postgres -U gav -d gav -tAc "SELECT 1 FROM pg_database WHERE datname='gav_social'")" = "1" || createdb -h postgres -U gav gav_social
     restart: "no"
 
   social-network:
@@ -49,14 +63,23 @@ services:
         COMMAND_PATH: ./cmd/api
     environment:
       HTTP_PORT: "8080"
+      GRPC_ADDR: ":9000"
+      DB_DRIVER: postgres
       DB_PATH: /data/social.db
+      POSTGRES_DSN: postgres://gav:gav@postgres:5432/gav_social?sslmode=disable
       JWT_SECRET: dev-secret-change-me
       JWT_TTL: 24h
       STORAGE_TYPE: local
       STORAGE_LOCAL_PATH: /uploads
       KAFKA_ENABLED: "false"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      social-db-init:
+        condition: service_completed_successfully
     ports:
       - "8080:8080"
+      - "9000:9000"
     volumes:
       - social-data:/data
       - social-uploads:/uploads
@@ -75,6 +98,8 @@ services:
         condition: service_healthy
       messenger-migrate:
         condition: service_completed_successfully
+      social-network:
+        condition: service_started
     environment:
       POSTGRES_DSN: postgres://gav:gav@postgres:5432/gav?sslmode=disable
       REDIS_ADDR: redis:6379

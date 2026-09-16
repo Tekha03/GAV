@@ -38,8 +38,9 @@ func NewNotificationClient(addr string) (NotifiClient, error) {
 		return nil, apperrors.Wrap(apperrors.ServiceUnavailable, "failed to create notification client", err)
 	}
 	rawClient := &NotificationClient{
-		client: pb.NewNotificationServiceClient(conn),
-		conn:   conn,
+		client:  pb.NewNotificationServiceClient(conn),
+		conn:    conn,
+		timeout: 3 * time.Second,
 	}
 
 	return NewProtectedNotificationClient(rawClient), nil
@@ -47,21 +48,21 @@ func NewNotificationClient(addr string) (NotifiClient, error) {
 
 func (nc *NotificationClient) SendNewMessage(
 	ctx context.Context,
-	toUserID uuid.UUID,
+	toUserID, senderID uuid.UUID,
 	senderName, body, chatID string,
 ) error {
 	ctx, cancel := nc.withTimeout(ctx)
 	defer cancel()
 
 	err := retry.Do(ctx, retry.DefaultConfig(), func(ctx context.Context) error {
-		return nc.sendNewMessageOnce(ctx, toUserID, senderName, body, chatID)
+		return nc.sendNewMessageOnce(ctx, toUserID, senderID, senderName, body, chatID)
 	})
 	return apperrors.Wrap(apperrors.ServiceUnavailable, "failed to send notification", err)
 }
 
 func (nc *NotificationClient) sendNewMessageOnce(
 	ctx context.Context,
-	toUserID uuid.UUID,
+	toUserID, senderID uuid.UUID,
 	senderName, body, chatID string,
 ) error {
 	ctx, cancel := nc.withTimeout(ctx)
@@ -73,7 +74,8 @@ func (nc *NotificationClient) sendNewMessageOnce(
 		Body:      body,
 		EventType: "new_message",
 		Data: map[string]string{
-			"chat_id": chatID,
+			"chat_id":   chatID,
+			"sender_id": senderID.String(),
 		},
 	}
 	_, err := nc.client.SendNotification(ctx, req)

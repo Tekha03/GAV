@@ -14,6 +14,8 @@ require (
 	github.com/swaggo/http-swagger v1.3.4
 	golang.org/x/crypto v0.49.0
 	google.golang.org/api v0.247.0
+	google.golang.org/grpc v1.79.3
+	google.golang.org/protobuf v1.36.11
 	gorm.io/driver/postgres v1.6.0
 	gorm.io/driver/sqlite v1.6.0
 	gorm.io/gorm v1.31.1
@@ -76,8 +78,6 @@ require (
 	google.golang.org/genproto v0.0.0-20250804133106-a7a43d27e69b // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260209200024-4cfbd4190f57 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260209200024-4cfbd4190f57 // indirect
-	google.golang.org/grpc v1.79.3 // indirect
-	google.golang.org/protobuf v1.36.11 // indirect
 )
 
 require (

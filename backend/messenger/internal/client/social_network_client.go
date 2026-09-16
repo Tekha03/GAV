@@ -43,6 +43,7 @@ func NewSocialNetworkClient(addr string) (SocialClient, error) {
 		socialClient: socialv1.NewSocialServiceClient(conn),
 		authClient:   authv1.NewAuthServiceClient(conn),
 		conn:         conn,
+		timeout:      3 * time.Second,
 	}
 
 	return NewProtectedSocialClient(rawClient), nil

@@ -23,6 +23,7 @@ package main
 import (
 	"context"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -32,8 +33,10 @@ import (
 	"social_network/internal/app"
 	"social_network/internal/config"
 	"social_network/internal/kafka"
+	grpctransport "social_network/transport/grpc"
 
 	_ "docs"
+	grpcpkg "google.golang.org/grpc"
 )
 
 func main() {
@@ -46,14 +49,29 @@ func main() {
 		os.Exit(1)
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
+	defer stop()
 
 	application, err := app.NewApp(ctx, cfg)
 	if err != nil {
 		logger.Error("failed to create application", "error", err)
 		os.Exit(1)
 	}
+
+	grpcListener, err := net.Listen("tcp", cfg.GRPC.Addr)
+	if err != nil {
+		logger.Error("failed to listen for gRPC", "addr", cfg.GRPC.Addr, "error", err)
+		os.Exit(1)
+	}
+	grpcServer := grpcpkg.NewServer()
+	grpctransport.Register(grpcServer, application.Services.User, application.Services.Profile, application.Services.Auth, application.Services.Notification, cfg.JWT.TTL)
+	go func() {
+		logger.Info("starting gRPC server", "addr", cfg.GRPC.Addr)
+		if err := grpcServer.Serve(grpcListener); err != nil {
+			logger.Error("gRPC server failed", "error", err)
+			stop()
+		}
+	}()
 
 	if os.Getenv("KAFKA_ENABLED") == "true" {
 		if err := kafka.LaunchKafka(ctx, application.Services.Notification); err != nil {
@@ -68,15 +86,14 @@ func main() {
 		logger.Info("starting HTTP server", "addr", application.Server.Addr)
 		if err := application.Run(); err != nil && err != http.ErrServerClosed {
 			logger.Error("http server failed", "error", err)
-			os.Exit(1)
+			stop()
 		}
 	}()
 
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
-	<-quit
+	<-ctx.Done()
 
 	logger.Info("received shutdown signal")
+	grpcServer.GracefulStop()
 
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer shutdownCancel()

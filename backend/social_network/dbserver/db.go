@@ -6,9 +6,11 @@ import (
 	"strings"
 
 	"social_network/internal/comment"
+	"social_network/internal/device"
 	"social_network/internal/dog"
 	"social_network/internal/follow"
 	"social_network/internal/like"
+	"social_network/internal/notification"
 	"social_network/internal/post"
 	"social_network/internal/profile"
 	"social_network/internal/settings"
@@ -73,6 +75,8 @@ func InitDB(driver, path, postgresDSN string, logger *slog.Logger) (*gorm.DB, er
 		&token.RefreshToken{},
 		&stats.UserStats{},
 		&stats.PostStats{},
+		&notification.Notification{},
+		&device.DeviceToken{},
 	}
 
 	if err := db.AutoMigrate(models...); err != nil {

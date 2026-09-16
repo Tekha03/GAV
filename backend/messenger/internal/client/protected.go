@@ -34,13 +34,13 @@ func NewProtectedNotificationClient(inner NotifiClient) NotifiClient {
 
 func (c *ProtectedNotificationClient) SendNewMessage(
 	ctx context.Context,
-	receiverID uuid.UUID,
+	receiverID, senderID uuid.UUID,
 	senderName string,
 	text string,
 	chatID string,
 ) error {
 	_, err := c.breaker.Execute(func() (struct{}, error) {
-		return struct{}{}, c.inner.SendNewMessage(ctx, receiverID, senderName, text, chatID)
+		return struct{}{}, c.inner.SendNewMessage(ctx, receiverID, senderID, senderName, text, chatID)
 	})
 
 	return err

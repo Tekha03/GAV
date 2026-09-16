@@ -9,7 +9,7 @@ import (
 )
 
 type NotifiClient interface {
-	SendNewMessage(ctx context.Context, toUserID uuid.UUID, senderName, body, chatID string) error
+	SendNewMessage(ctx context.Context, toUserID, senderID uuid.UUID, senderName, body, chatID string) error
 	Close() error
 }
 

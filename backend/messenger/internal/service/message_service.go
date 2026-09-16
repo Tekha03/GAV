@@ -184,22 +184,30 @@ func (s *ChatService) SendMessage(ctx context.Context, requesterID uuid.UUID, in
 	s.sendRealtimeMessageSent(message)
 
 	recipients, err := s.findChatRecipients(ctx, input.ChatID, input.SenderID)
+	if err != nil {
+		slog.Error("failed to resolve message notification recipients", "error", err, "chat_id", input.ChatID, "sender_id", input.SenderID)
+	}
 	if err == nil && s.notClient != nil {
 		senderName := "Новое сообщение"
 		if s.socialClient != nil {
 			usr, err := s.socialClient.GetUserProfile(ctx, input.SenderID)
 			if err == nil && usr != nil {
 				senderName = usr.Username
+			} else if err != nil {
+				slog.Warn("failed to load sender profile for notification", "error", err, "sender_id", input.SenderID)
 			}
 		}
 
 		text := messageText(input.Text)
 
 		go func() {
+			notificationCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
 			for _, receiverID := range recipients {
 				if err := s.notClient.SendNewMessage(
-					context.Background(),
+					notificationCtx,
 					receiverID,
+					input.SenderID,
 					senderName,
 					text,
 					input.ChatID.String(),

@@ -23,6 +23,11 @@ func TestLoadHTTP(t *testing.T) {
 	assert.Equal(t, "8080", cfg.Port)
 }
 
+func TestLoadGRPC(t *testing.T) {
+	t.Setenv("GRPC_ADDR", ":9000")
+	assert.Equal(t, ":9000", loadGRPC().Addr)
+}
+
 func TestLoadDB(t *testing.T) {
 	t.Setenv("DB_DRIVER", "postgres")
 	t.Setenv("DB_PATH", "./test.db")
@@ -89,6 +94,7 @@ func TestValidate_Success(t *testing.T) {
 		HTTP: HTTPConfig{
 			Port: "8080",
 		},
+		GRPC: GRPCConfig{Addr: ":9000"},
 		DB: DBConfig{
 			Driver: "sqlite",
 			Path:   "./db.sqlite",
@@ -106,6 +112,7 @@ func TestValidate_Success(t *testing.T) {
 func TestValidate_HTTPPortMissing(t *testing.T) {
 	cfg := &Config{
 		HTTP: HTTPConfig{},
+		GRPC: GRPCConfig{Addr: ":9000"},
 		DB: DBConfig{
 			Driver: "sqlite",
 			Path:   "./db",
@@ -127,6 +134,7 @@ func TestValidate_DBPathMissing(t *testing.T) {
 		HTTP: HTTPConfig{
 			Port: "8080",
 		},
+		GRPC: GRPCConfig{Addr: ":9000"},
 		DB: DBConfig{
 			Driver: "sqlite",
 		},
@@ -147,6 +155,7 @@ func TestValidate_PostgresDSNMissing(t *testing.T) {
 		HTTP: HTTPConfig{
 			Port: "8080",
 		},
+		GRPC: GRPCConfig{Addr: ":9000"},
 		DB: DBConfig{
 			Driver: "postgres",
 		},
@@ -167,6 +176,7 @@ func TestValidate_JWTSecretMissing(t *testing.T) {
 		HTTP: HTTPConfig{
 			Port: "8080",
 		},
+		GRPC: GRPCConfig{Addr: ":9000"},
 		DB: DBConfig{
 			Driver: "sqlite",
 			Path:   "./db",
@@ -187,6 +197,7 @@ func TestValidate_JWTTTLMissing(t *testing.T) {
 		HTTP: HTTPConfig{
 			Port: "8080",
 		},
+		GRPC: GRPCConfig{Addr: ":9000"},
 		DB: DBConfig{
 			Driver: "sqlite",
 			Path:   "./db",
