@@ -1,6 +1,7 @@
 package app
 
 import (
+	"gorm.io/gorm"
 	"social_network/internal/auth"
 	"social_network/internal/comment"
 	"social_network/internal/dog"
@@ -17,10 +18,13 @@ import (
 	"social_network/internal/token"
 	"social_network/internal/user"
 	"social_network/internal/vaccination"
+	"social_network/internal/walk"
+	"social_network/storage/postgres"
 )
 
 type Services struct {
 	User         user.UserService
+	Walk         *walk.Service
 	Token        token.TokenService
 	Auth         auth.AuthService
 	Profile      profile.ProfileService
@@ -37,7 +41,7 @@ type Services struct {
 	Settings     settings.SettingsService
 }
 
-func initServices(repos *Repositories, jwtConfig auth.JWTConfig, storage media.Storage, notificationHub *notification.Hub) (*Services, error) {
+func initServices(repos *Repositories, db *gorm.DB, jwtConfig auth.JWTConfig, storage media.Storage, notificationHub *notification.Hub) (*Services, error) {
 	s := &Services{}
 
 	var err error
@@ -45,6 +49,7 @@ func initServices(repos *Repositories, jwtConfig auth.JWTConfig, storage media.S
 	if err != nil {
 		return nil, err
 	}
+	s.Walk = walk.NewService(postgres.NewWalkRepository(db))
 	s.Token, err = token.NewService(repos.Token)
 	if err != nil {
 		return nil, err

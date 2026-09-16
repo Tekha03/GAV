@@ -14,7 +14,7 @@ import (
 	"social_network/internal/token"
 	"social_network/internal/user"
 	"social_network/internal/vaccination"
-	gavSqlite "social_network/storage/sqlite"
+	"social_network/storage/postgres"
 
 	"gorm.io/gorm"
 )
@@ -39,55 +39,55 @@ func initRepositories(db *gorm.DB) (*Repositories, error) {
 	r := &Repositories{}
 
 	var err error
-	r.User, err = gavSqlite.NewUserRepository(db)
+	r.User, err = postgres.NewUserRepository(db)
 	if err != nil {
 		return nil, err
 	}
-	r.Token, err = gavSqlite.NewTokenRepository(db)
+	r.Token, err = postgres.NewTokenRepository(db)
 	if err != nil {
 		return nil, err
 	}
-	r.Profile, err = gavSqlite.NewProfileRepository(db)
+	r.Profile, err = postgres.NewProfileRepository(db)
 	if err != nil {
 		return nil, err
 	}
-	r.Post, err = gavSqlite.NewPostRepository(db)
+	r.Post, err = postgres.NewPostRepository(db)
 	if err != nil {
 		return nil, err
 	}
-	r.Comment, err = gavSqlite.NewCommentRepository(db)
+	r.Comment, err = postgres.NewCommentRepository(db)
 	if err != nil {
 		return nil, err
 	}
-	r.Like, err = gavSqlite.NewLikeRepository(db)
+	r.Like, err = postgres.NewLikeRepository(db)
 	if err != nil {
 		return nil, err
 	}
-	r.Follow, err = gavSqlite.NewFollowRepository(db)
+	r.Follow, err = postgres.NewFollowRepository(db)
 	if err != nil {
 		return nil, err
 	}
-	r.Dog, err = gavSqlite.NewDogRepository(db)
+	r.Dog, err = postgres.NewDogRepository(db)
 	if err != nil {
 		return nil, err
 	}
-	r.Vaccination, err = gavSqlite.NewVaccinationRepository(db)
+	r.Vaccination, err = postgres.NewVaccinationRepository(db)
 	if err != nil {
 		return nil, err
 	}
-	r.Stats, err = gavSqlite.NewStatsRepository(db)
+	r.Stats, err = postgres.NewStatsRepository(db)
 	if err != nil {
 		return nil, err
 	}
-	r.Settings, err = gavSqlite.NewSettingsRepository(db)
+	r.Settings, err = postgres.NewSettingsRepository(db)
 	if err != nil {
 		return nil, err
 	}
-	r.Notification, err = gavSqlite.NewNotificationRepository(db)
+	r.Notification, err = postgres.NewNotificationRepository(db)
 	if err != nil {
 		return nil, err
 	}
-	r.Device, err = gavSqlite.NewDeviceRepo(db)
+	r.Device, err = postgres.NewDeviceRepo(db)
 	if err != nil {
 		return nil, err
 	}

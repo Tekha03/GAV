@@ -17,6 +17,7 @@ import (
 type Handlers struct {
 	Auth        *handlers.AuthHandler
 	User        *handlers.UserHandler
+	Walk        *handlers.WalkHandler
 	Profile     *handlers.ProfileHandler
 	Post        *handlers.PostHandler
 	Feed        *handlers.FeedHandler
@@ -124,8 +125,15 @@ POST /api/v1/posts           - создать пост
 
 		r.Group(func(r chi.Router) {
 			r.Use(deps.AuthMW)
+			r.Route("/walks", func(r chi.Router) {
+				r.With(geoLimiter).Post("/start", h.Walk.Start)
+				r.Get("/current", h.Walk.Current)
+				r.With(geoLimiter).Patch("/current/location", h.Walk.UpdateLocation)
+				r.Patch("/current/visibility", h.Walk.UpdateVisibility)
+				r.Post("/current/stop", h.Walk.Stop)
+				r.With(geoLimiter).Get("/nearby", h.Walk.Nearby)
+			})
 
-			// ---- Auth ----
 			r.Route("/auth", func(r chi.Router) {
 				r.With(authLimiter).Post("/register", h.Auth.Register)
 				r.With(authLimiter).Post("/login", h.Auth.Login)
@@ -139,7 +147,6 @@ POST /api/v1/posts           - создать пост
 				})
 			})
 
-			// ---- Users ----
 			r.Route("/users", func(r chi.Router) {
 				r.Use(userLimiter)
 				r.Get("/{id}", h.User.GetByID)
@@ -154,12 +161,11 @@ POST /api/v1/posts           - создать пост
 
 				r.With(geoLimiter).Put("/{id}/location", h.User.UpdateLocation)
 				r.Put("/{id}/location-visibility", h.User.SetLocationVisibility)
-				r.With(geoLimiter).Get("/dogs/nearby", h.User.FindDogsNearby)
+				r.With(geoLimiter).Get("/dogs/nearby", h.Walk.NearbyDogs)
 			})
 
 			r.With(userLimiter).Get("/profiles/search", h.Profile.Search)
 
-			// ---- Posts ----
 			r.Route("/posts", func(r chi.Router) {
 				r.Use(userLimiter)
 				r.Post("/", h.Post.Create)
@@ -179,16 +185,13 @@ POST /api/v1/posts           - создать пост
 				})
 			})
 
-			// ---- Feed ----
 			r.With(userLimiter).Get("/feed", h.Feed.GetFeed)
 
-			// ---- Comments ----
 			r.Route("/comments", func(r chi.Router) {
 				r.Use(userLimiter)
 				r.Delete("/{id}", h.Comment.Delete)
 			})
 
-			// ---- Follows ----
 			r.Route("/follows", func(r chi.Router) {
 				r.Use(userLimiter)
 				r.Post("/{userID}", h.Follow.Follow)
@@ -197,12 +200,11 @@ POST /api/v1/posts           - создать пост
 				r.Get("/following/{userID}", h.Follow.GetFollowing)
 			})
 
-			// ---- Dogs ----
 			r.Route("/dogs", func(r chi.Router) {
 				r.Use(userLimiter)
 				r.Post("/", h.Dog.Create)
 				r.Get("/", h.Dog.ListMine)
-				r.With(geoLimiter).Get("/nearby", h.User.FindDogsNearby)
+				r.With(geoLimiter).Get("/nearby", h.Walk.NearbyDogs)
 				r.Get("/{id}", h.Dog.GetPrivate)
 				r.Put("/{id}", h.Dog.Update)
 				r.Delete("/{id}", h.Dog.Delete)
@@ -215,13 +217,11 @@ POST /api/v1/posts           - создать пост
 				})
 			})
 
-			// ---- Vaccinations ----
 			r.Route("/vaccinations", func(r chi.Router) {
 				r.Use(userLimiter)
 				r.Delete("/{id}", h.Vaccination.Delete)
 			})
 
-			// ---- Stats ----
 			r.Route("/stats", func(r chi.Router) {
 				r.Use(userLimiter)
 				r.Get("/user/{userID}", h.Stats.UserStats)
@@ -229,14 +229,12 @@ POST /api/v1/posts           - создать пост
 				r.Get("/profile/{userID}", h.Stats.ProfileStats)
 			})
 
-			// ---- Settings ----
 			r.Route("/settings", func(r chi.Router) {
 				r.Use(userLimiter)
 				r.Get("/", h.Settings.Get)
 				r.Put("/", h.Settings.Update)
 			})
 
-			// ---- Upload ----
 			r.Route("/upload", func(r chi.Router) {
 				r.Use(ratelimit.Middleware(ratelimit.Config{
 					Requests: 20,
@@ -249,7 +247,6 @@ POST /api/v1/posts           - создать пост
 				r.Post("/dog-image", h.Upload.UploadDogImage)
 			})
 
-			// ---- Web Socket ----
 			r.With(ratelimit.Middleware(ratelimit.Config{
 				Requests: 10,
 				Window:   time.Minute,

@@ -29,13 +29,7 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 	if cfg == nil {
 		return nil, ErrConfigNil
 	}
-	if cfg.DB.Driver == "" {
-		return nil, ErrDBDriverEmpty
-	}
-	if cfg.DB.Driver == "sqlite" && cfg.DB.Path == "" {
-		return nil, ErrDBPathEmpty
-	}
-	if (cfg.DB.Driver == "postgres" || cfg.DB.Driver == "postgresql") && cfg.DB.PostgresDSN == "" {
+	if cfg.DB.PostgresDSN == "" {
 		return nil, ErrPostgresDSNEmpty
 	}
 	if cfg.JWT.Secret == "" {
@@ -45,13 +39,13 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	logger.Info("initializing application")
 
-	db, err := dbserver.InitDB(cfg.DB.Driver, cfg.DB.Path, cfg.DB.PostgresDSN, logger)
+	db, err := dbserver.InitDB(cfg.DB.PostgresDSN, logger)
 	if err != nil {
 		logger.Error("failed to open database", "error", err)
 		return nil, err
 	}
 
-	logger.Info("database opened", "driver", cfg.DB.Driver)
+	logger.Info("database opened", "driver", "postgres")
 
 	if os.Getenv("ENV") != "production" {
 		if err := dbserver.SeedDatabase(db, logger); err != nil {
@@ -67,15 +61,10 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 		return nil, err
 	}
 
-	if cfg.DB.Driver == "postgres" || cfg.DB.Driver == "postgresql" {
-		sqlDB.SetMaxOpenConns(10)
-		sqlDB.SetMaxIdleConns(5)
-	} else {
-		sqlDB.SetMaxOpenConns(1)
-		sqlDB.SetMaxIdleConns(1)
-	}
+	sqlDB.SetMaxOpenConns(10)
+	sqlDB.SetMaxIdleConns(5)
 
-	logger.Info("database pool configured", "driver", cfg.DB.Driver)
+	logger.Info("database pool configured", "driver", "postgres")
 
 	jwtConfig := auth.JWTConfig{
 		Secret: []byte(cfg.JWT.Secret),
@@ -94,7 +83,7 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 	notificationHub := notification.NewHub()
 	go notificationHub.Run()
 
-	services, err := initServices(repos, jwtConfig, mediaStorage, notificationHub)
+	services, err := initServices(repos, db, jwtConfig, mediaStorage, notificationHub)
 	if err != nil {
 		return nil, err
 	}
@@ -108,6 +97,7 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 		httptransport.Handlers{
 			Auth:        handlers.Auth,
 			User:        handlers.User,
+			Walk:        handlers.Walk,
 			Profile:     handlers.Profile,
 			Post:        handlers.Post,
 			Feed:        handlers.Feed,

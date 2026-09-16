@@ -96,6 +96,12 @@ func (s *service) FindDogsNearby(ctx context.Context, userID uuid.UUID, centerLa
 }
 
 func (s *service) UpdateLocation(ctx context.Context, userID uuid.UUID, locationInput UpdateLocationInput) error {
+	return s.withinTransaction(ctx, func(ctx context.Context) error {
+		return s.updateLocation(ctx, userID, locationInput)
+	})
+}
+
+func (s *service) updateLocation(ctx context.Context, userID uuid.UUID, locationInput UpdateLocationInput) error {
 	user, err := s.repo.GetByID(ctx, userID)
 	if err != nil {
 		return err
@@ -118,7 +124,7 @@ func (s *service) UpdateLocation(ctx context.Context, userID uuid.UUID, location
 	now := time.Now()
 	user.LocationUpdatedAt = nil
 
-	if locationInput.ClearLocation || locationInput.Status != Walking || locationInput.Visibility == VisibilityNoOne {
+	if locationInput.ClearLocation || locationInput.Status != Walking {
 		user.Lat = nil
 		user.Lon = nil
 		user.LocationStatus = Inactive
@@ -147,6 +153,12 @@ func (s *service) UpdateLocation(ctx context.Context, userID uuid.UUID, location
 }
 
 func (s *service) SetLocationVisibility(ctx context.Context, userID uuid.UUID, visibility SetLocationVisibilityInput) error {
+	return s.withinTransaction(ctx, func(ctx context.Context) error {
+		return s.setLocationVisibility(ctx, userID, visibility)
+	})
+}
+
+func (s *service) setLocationVisibility(ctx context.Context, userID uuid.UUID, visibility SetLocationVisibilityInput) error {
 	if err := validateLocationVisibility(visibility.Visibility); err != nil {
 		return err
 	}
@@ -157,18 +169,20 @@ func (s *service) SetLocationVisibility(ctx context.Context, userID uuid.UUID, v
 	}
 
 	user.Visibility = visibility.Visibility
-	if visibility.Visibility == VisibilityNoOne {
-		if err := s.repo.EndActiveWalkSession(ctx, userID, time.Now()); err != nil {
-			return err
-		}
-		user.LocationStatus = Inactive
-	} else {
-		if err := s.repo.UpdateActiveWalkVisibility(ctx, userID, visibility.Visibility); err != nil {
-			return err
-		}
+	if err := s.repo.UpdateActiveWalkVisibility(ctx, userID, visibility.Visibility); err != nil {
+		return err
 	}
 
 	return s.repo.Update(ctx, user)
+}
+
+func (s *service) withinTransaction(ctx context.Context, fn func(context.Context) error) error {
+	if transactional, ok := s.repo.(interface {
+		WithinTransaction(context.Context, func(context.Context) error) error
+	}); ok {
+		return transactional.WithinTransaction(ctx, fn)
+	}
+	return fn(ctx)
 }
 
 func validateCoordinates(lat, lon float64) error {

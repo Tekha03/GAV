@@ -8,6 +8,7 @@ import (
 type Handlers struct {
 	Auth        *handlers.AuthHandler
 	User        *handlers.UserHandler
+	Walk        *handlers.WalkHandler
 	Profile     *handlers.ProfileHandler
 	Post        *handlers.PostHandler
 	Feed        *handlers.FeedHandler
@@ -34,6 +35,7 @@ func initHandlers(services *Services, notificationHub *notification.Hub) (*Handl
 	if err != nil {
 		return nil, err
 	}
+	h.Walk = handlers.NewWalkHandler(services.Walk)
 	h.Profile, err = handlers.NewProfileHandler(services.Profile)
 	if err != nil {
 		return nil, err

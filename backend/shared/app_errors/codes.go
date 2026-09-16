@@ -48,6 +48,12 @@ const (
 	CodeDogAgeInvalid    Code = "DOG_AGE_INVALID"
 )
 
+// Walks
+const (
+	CodeWalkNotFound      Code = "WALK_NOT_FOUND"
+	CodeWalkAlreadyActive Code = "WALK_ALREADY_ACTIVE"
+)
+
 // Posts and interactions
 const (
 	CodePostNotFound        Code = "POST_NOT_FOUND"

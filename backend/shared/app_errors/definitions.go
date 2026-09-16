@@ -46,6 +46,12 @@ var (
 	DogAgeInvalid    = define(CodeDogAgeInvalid, CategoryValidation)
 )
 
+// Walks
+var (
+	WalkNotFound      = define(CodeWalkNotFound, CategoryNotFound)
+	WalkAlreadyActive = define(CodeWalkAlreadyActive, CategoryConflict)
+)
+
 // Posts and interactions
 var (
 	PostNotFound        = define(CodePostNotFound, CategoryNotFound)
