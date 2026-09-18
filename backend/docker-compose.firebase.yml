@@ -1,0 +1,7 @@
+services:
+  social-network:
+    environment:
+      FIREBASE_ENABLED: "true"
+      FIREBASE_CREDENTIALS_FILE: /run/secrets/firebase-service-account.json
+    volumes:
+      - ${FIREBASE_SERVICE_ACCOUNT_FILE:?Set FIREBASE_SERVICE_ACCOUNT_FILE to an absolute service-account JSON path}:/run/secrets/firebase-service-account.json:ro

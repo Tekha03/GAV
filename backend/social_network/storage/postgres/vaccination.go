@@ -60,9 +60,9 @@ func (r *VaccinationRepository) Delete(ctx context.Context, id uuid.UUID) error 
 }
 
 func (r *VaccinationRepository) ListByDogID(ctx context.Context, dogID uuid.UUID) ([]*vaccination.Vaccination, error) {
-	var vaccinations []*vaccination.Vaccination
+	vaccinations := make([]*vaccination.Vaccination, 0)
 
-	if err := r.DB(ctx).Where("dog_id = ?", dogID).Order("created_at DESC").Find(&vaccinations).Error; err != nil {
+	if err := r.DB(ctx).Where("dog_id = ?", dogID).Order("done_at DESC").Find(&vaccinations).Error; err != nil {
 		return nil, fmt.Errorf("vaccination repository: list by dog id: %w", err)
 	}
 

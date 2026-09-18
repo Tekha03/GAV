@@ -8,12 +8,6 @@ import (
 	"github.com/IBM/sarama"
 )
 
-const (
-	chatTopic     = "chat-events"
-	messageTopic  = "message-events"
-	reactionTopic = "reaction-events"
-)
-
 type Producer struct {
 	producer sarama.SyncProducer
 }
@@ -70,16 +64,16 @@ func resolveTopic(eventType events.EventType) (string, error) {
 		events.EventTypeChatMemberRemoved,
 		events.EventTypeChatUpdated,
 		events.EventTypeChatDeleted:
-		return chatTopic, nil
+		return events.ChatTopic, nil
 
 	case events.EventTypeMessageSent,
 		events.EventTypeMessageEdited,
 		events.EventTypeMessageDeleted:
-		return messageTopic, nil
+		return events.MessageTopic, nil
 
 	case events.EventTypeReactionAdded,
 		events.EventTypeReactionRemoved:
-		return reactionTopic, nil
+		return events.ReactionTopic, nil
 
 	default:
 		return "", apperrors.New(apperrors.Internal, "unknown event type", apperrors.WithDetail("event_type", eventType))

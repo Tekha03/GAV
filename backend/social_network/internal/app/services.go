@@ -1,9 +1,14 @@
 package app
 
 import (
+	"context"
+	"log/slog"
+
 	"gorm.io/gorm"
 	"social_network/internal/auth"
 	"social_network/internal/comment"
+	"social_network/internal/config"
+	"social_network/internal/device"
 	"social_network/internal/dog"
 	"social_network/internal/feed"
 	"social_network/internal/firebase"
@@ -35,13 +40,14 @@ type Services struct {
 	Like         like.LikeService
 	Follow       follow.FollowService
 	Notification notification.NotificationService
+	Device       *device.Service
 	Dog          dog.DogService
 	Vaccination  vaccination.VaccinationService
 	Stats        stats.StatsService
 	Settings     settings.SettingsService
 }
 
-func initServices(repos *Repositories, db *gorm.DB, jwtConfig auth.JWTConfig, storage media.Storage, notificationHub *notification.Hub) (*Services, error) {
+func initServices(ctx context.Context, repos *Repositories, db *gorm.DB, jwtConfig auth.JWTConfig, storage media.Storage, notificationHub *notification.Hub, firebaseConfig config.FirebaseConfig) (*Services, error) {
 	s := &Services{}
 
 	var err error
@@ -90,10 +96,21 @@ func initServices(repos *Repositories, db *gorm.DB, jwtConfig auth.JWTConfig, st
 	if err != nil {
 		return nil, err
 	}
-	s.Notification, err = notification.NewService(notificationHub, repos.Notification, repos.Device, &firebase.Client{})
+	firebaseClient := &firebase.Client{} // Explicitly disabled for local runs without credentials.
+	if firebaseConfig.Enabled {
+		firebaseClient, err = firebase.NewClient(ctx, firebaseConfig.CredentialsFile)
+		if err != nil {
+			return nil, err
+		}
+		slog.Info("Firebase Cloud Messaging enabled")
+	} else {
+		slog.Info("Firebase Cloud Messaging disabled")
+	}
+	s.Notification, err = notification.NewService(notificationHub, repos.Notification, repos.Device, firebaseClient)
 	if err != nil {
 		return nil, err
 	}
+	s.Device = device.NewService(repos.Device)
 	s.Dog, err = dog.NewService(repos.Dog, s.Stats)
 	if err != nil {
 		return nil, err

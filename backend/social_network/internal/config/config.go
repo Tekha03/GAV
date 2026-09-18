@@ -1,22 +1,24 @@
 package config
 
 type Config struct {
-	HTTP    HTTPConfig
-	GRPC    GRPCConfig
-	DB      DBConfig
-	JWT     JWTConfig
-	Storage StorageConfig
+	HTTP     HTTPConfig
+	GRPC     GRPCConfig
+	DB       DBConfig
+	JWT      JWTConfig
+	Storage  StorageConfig
+	Firebase FirebaseConfig
 }
 
 func Load() (*Config, error) {
 	loadEnv()
 
 	cfg := &Config{
-		HTTP:    loadHTTP(),
-		GRPC:    loadGRPC(),
-		DB:      loadDB(),
-		JWT:     loadJWT(),
-		Storage: loadStorage(),
+		HTTP:     loadHTTP(),
+		GRPC:     loadGRPC(),
+		DB:       loadDB(),
+		JWT:      loadJWT(),
+		Storage:  loadStorage(),
+		Firebase: loadFirebase(),
 	}
 
 	if err := cfg.validate(); err != nil {
@@ -41,6 +43,9 @@ func (c *Config) validate() error {
 	}
 	if c.JWT.TTL == 0 {
 		return Err("JWT_TTL is required")
+	}
+	if c.Firebase.Enabled && c.Firebase.CredentialsFile == "" {
+		return Err("FIREBASE_CREDENTIALS_FILE is required when FIREBASE_ENABLED=true")
 	}
 	return nil
 }

@@ -3,6 +3,7 @@ package notification
 import (
 	"context"
 	"encoding/json"
+	"log/slog"
 	"social_network/internal/device"
 	"social_network/internal/firebase"
 
@@ -108,11 +109,15 @@ func (s *service) notify(ctx context.Context, userID, fromUserID uuid.UUID, noti
 
 	if s.deviceRepo != nil && s.firebaseClient != nil {
 		tokens, err := s.deviceRepo.GetByUser(ctx, userID)
-		if err == nil {
+		if err != nil {
+			slog.Error("failed to load device tokens for push", "user_id", userID, "error", err)
+		} else {
 			for _, token := range tokens {
 				data := cloneMap(pushData)
 				data["notification_id"] = notification.ID.String()
-				_ = s.firebaseClient.SendPush(ctx, token.Token, title, body, data)
+				if err := s.firebaseClient.SendPush(ctx, token.Token, title, body, data); err != nil {
+					slog.Error("failed to send Firebase push", "user_id", userID, "error", err)
+				}
 			}
 		}
 	}

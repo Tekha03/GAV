@@ -44,6 +44,12 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 		logger.Error("failed to open database", "error", err)
 		return nil, err
 	}
+	initialized := false
+	defer func() {
+		if !initialized {
+			_ = dbserver.CloseDB(db)
+		}
+	}()
 
 	logger.Info("database opened", "driver", "postgres")
 
@@ -81,9 +87,8 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 	}
 
 	notificationHub := notification.NewHub()
-	go notificationHub.Run()
 
-	services, err := initServices(repos, db, jwtConfig, mediaStorage, notificationHub)
+	services, err := initServices(ctx, repos, db, jwtConfig, mediaStorage, notificationHub, cfg.Firebase)
 	if err != nil {
 		return nil, err
 	}
@@ -110,6 +115,7 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 			Settings:    handlers.Settings,
 			Upload:      handlers.Upload,
 			WS:          handlers.WSHandler,
+			Device:      handlers.Device,
 		},
 		httptransport.RouterDeps{
 			AuthMW:      middleware.JWTAuth(jwtConfig),
@@ -125,6 +131,8 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 	}
 
 	logger.Info("http server configured", "port", cfg.HTTP.Port)
+	go notificationHub.Run()
+	initialized = true
 
 	return &App{
 		Server:          server,

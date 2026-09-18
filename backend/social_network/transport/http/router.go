@@ -30,6 +30,7 @@ type Handlers struct {
 	Settings    *handlers.SettingsHandler
 	Upload      *handlers.UploadHandler
 	WS          *handlers.NotificationHandler
+	Device      *handlers.DeviceHandler
 }
 
 type RouterDeps struct {
@@ -123,6 +124,11 @@ POST /api/v1/posts           - создать пост
 		// r.Post("/stats/reset", h.Admin.ResetStats)
 		// })
 
+		// A new client has no access token yet. Refresh uses its refresh token.
+		r.With(authLimiter).Post("/auth/register", h.Auth.Register)
+		r.With(authLimiter).Post("/auth/login", h.Auth.Login)
+		r.With(authLimiter).Post("/auth/refresh", h.Auth.Refresh)
+
 		r.Group(func(r chi.Router) {
 			r.Use(deps.AuthMW)
 			r.Route("/walks", func(r chi.Router) {
@@ -134,18 +140,10 @@ POST /api/v1/posts           - создать пост
 				r.With(geoLimiter).Get("/nearby", h.Walk.Nearby)
 			})
 
-			r.Route("/auth", func(r chi.Router) {
-				r.With(authLimiter).Post("/register", h.Auth.Register)
-				r.With(authLimiter).Post("/login", h.Auth.Login)
-
-				r.Group(func(r chi.Router) {
-					r.Use(deps.AuthMW)
-
-					r.Get("/me", h.Auth.Me)
-					r.Post("/refresh", h.Auth.Refresh)
-					r.Post("/logout", h.Auth.Logout)
-				})
-			})
+			r.Get("/auth/me", h.Auth.Me)
+			r.Post("/auth/logout", h.Auth.Logout)
+			r.With(userLimiter).Post("/devices/tokens", h.Device.Register)
+			r.With(userLimiter).Delete("/devices/tokens", h.Device.Unregister)
 
 			r.Route("/users", func(r chi.Router) {
 				r.Use(userLimiter)

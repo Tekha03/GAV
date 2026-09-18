@@ -21,6 +21,7 @@ type Handlers struct {
 	Settings    *handlers.SettingsHandler
 	Upload      *handlers.UploadHandler
 	WSHandler   *handlers.NotificationHandler
+	Device      *handlers.DeviceHandler
 }
 
 func initHandlers(services *Services, notificationHub *notification.Hub) (*Handlers, error) {
@@ -86,6 +87,7 @@ func initHandlers(services *Services, notificationHub *notification.Hub) (*Handl
 		return nil, err
 	}
 	h.WSHandler, err = handlers.NewNotificationHandler(notificationHub)
+	h.Device = handlers.NewDeviceHandler(services.Device)
 	if err != nil {
 		return nil, err
 	}

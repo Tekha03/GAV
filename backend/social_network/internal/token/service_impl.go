@@ -3,11 +3,12 @@ package token
 import (
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"time"
 
 	"github.com/google/uuid"
-	"golang.org/x/crypto/bcrypt"
 )
 
 type service struct {
@@ -28,16 +29,11 @@ func (s *service) CreateRefresh(ctx context.Context, userID uuid.UUID) (string, 
 		return "", err
 	}
 
-	hash, err := bcrypt.GenerateFromPassword([]byte(plain), bcrypt.DefaultCost)
-	if err != nil {
-		return "", err
-	}
-
 	token := &RefreshToken{
 		ID:        uuid.New(),
 		UserID:    userID,
-		TokenHash: string(hash),
-		ExpiresAt: time.Now().Add(7*24 + time.Hour),
+		TokenHash: refreshHash(plain),
+		ExpiresAt: time.Now().Add(7 * 24 * time.Hour),
 		CreatedAt: time.Now(),
 	}
 
@@ -49,32 +45,30 @@ func (s *service) CreateRefresh(ctx context.Context, userID uuid.UUID) (string, 
 }
 
 func (s *service) ValidateAndRotate(ctx context.Context, refresh string) (uuid.UUID, string, error) {
-	hash, err := bcrypt.GenerateFromPassword([]byte(refresh), bcrypt.DefaultCost)
-	if err != nil {
-		return uuid.Nil, "", err
-	}
-
-	refreshToken, err := s.repo.GetByHash(ctx, string(hash))
+	hash := refreshHash(refresh)
+	refreshToken, err := s.repo.GetByHash(ctx, hash)
 	if err != nil || refreshToken == nil || refreshToken.Revoked || time.Now().After(refreshToken.ExpiresAt) {
 		return uuid.Nil, "", ErrInvalidRefresh
 	}
 
-	s.repo.Revoke(ctx, string(hash))
+	if err := s.repo.Revoke(ctx, hash); err != nil {
+		return uuid.Nil, "", err
+	}
 	newPlain, err := s.CreateRefresh(ctx, refreshToken.UserID)
 	if err != nil {
 		return uuid.Nil, "", err
 	}
 
-	return refreshToken.UserID, newPlain, err
+	return refreshToken.UserID, newPlain, nil
 }
 
 func (s *service) Revoke(ctx context.Context, refresh string) error {
-	hash, err := bcrypt.GenerateFromPassword([]byte(refresh), bcrypt.DefaultCost)
-	if err != nil {
-		return err
-	}
+	return s.repo.Revoke(ctx, refreshHash(refresh))
+}
 
-	return s.repo.Revoke(ctx, string(hash))
+func refreshHash(refresh string) string {
+	sum := sha256.Sum256([]byte(refresh))
+	return hex.EncodeToString(sum[:])
 }
 
 func (s *service) RevokeAllForUser(ctx context.Context, userID uuid.UUID) error {
