@@ -20,7 +20,7 @@ final class VaccinationRepositoryImpl: VaccinationRepository {
     }
 
     func update(vaccinationID: UUID, dogID: UUID, input: UpdateVaccinationInput) async throws {
-        try await api.update(vaccinationID: vaccinationID, input: input)
+        try await api.update(vaccinationID: vaccinationID, dogID: dogID, input: input)
     }
 
     func delete(vaccinationID: UUID) async throws {

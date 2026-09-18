@@ -5,7 +5,7 @@ public struct AuthModel: Codable, Equatable {
     public let email: String
 }
 
-public struct AuthTokensModel: Codable, Equatable {
+public struct AuthTokensModel: Codable, Equatable, Sendable {
     public let accessToken: String
     public let refreshToken: String
 }

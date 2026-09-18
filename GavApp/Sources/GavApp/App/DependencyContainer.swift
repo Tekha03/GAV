@@ -7,10 +7,11 @@ final class DependencyContainer {
     let authService: AuthServiceAPIProtocol
     let configuration: AppConfiguration
 
-    init(configuration: AppConfiguration = .current) {
+    init(configuration providedConfiguration: AppConfiguration? = nil) {
+        let configuration = providedConfiguration ?? .current
         self.configuration = configuration
 
-        let authManager = AuthManager()
+        let authManager = AuthManager(refreshBaseURL: configuration.socialBaseUrl)
       
         MediaURLResolver.configure(socialBaseURL: configuration.socialBaseUrl)
         self.authManager = authManager
@@ -20,8 +21,9 @@ final class DependencyContainer {
         )
 
         let chatUseCase = ChatServiceAPI(
+            baseURL: configuration.messengerBaseUrl,
             authManager: authManager,
-            currentUserIdProvider: { authManager.currentUserID() }
+            currentUserIdProvider: { authManager.currentUserId() }
         )
         let profileService = UserProfileServiceAPI(
             baseURL: configuration.socialBaseUrl,
@@ -55,6 +57,10 @@ final class DependencyContainer {
             baseURL: configuration.socialBaseUrl,
             authManager: authManager
         )
+        let vaccinationService = VaccinationServiceAPI(
+            baseURL: configuration.socialBaseUrl,
+            authManager: authManager
+        )
 
         appViewModel = AppViewModel.runtime(
             currentUserId: authManager.currentUserId() ?? UUID(),
@@ -66,7 +72,8 @@ final class DependencyContainer {
             feedService: feedService,
             userService: userService,
             followService: followService,
-            statsService: statsService
+            statsService: statsService,
+            vaccinationService: vaccinationService
         )
     }
 }

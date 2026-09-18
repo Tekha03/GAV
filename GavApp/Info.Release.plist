@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>GAVEnvironmentName</key>
+    <string>$(GAV_ENVIRONMENT_NAME)</string>
+    <key>GAVSocialBaseURL</key>
+    <string>$(GAV_SOCIAL_BASE_URL)</string>
+    <key>GAVMessengerBaseURL</key>
+    <string>$(GAV_MESSENGER_BASE_URL)</string>
+</dict>
+</plist>

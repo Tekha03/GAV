@@ -23,12 +23,12 @@ extension AppScreenState {
 
 private extension Error {
     var isOfflineError: Bool {
-        if let apiError = self as ? APIError {
+        if let apiError = self as? APIError {
             switch apiError {
                 case .networkError(let underlyingError):
                     return underlyingError.isOfflineError
 
-                case .invalidURL, .invalidResponse, .decodingError:
+                case .invalidURL, .server, .invalidResponse, .decodingError:
                     return false
             }
         }

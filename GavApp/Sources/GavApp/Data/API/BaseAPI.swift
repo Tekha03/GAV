@@ -37,20 +37,7 @@ struct BaseAPI: Sendable {
             request.httpBody = body
         }
 
-        do {
-            let (data, response) = try await session.data(for: request)
-
-            guard let httpResponse = response as? HTTPURLResponse else {
-                throw APIError.invalidResponse(statusCode: 0)
-            }
-            try validate(httpResponse, data: data)
-
-            return data
-        } catch let error as APIError {
-            throw error
-        } catch {
-            throw APIError.networkError(error)
-        }
+        return try await perform(request, requiresAuth: requiresAuth)
     }
 
     func upload(
@@ -95,16 +82,35 @@ struct BaseAPI: Sendable {
 
         request.httpBody = body
 
+        return try await perform(request, requiresAuth: requiresAuth)
+    }
+
+    private func perform(_ request: URLRequest, requiresAuth: Bool) async throws -> Data {
         do {
             let (data, response) = try await session.data(for: request)
-
-            guard let httpResponse = response as? HTTPURLResponse else {
+            guard let response = response as? HTTPURLResponse else {
                 throw APIError.invalidResponse(statusCode: 0)
             }
-            try validate(httpResponse, data: data)
 
+            if response.statusCode == 401 && requiresAuth {
+                let failedToken = request.value(forHTTPHeaderField: "Authorization")
+                    .flatMap { $0.hasPrefix("Bearer ") ? String($0.dropFirst(7)) : nil }
+                let token = try await authManager.refreshAccessToken(
+                    after: failedToken,
+                    using: session
+                )
+                var retry = request
+                retry.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+                let (retryData, retryResponse) = try await session.data(for: retry)
+                guard let retryResponse = retryResponse as? HTTPURLResponse else {
+                    throw APIError.invalidResponse(statusCode: 0)
+                }
+                try validate(retryResponse, data: retryData)
+                return retryData
+            }
+
+            try validate(response, data: data)
             return data
-
         } catch let error as APIError {
             throw error
         } catch {

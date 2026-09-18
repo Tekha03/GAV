@@ -155,6 +155,7 @@ final class AppViewModel: ObservableObject {
     var userService: UserServiceAPIProtocol
     var followService: FollowServiceAPIProtocol
     var statsService: StatsServiceAPIProtocol
+    var vaccinationService: VaccinationServiceAPIProtocol
     let canEditProfile: Bool
 
     init(
@@ -175,6 +176,7 @@ final class AppViewModel: ObservableObject {
         userService: UserServiceAPIProtocol,
         followService: FollowServiceAPIProtocol,
         statsService: StatsServiceAPIProtocol,
+        vaccinationService: VaccinationServiceAPIProtocol,
         canEditProfile: Bool
     ) {
         self.profile = profile
@@ -194,6 +196,7 @@ final class AppViewModel: ObservableObject {
         self.userService = userService
         self.followService = followService
         self.statsService = statsService
+        self.vaccinationService = vaccinationService
         self.canEditProfile = canEditProfile
     }
 
@@ -219,6 +222,66 @@ final class AppViewModel: ObservableObject {
 
     func vaccinations(for dogID: UUID) -> [AppVaccination] {
         vaccinations.filter { $0.dogID == dogID }
+    }
+
+    func loadVaccinations(for dogID: UUID) async throws {
+        let models = try await vaccinationService.listByDogID(dogID: dogID)
+        vaccinations.removeAll { $0.dogID == dogID }
+        vaccinations.append(contentsOf: models.map { model in
+            AppVaccination(
+                id: model.id,
+                dogID: model.dogId,
+                name: model.name,
+                vaccinationDate: model.doneAt,
+                reminderAfterDays: Calendar.current.dateComponents(
+                    [.day], from: model.doneAt, to: model.nextDueAt ?? model.doneAt
+                ).day ?? 0,
+                nextDate: model.nextDueAt ?? model.doneAt,
+                notes: model.notes ?? ""
+            )
+        })
+    }
+
+    func saveVaccination(_ item: AppVaccination, isEditing: Bool) async throws {
+        if isEditing {
+            try await vaccinationService.update(
+                vaccinationID: item.id,
+                dogID: item.dogID,
+                input: UpdateVaccinationInput(
+                    name: item.name,
+                    doneAt: item.vaccinationDate,
+                    nextDueAt: item.nextDate,
+                    notes: item.notes
+                )
+            )
+            if let index = vaccinations.firstIndex(where: { $0.id == item.id }) {
+                vaccinations[index] = item
+            }
+        } else {
+            let created = try await vaccinationService.create(
+                dogID: item.dogID,
+                input: CreateVaccinationInput(
+                    name: item.name,
+                    doneAt: item.vaccinationDate,
+                    nextDueAt: item.nextDate,
+                    notes: item.notes
+                )
+            )
+            vaccinations.append(AppVaccination(
+                id: created.id,
+                dogID: created.dogId,
+                name: created.name,
+                vaccinationDate: created.doneAt,
+                reminderAfterDays: item.reminderAfterDays,
+                nextDate: created.nextDueAt ?? created.doneAt,
+                notes: created.notes ?? ""
+            ))
+        }
+    }
+
+    func deleteVaccination(_ item: AppVaccination) async throws {
+        try await vaccinationService.delete(vaccinationID: item.id)
+        vaccinations.removeAll { $0.id == item.id }
     }
 
     func loadChats() async throws {
@@ -804,7 +867,8 @@ extension AppViewModel {
         feedService: FeedServiceAPIProtocol,
         userService: UserServiceAPIProtocol,
         followService: FollowServiceAPIProtocol,
-        statsService: StatsServiceAPIProtocol
+        statsService: StatsServiceAPIProtocol,
+        vaccinationService: VaccinationServiceAPIProtocol
     ) -> AppViewModel {
         AppViewModel(
             profile: AppProfile(
@@ -831,6 +895,7 @@ extension AppViewModel {
             userService: userService,
             followService: followService,
             statsService: statsService,
+            vaccinationService: vaccinationService,
             canEditProfile: true
         )
     }

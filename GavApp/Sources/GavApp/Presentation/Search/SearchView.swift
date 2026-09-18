@@ -62,7 +62,7 @@ struct SearchView: View {
                 NavigationLink {
                     UserProfileDetailView(profile: account)
                 } label: {
-                    accountRow(for: account)
+                    accountRow(account)
                 }
             }
             .listStyle(.plain)
@@ -72,7 +72,7 @@ struct SearchView: View {
     private func accountRow(_ account: UserProfileModel) -> some View {
         HStack(spacing: 12) {
             AsyncImage(
-                url: account.profilePhotoURL.flatMap {
+                url: account.profilePhotoUrl.flatMap {
                     MediaURLResolver.resolve($0)
                 }
             ) { phase in

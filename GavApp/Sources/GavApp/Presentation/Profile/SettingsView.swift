@@ -34,7 +34,7 @@ struct ProfileSettingsView: View {
                     )
 
                 case .content:
-                    settingsContent
+                    settingsForm
                 }
             }
             .navigationTitle("Настройки")
@@ -222,7 +222,7 @@ struct ProfileSettingsView: View {
                 profilePhotoUrl: uploadedAvatar?.rawURL
             )
         } catch let error as APIError where error.code == .profileAlreadyExists {
-            errorMessage = "Этот никнейм уже занят"
+            actionErrorMessage = "Этот никнейм уже занят"
             return
         } catch {
             actionErrorMessage = "Не удалось сохранить профиль"
@@ -241,7 +241,6 @@ struct ProfileSettingsView: View {
     }
 
     private func uploadAvatarIfNeeded() async -> UploadedMedia? {
-        actionErrorMessage = error.localizedDescription
         guard let selectedAvatarData else { return nil }
 
         do {

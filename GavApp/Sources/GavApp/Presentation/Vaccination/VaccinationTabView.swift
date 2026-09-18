@@ -140,6 +140,9 @@ struct VaccinationListView: View {
     let dog: AppDog
     @State private var showAdd = false
     @State private var editingItem: AppVaccination?
+    @State private var deletingItem: AppVaccination?
+    @State private var screenState: AppScreenState = .loading
+    @State private var actionErrorMessage: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -162,9 +165,19 @@ struct VaccinationListView: View {
                 .buttonStyle(.borderedProminent)
             }
 
+            if let actionErrorMessage {
+                Text(actionErrorMessage)
+                    .foregroundStyle(.orange)
+            }
+
             let items = appViewModel.vaccinations(for: dog.id)
 
-            if items.isEmpty {
+            if screenState != .content {
+                AppStatusView(state: screenState, retryAction: {
+                    Task { await loadVaccinations() }
+                })
+                .foregroundStyle(.white)
+            } else if items.isEmpty {
                 ContentUnavailableView(
                     "Прививок пока нет",
                     systemImage: "syringe",
@@ -208,6 +221,14 @@ struct VaccinationListView: View {
                                         .background(.white.opacity(0.10), in: Capsule())
                                 }
                                 .buttonStyle(.plain)
+
+                                Button(role: .destructive) {
+                                    deletingItem = item
+                                } label: {
+                                    Image(systemName: "trash")
+                                        .foregroundStyle(.red)
+                                }
+                                .buttonStyle(.plain)
                             }
                             .padding(14)
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -239,7 +260,37 @@ struct VaccinationListView: View {
         .sheet(item: $editingItem) { item in
             AddVaccinationView(dog: dog, editingItem: item)
         }
+        .confirmationDialog(
+            "Удалить прививку?",
+            isPresented: Binding(
+                get: { deletingItem != nil },
+                set: { if !$0 { deletingItem = nil } }
+            )
+        ) {
+            Button("Удалить", role: .destructive) {
+                guard let item = deletingItem else { return }
+                Task {
+                    do {
+                        try await appViewModel.deleteVaccination(item)
+                        deletingItem = nil
+                    } catch {
+                        actionErrorMessage = error.localizedDescription
+                    }
+                }
+            }
+        }
+        .task { await loadVaccinations() }
         .preferredColorScheme(.dark)
+    }
+
+    private func loadVaccinations() async {
+        screenState = .loading(message: "Загружаем прививки...")
+        do {
+            try await appViewModel.loadVaccinations(for: dog.id)
+            screenState = .content
+        } catch {
+            screenState = .from(error)
+        }
     }
 
     private func relativeReminderText(for date: Date) -> String {
@@ -262,6 +313,8 @@ struct AddVaccinationView: View {
     @State private var reminderWeeks: Int
     @State private var reminderDays: Int
     @State private var notes: String
+    @State private var isSaving = false
+    @State private var errorMessage: String?
 
     init(dog: AppDog, editingItem: AppVaccination? = nil) {
         self.dog = dog
@@ -269,9 +322,10 @@ struct AddVaccinationView: View {
 
         _name = State(initialValue: editingItem?.name ?? "")
         _vaccinationDate = State(initialValue: editingItem?.vaccinationDate ?? .now)
-        _reminderYears = State(initialValue: 0)
-        _reminderWeeks = State(initialValue: 0)
-        _reminderDays = State(initialValue: editingItem.map { $0.reminderAfterDays } ?? 0)
+        let interval = max(0, editingItem?.reminderAfterDays ?? 0)
+        _reminderYears = State(initialValue: min(5, interval / 365))
+        _reminderWeeks = State(initialValue: (interval % 365) / 7)
+        _reminderDays = State(initialValue: (interval % 365) % 7)
         _notes = State(initialValue: editingItem?.notes ?? "")
     }
 
@@ -288,9 +342,13 @@ struct AddVaccinationView: View {
 
                 Section {
                     Button("Сохранить") {
-                        save()
+                        Task { await save() }
                     }
-                    .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    .disabled(isSaving || name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    if isSaving { ProgressView() }
+                    if let errorMessage {
+                        Text(errorMessage).foregroundStyle(.red)
+                    }
                 }
             }
             .navigationTitle(dog.name)
@@ -328,7 +386,10 @@ struct AddVaccinationView: View {
         .frame(maxWidth: .infinity)
     }
 
-    private func save() {
+    private func save() async {
+        isSaving = true
+        errorMessage = nil
+        defer { isSaving = false }
         var date = vaccinationDate
         date = Calendar.current.date(byAdding: .year, value: reminderYears, to: date) ?? date
         date = Calendar.current.date(byAdding: .weekOfYear, value: reminderWeeks, to: date) ?? date
@@ -344,14 +405,11 @@ struct AddVaccinationView: View {
             notes: notes.isEmpty ? "Без заметок" : notes
         )
 
-        if let editingItem {
-            if let index = appViewModel.vaccinations.firstIndex(where: { $0.id == editingItem.id }) {
-                appViewModel.vaccinations[index] = item
-            }
-        } else {
-            appViewModel.vaccinations.append(item)
+        do {
+            try await appViewModel.saveVaccination(item, isEditing: editingItem != nil)
+            dismiss()
+        } catch {
+            errorMessage = error.localizedDescription
         }
-
-        dismiss()
     }
 }

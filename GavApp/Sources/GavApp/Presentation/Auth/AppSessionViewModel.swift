@@ -6,10 +6,12 @@ final class AppSessionViewModel: ObservableObject {
     @Published private(set) var isAuthenticated: Bool
     @Published var isLoading = false
     @Published var errorMessage: String?
+    @Published var restoreError: AppScreenState?
 
     private let authService: AuthServiceAPIProtocol
     private let authManager: AuthManager
     private let appViewModel: AppViewModel
+    private var cancellables = Set<AnyCancellable>()
 
     init(
         authService: AuthServiceAPIProtocol,
@@ -22,6 +24,13 @@ final class AppSessionViewModel: ObservableObject {
         let hasSavedSession = authManager.currentToken() != nil && authManager.currentUserId() != nil
         self.isAuthenticated = hasSavedSession
         self.isLoading = hasSavedSession
+        NotificationCenter.default.publisher(for: .gavSessionExpired)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.isAuthenticated = false
+                self?.restoreError = nil
+            }
+            .store(in: &cancellables)
     }
 
     func login(email: String, password: String) async {
@@ -53,6 +62,7 @@ final class AppSessionViewModel: ObservableObject {
     func logout() {
         authManager.clearTokens()
         isAuthenticated = false
+        restoreError = nil
     }
 
     func restoreSavedSessionIfNeeded() async {
@@ -64,6 +74,7 @@ final class AppSessionViewModel: ObservableObject {
 
         isLoading = true
         errorMessage = nil
+        restoreError = nil
 
         do {
             let user = try await authService.getMe()
@@ -78,8 +89,13 @@ final class AppSessionViewModel: ObservableObject {
             try? await appViewModel.loadChats()
             isAuthenticated = true
         } catch {
-            authManager.clearTokens()
-            isAuthenticated = false
+            if authManager.currentToken() == nil {
+                isAuthenticated = false
+            } else {
+                appViewModel.applySavedSession(userID: authManager.currentUserId() ?? UUID())
+                isAuthenticated = true
+                restoreError = .from(error)
+            }
         }
 
         isLoading = false
