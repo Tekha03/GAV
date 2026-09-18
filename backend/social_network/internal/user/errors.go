@@ -4,6 +4,12 @@ import apperrors "shared/app_errors"
 
 var (
 	ErrEmailEmpty                = apperrors.New(apperrors.UserEmailRequired, "email is required")
+	ErrEmailInvalid              = apperrors.New(apperrors.Validation, "invalid email")
+	ErrUpdateEmpty               = apperrors.New(apperrors.Validation, "no fields to update")
+	ErrPasswordInvalid           = apperrors.New(apperrors.Validation, "new password must be 8 to 72 bytes")
+	ErrCurrentPasswordInvalid    = apperrors.New(apperrors.AuthCredentialsInvalid, "current password is incorrect")
+	ErrRoleInvalid               = apperrors.New(apperrors.Validation, "invalid role")
+	ErrRoleForbidden             = apperrors.New(apperrors.AuthForbidden, "only an administrator can change roles")
 	ErrPasswordHashEmpty         = apperrors.New(apperrors.UserPasswordRequired, "password is required")
 	ErrRepoNil                   = apperrors.New(apperrors.Internal, "user service: repo is nil")
 	ErrUserNotFound              = apperrors.New(apperrors.UserNotFound, "user not found")

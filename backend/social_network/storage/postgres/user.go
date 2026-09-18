@@ -12,6 +12,7 @@ import (
 	"social_network/internal/user"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgconn"
 	"gorm.io/gorm"
 )
 
@@ -81,6 +82,43 @@ func (r *UserRepository) Update(ctx context.Context, u *user.User) error {
 		return ErrUserNotFound
 	}
 
+	return nil
+}
+
+func (r *UserRepository) UpdateEmail(ctx context.Context, id uuid.UUID, email string) error {
+	result := r.DB(ctx).Model(&user.User{}).Where("id = ?", id).Update("email", email)
+	if result.Error != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(result.Error, &pgErr) && pgErr.Code == "23505" {
+			return ErrUserExists
+		}
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return ErrUserNotFound
+	}
+	return nil
+}
+
+func (r *UserRepository) UpdatePassword(ctx context.Context, id uuid.UUID, oldHash, newHash string) error {
+	result := r.DB(ctx).Model(&user.User{}).Where("id = ? AND password = ?", id, oldHash).Update("password", newHash)
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return user.ErrCurrentPasswordInvalid
+	}
+	return nil
+}
+
+func (r *UserRepository) UpdateRole(ctx context.Context, id uuid.UUID, role string) error {
+	result := r.DB(ctx).Model(&user.User{}).Where("id = ?", id).Update("role", role)
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return ErrUserNotFound
+	}
 	return nil
 }
 

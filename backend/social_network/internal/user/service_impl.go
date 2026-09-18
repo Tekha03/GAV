@@ -3,11 +3,14 @@ package user
 import (
 	"context"
 	"math"
+	"net/mail"
+	"strings"
 	"time"
 
 	"social_network/internal/dog"
 
 	"github.com/google/uuid"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type service struct {
@@ -50,14 +53,44 @@ func (s *service) GetByEmail(ctx context.Context, email string) (*User, error) {
 }
 
 func (s *service) Update(ctx context.Context, id uuid.UUID, input UpdateUserInput) error {
-	user := &User{
-		ID:       id,
-		Email:    *input.Email,
-		Password: *input.Password,
-		Role:     *input.Role,
+	if input.Email == nil {
+		return ErrUpdateEmpty
 	}
+	email := strings.TrimSpace(*input.Email)
+	parsed, err := mail.ParseAddress(email)
+	if email == "" || err != nil || parsed.Address != email {
+		return ErrEmailInvalid
+	}
+	return s.repo.UpdateEmail(ctx, id, email)
+}
 
-	return s.repo.Update(ctx, user)
+func (s *service) ChangePassword(ctx context.Context, id uuid.UUID, input ChangePasswordInput) error {
+	if len(input.NewPassword) < 8 || len(input.NewPassword) > 72 {
+		return ErrPasswordInvalid
+	}
+	account, err := s.repo.GetByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	if bcrypt.CompareHashAndPassword([]byte(account.Password), []byte(input.CurrentPassword)) != nil {
+		return ErrCurrentPasswordInvalid
+	}
+	hash, err := bcrypt.GenerateFromPassword([]byte(input.NewPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+	return s.repo.UpdatePassword(ctx, id, account.Password, string(hash))
+}
+
+func (s *service) ChangeRole(ctx context.Context, actorID, targetID uuid.UUID, input ChangeRoleInput) error {
+	actor, err := s.repo.GetByID(ctx, actorID)
+	if err != nil || actor.Role != "admin" {
+		return ErrRoleForbidden
+	}
+	if input.Role != "user" && input.Role != "admin" {
+		return ErrRoleInvalid
+	}
+	return s.repo.UpdateRole(ctx, targetID, input.Role)
 }
 
 func (s *service) Delete(ctx context.Context, id uuid.UUID) error {

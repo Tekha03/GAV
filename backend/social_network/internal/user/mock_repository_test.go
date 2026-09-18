@@ -42,6 +42,18 @@ func (m *MockRepository) Update(ctx context.Context, user *User) error {
 	return args.Error(0)
 }
 
+func (m *MockRepository) UpdateEmail(ctx context.Context, id uuid.UUID, email string) error {
+	return m.Called(ctx, id, email).Error(0)
+}
+
+func (m *MockRepository) UpdatePassword(ctx context.Context, id uuid.UUID, oldHash, newHash string) error {
+	return m.Called(ctx, id, oldHash, newHash).Error(0)
+}
+
+func (m *MockRepository) UpdateRole(ctx context.Context, id uuid.UUID, role string) error {
+	return m.Called(ctx, id, role).Error(0)
+}
+
 func (m *MockRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	args := m.Called(ctx, id)
 	return args.Error(0)

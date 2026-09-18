@@ -149,8 +149,10 @@ POST /api/v1/posts           - создать пост
 
 			r.Route("/users", func(r chi.Router) {
 				r.Use(userLimiter)
+				r.Put("/me/password", h.User.ChangePassword)
 				r.Get("/{id}", h.User.GetByID)
 				r.Put("/{id}", h.User.Update)
+				r.Put("/{id}/role", h.User.ChangeRole)
 				r.Delete("/{id}", h.User.Delete)
 				r.Get("/{userID}/profile", h.Profile.GetByUserID)
 

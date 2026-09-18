@@ -26,6 +26,30 @@ func setupUserRepository(t *testing.T) (*UserRepository, *gorm.DB) {
 	return repo.(*UserRepository), db
 }
 
+func TestUserRepository_UpdateEmailPreservesOtherFields(t *testing.T) {
+	repo, db := setupUserRepository(t)
+	id := uuid.New()
+	lat := 55.75
+	account := user.User{ID: id, Email: "before@test.local", Password: "original-hash", Role: "user", Lat: &lat, Visibility: user.VisibilityFollowersOnly}
+	require.NoError(t, db.Create(&account).Error)
+	require.NoError(t, repo.UpdateEmail(context.Background(), id, "after@test.local"))
+	var saved user.User
+	require.NoError(t, db.First(&saved, "id = ?", id).Error)
+	require.Equal(t, "after@test.local", saved.Email)
+	require.Equal(t, account.Password, saved.Password)
+	require.Equal(t, account.Role, saved.Role)
+	require.Equal(t, account.Visibility, saved.Visibility)
+	require.NotNil(t, saved.Lat)
+	require.Equal(t, lat, *saved.Lat)
+	require.ErrorIs(t, repo.UpdateEmail(context.Background(), uuid.New(), "missing@test.local"), user.ErrUserNotFound)
+
+	other := user.User{ID: uuid.New(), Email: "taken@test.local", Password: "hash", Role: "user"}
+	require.NoError(t, db.Create(&other).Error)
+	require.ErrorIs(t, repo.UpdateEmail(context.Background(), id, other.Email), ErrUserExists)
+	require.NoError(t, db.First(&saved, "id = ?", id).Error)
+	require.Equal(t, "after@test.local", saved.Email)
+}
+
 func TestUpdateLocationRollsBackWalkWhenUserUpdateFails(t *testing.T) {
 	repo, db := setupUserRepository(t)
 	id := uuid.New()

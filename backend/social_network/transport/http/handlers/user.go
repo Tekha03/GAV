@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
 	"social_network/internal/dog"
 	"social_network/internal/user"
@@ -82,9 +83,18 @@ func (h *UserHandler) Update(w http.ResponseWriter, r *http.Request) {
 		response.Error(w, ErrInvalidInput)
 		return
 	}
+	actorID, ok := middleware.UserID(r.Context())
+	if !ok {
+		response.Error(w, middleware.ErrUnauthorized)
+		return
+	}
+	if actorID != userID {
+		response.Error(w, middleware.ErrForbidden)
+		return
+	}
 
 	var input user.UpdateUserInput
-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+	if err := decodeStrict(r, &input); err != nil {
 		response.Error(w, ErrInvalidInput)
 		return
 	}
@@ -102,9 +112,63 @@ func (h *UserHandler) Update(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusNoContent, nil)
 }
 
+func (h *UserHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
+	id, ok := middleware.UserID(r.Context())
+	if !ok {
+		response.Error(w, middleware.ErrUnauthorized)
+		return
+	}
+	var input user.ChangePasswordInput
+	if err := decodeStrict(r, &input); err != nil {
+		response.Error(w, ErrInvalidInput)
+		return
+	}
+	if err := h.service.ChangePassword(r.Context(), id, input); err != nil {
+		response.Error(w, err)
+		return
+	}
+	response.JSON(w, http.StatusNoContent, nil)
+}
+
+func (h *UserHandler) ChangeRole(w http.ResponseWriter, r *http.Request) {
+	actorID, ok := middleware.UserID(r.Context())
+	if !ok {
+		response.Error(w, middleware.ErrUnauthorized)
+		return
+	}
+	targetID, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		response.Error(w, ErrInvalidInput)
+		return
+	}
+	var input user.ChangeRoleInput
+	if err := decodeStrict(r, &input); err != nil {
+		response.Error(w, ErrInvalidInput)
+		return
+	}
+	if err := h.service.ChangeRole(r.Context(), actorID, targetID, input); err != nil {
+		response.Error(w, err)
+		return
+	}
+	response.JSON(w, http.StatusNoContent, nil)
+}
+
+func decodeStrict(r *http.Request, value any) error {
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(value); err != nil {
+		return err
+	}
+	var extra any
+	if err := decoder.Decode(&extra); err != io.EOF {
+		return ErrInvalidInput
+	}
+	return nil
+}
+
 // Update godoc
-// @Summary Обновить данные пользователя
-// @Description Обновляет информацию пользователя по UUID
+// @Summary Изменить email пользователя
+// @Description Владелец аккаунта может изменить только свой email
 // @Tags users
 // @Accept json
 // @Produce json
