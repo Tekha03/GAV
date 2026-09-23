@@ -48,6 +48,14 @@ func (m *MockUserService) Update(ctx context.Context, id uuid.UUID, input user.U
 	return args.Error(0)
 }
 
+func (m *MockUserService) ChangePassword(ctx context.Context, id uuid.UUID, input user.ChangePasswordInput) error {
+	return m.Called(ctx, id, input).Error(0)
+}
+
+func (m *MockUserService) ChangeRole(ctx context.Context, actorID, targetID uuid.UUID, input user.ChangeRoleInput) error {
+	return m.Called(ctx, actorID, targetID, input).Error(0)
+}
+
 func (m *MockUserService) Delete(ctx context.Context, id uuid.UUID) error {
 	args := m.Called(ctx, id)
 	return args.Error(0)

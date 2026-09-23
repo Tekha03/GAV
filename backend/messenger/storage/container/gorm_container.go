@@ -1,87 +1,176 @@
-// messanger/chat/container/gorm_container.go
 package container
 
 import (
+	"context"
+	"database/sql"
+	"errors"
 	"messenger/internal/client"
 	"messenger/internal/kafka"
+	"messenger/internal/outbox"
+	"messenger/internal/repository"
 	"messenger/internal/service"
 	orm "messenger/storage/gorm"
 	rds "messenger/storage/redis"
 	"messenger/transport/websocket"
+	apperrors "shared/app_errors"
+	"time"
 
 	"github.com/redis/go-redis/v9"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
+const dependencyCheckTimeout = 5 * time.Second
+
 type HybridContainer struct {
+	websocket    *websocket.Hub
 	gormRepo     *orm.Repository
+	sqlDB        *sql.DB
 	redis        *redis.Client
-	grpcConn     *grpc.ClientConn
-	socialClient *client.SocialNetworkClient
-	notClient    *client.NotificationClient
+	socialClient client.SocialClient
+	notClient    client.NotifiClient
 	producer     *kafka.Producer
+	outboxRepo   repository.OutboxRepository
 }
 
-func NewHybridContainer(postgresDSN, redisAddr, socialNetworkAddr string, producer *kafka.Producer) (*HybridContainer, error) {
-	pgDB, err := gorm.Open(postgres.Open(postgresDSN))
-	if err != nil {
-		return nil, err
+func NewHybridContainer(
+	ctx context.Context,
+	postgresDSN string,
+	redisAddr string,
+	socialNetworkAddr string,
+	producer *kafka.Producer,
+) (*HybridContainer, error) {
+	if ctx == nil {
+		ctx = context.Background()
 	}
-	gormRepo := orm.NewRepository(pgDB)
+
+	websocketHub := websocket.NewHub()
+	go websocketHub.Run()
+
+	pgDB, err := gorm.Open(postgres.Open(postgresDSN), &gorm.Config{TranslateError: true})
+	if err != nil {
+		return nil, apperrors.Wrap(apperrors.Internal, "failed to open postgres", err)
+	}
+
+	sqlDB, err := pgDB.DB()
+	if err != nil {
+		return nil, apperrors.Wrap(apperrors.Internal, "failed to access postgres connection", err)
+	}
 
 	redisClient := redis.NewClient(&redis.Options{Addr: redisAddr})
+	checkCtx, cancel := context.WithTimeout(ctx, dependencyCheckTimeout)
+	defer cancel()
 
-	grpcConn, err := grpc.Dial(socialNetworkAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		return nil, err
+	if err := redisClient.Ping(checkCtx).Err(); err != nil {
+		cause := errors.Join(err, redisClient.Close(), sqlDB.Close())
+		return nil, apperrors.Wrap(apperrors.ServiceUnavailable, "failed to connect to redis", cause)
 	}
 
 	socialClient, err := client.NewSocialNetworkClient(socialNetworkAddr)
 	if err != nil {
-		grpcConn.Close()
-		return nil, err
+		cause := errors.Join(err, redisClient.Close(), sqlDB.Close())
+		return nil, apperrors.Wrap(apperrors.Internal, "failed to create social network client", cause)
 	}
 
 	notClient, err := client.NewNotificationClient(socialNetworkAddr)
 	if err != nil {
-		grpcConn.Close()
-		return nil, err
+		cause := errors.Join(err, socialClient.Close(), redisClient.Close(), sqlDB.Close())
+		return nil, apperrors.Wrap(apperrors.Internal, "failed to create notification client", cause)
 	}
 
+	gormRepo := orm.NewRepository(pgDB)
+
 	return &HybridContainer{
+		websocket:    websocketHub,
 		gormRepo:     gormRepo,
+		sqlDB:        sqlDB,
 		redis:        redisClient,
-		grpcConn:     grpcConn,
 		socialClient: socialClient,
 		notClient:    notClient,
 		producer:     producer,
+		outboxRepo:   orm.NewOutboxRepository(gormRepo),
 	}, nil
 }
 
 func (c *HybridContainer) ChatService() service.Service {
-	websocketHub := websocket.NewHub()
-	go websocketHub.Run()
 
 	return service.NewService(
+		c.gormRepo,
 		orm.NewChatRepository(c.gormRepo),
 		orm.NewChatMemberRepository(c.gormRepo),
 		orm.NewMessageRepository(c.gormRepo),
 		orm.NewAttachmentRepository(c.gormRepo),
+		c.outboxRepo,
 		orm.NewReactionRepository(c.gormRepo),
 		rds.NewPinnedRepository(c.redis),
 		rds.NewTypingRepository(c.redis),
 		c.socialClient,
 		c.notClient,
 		c.producer,
+		c.websocket,
 	)
 }
 
-func (c *HybridContainer) Close() error {
-	if c.grpcConn != nil {
-		return c.grpcConn.Close()
+func (c *HybridContainer) RunOutboxWorker(ctx context.Context) {
+	if c == nil {
+		return
 	}
+	outbox.NewWorker(c.outboxRepo, c.producer).Run(ctx)
+}
+
+func (c *HybridContainer) Close() error {
+	if c == nil {
+		return nil
+	}
+
+	var closeErrors []error
+	closeErrors = appendIfError(closeErrors, closeNotificationClient(c.notClient))
+	closeErrors = appendIfError(closeErrors, closeSocialClient(c.socialClient))
+	closeErrors = appendIfError(closeErrors, closeRedis(c.redis))
+	closeErrors = appendIfError(closeErrors, closeSQL(c.sqlDB))
+
+	if err := errors.Join(closeErrors...); err != nil {
+		return apperrors.Wrap(apperrors.Internal, "failed to close container resources", err)
+	}
+
 	return nil
+}
+
+func appendIfError(errs []error, err error) []error {
+	if err != nil {
+		return append(errs, err)
+	}
+	return errs
+}
+
+func closeNotificationClient(client client.NotifiClient) error {
+	if client == nil {
+		return nil
+	}
+	return client.Close()
+}
+
+func closeSocialClient(client client.SocialClient) error {
+	if client == nil {
+		return nil
+	}
+	return client.Close()
+}
+
+func closeRedis(client *redis.Client) error {
+	if client == nil {
+		return nil
+	}
+	return client.Close()
+}
+
+func closeSQL(db *sql.DB) error {
+	if db == nil {
+		return nil
+	}
+	return db.Close()
+}
+
+func (c *HybridContainer) WebSocketHub() *websocket.Hub {
+	return c.websocket
 }

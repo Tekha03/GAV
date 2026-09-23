@@ -4,8 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"os"
-
-	"social_network/internal/errors"
+	apperrors "shared/app_errors"
 
 	"log/slog"
 )
@@ -25,26 +24,46 @@ func Error(w http.ResponseWriter, err error) {
 		return
 	}
 
-	if e, ok := err.(*errors.Error); ok {
-		if mapped, exists := errorMap[string(e.Code)]; exists {
-			JSON(w, mapped.status, ErrorResponse{
-				Error: ErrorBody{
-					Code:    mapped.code,
-					Message: e.Message,
-				},
-			})
-			return
-		}
+	appErr := apperrors.Normalize(err)
+	message := appErr.Message
+	if appErr.Category == apperrors.CategoryInternal {
+		logg.Error("handler error", "error", err.Error())
+		message = "internal server error"
 	}
 
-	logg.Error("handler error", "error", err.Error())
-
-	JSON(w, http.StatusInternalServerError, ErrorResponse{
+	JSON(w, httpStatus(appErr.Category), ErrorResponse{
 		Error: ErrorBody{
-			Code:    "INTERNAL_ERROR",
-			Message: "internal server error",
+			Code:     appErr.Code,
+			Category: appErr.Category,
+			Message:  message,
+			Details:  appErr.Details,
 		},
 	})
+}
+
+func httpStatus(category apperrors.Category) int {
+	switch category {
+	case apperrors.CategoryValidation:
+		return http.StatusBadRequest
+	case apperrors.CategoryUnauthenticated:
+		return http.StatusUnauthorized
+	case apperrors.CategoryPermissionDenied:
+		return http.StatusForbidden
+	case apperrors.CategoryNotFound:
+		return http.StatusNotFound
+	case apperrors.CategoryConflict:
+		return http.StatusConflict
+	case apperrors.CategoryRateLimited:
+		return http.StatusTooManyRequests
+	case apperrors.CategoryUnavailable:
+		return http.StatusServiceUnavailable
+	case apperrors.CategoryUnsupported:
+		return http.StatusNotImplemented
+	case apperrors.CategoryCancelled:
+		return 499
+	default:
+		return http.StatusInternalServerError
+	}
 }
 
 func InternalError(w http.ResponseWriter) {

@@ -21,7 +21,13 @@ struct GavApp: App {
         WindowGroup {
             Group {
                 if sessionViewModel.isLoading {
-                    ProgressView()
+                    AppStatusView(
+                        state: .loading(message: "Загружаем профиль...")
+                    )
+                } else if let restoreError = sessionViewModel.restoreError {
+                    AppStatusView(state: restoreError, retryAction: {
+                        Task { await sessionViewModel.restoreSavedSessionIfNeeded() }
+                    })
                 } else if sessionViewModel.isAuthenticated {
                     AppView(session: sessionViewModel)
                 } else {

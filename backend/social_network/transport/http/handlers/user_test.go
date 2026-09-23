@@ -76,6 +76,7 @@ func TestUserHandler_Update_Success(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPut, "/users/"+userID.String(), bytes.NewReader(body))
 	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, chi.NewRouteContext()))
 	chi.RouteContext(req.Context()).URLParams.Add("id", userID.String())
+	req = req.WithContext(context.WithValue(req.Context(), middleware.UserIDKey, userID))
 
 	w := httptest.NewRecorder()
 	handler.Update(w, req)
@@ -105,11 +106,46 @@ func TestUserHandler_Update_InvalidBody(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPut, "/users/"+userID.String(), bytes.NewReader([]byte(`bad json`)))
 	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, chi.NewRouteContext()))
 	chi.RouteContext(req.Context()).URLParams.Add("id", userID.String())
+	req = req.WithContext(context.WithValue(req.Context(), middleware.UserIDKey, userID))
 
 	w := httptest.NewRecorder()
 	handler.Update(w, req)
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestUserHandler_UpdateRejectsMissingAuthForeignUserAndProtectedFields(t *testing.T) {
+	handler := setupUserHandler(t)
+	targetID, actorID := uuid.New(), uuid.New()
+	request := func(actor *uuid.UUID, body string) *httptest.ResponseRecorder {
+		t.Helper()
+		req := httptest.NewRequest(http.MethodPut, "/users/"+targetID.String(), bytes.NewBufferString(body))
+		req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, chi.NewRouteContext()))
+		chi.RouteContext(req.Context()).URLParams.Add("id", targetID.String())
+		if actor != nil {
+			req = req.WithContext(context.WithValue(req.Context(), middleware.UserIDKey, *actor))
+		}
+		w := httptest.NewRecorder()
+		handler.Update(w, req)
+		return w
+	}
+	assert.Equal(t, http.StatusUnauthorized, request(nil, `{"email":"new@example.com"}`).Code)
+	assert.Equal(t, http.StatusForbidden, request(&actorID, `{"email":"new@example.com"}`).Code)
+	assert.Equal(t, http.StatusBadRequest, request(&targetID, `{"role":"admin"}`).Code)
+	assert.Equal(t, http.StatusBadRequest, request(&targetID, `{"password":"hash"}`).Code)
+	assert.Equal(t, http.StatusBadRequest, request(&targetID, `{"email":"new@example.com"} {}`).Code)
+}
+
+func TestUserHandler_ProtectedActionsRequireAuth(t *testing.T) {
+	handler := setupUserHandler(t)
+	w := httptest.NewRecorder()
+	handler.ChangePassword(w, httptest.NewRequest(http.MethodPut, "/users/me/password", bytes.NewBufferString(`{"current_password":"a","new_password":"b"}`)))
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+
+	req := httptest.NewRequest(http.MethodPut, "/users/"+uuid.NewString()+"/role", bytes.NewBufferString(`{"role":"admin"}`))
+	w = httptest.NewRecorder()
+	handler.ChangeRole(w, req)
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
 }
 
 func TestUserHandler_Delete_Success(t *testing.T) {

@@ -5,18 +5,23 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+type OutgoingMessage struct {
+	ChatID uuid.UUID
+	Data   []byte
+}
+
 type Client struct {
 	UserID uuid.UUID
 	ChatID uuid.UUID
 	Conn   *websocket.Conn
-	Send   chan []byte
+	Send   chan OutgoingMessage
 }
 
 type Hub struct {
 	clients    map[uuid.UUID][]*Client
 	Register   chan *Client
 	Unregister chan *Client
-	broadcast  chan []byte
+	sendToChat chan OutgoingMessage
 }
 
 func NewHub() *Hub {
@@ -24,7 +29,7 @@ func NewHub() *Hub {
 		clients:    make(map[uuid.UUID][]*Client),
 		Register:   make(chan *Client),
 		Unregister: make(chan *Client),
-		broadcast:  make(chan []byte),
+		sendToChat: make(chan OutgoingMessage, 1024),
 	}
 }
 
@@ -34,24 +39,13 @@ func (h *Hub) Run() {
 		case client := <-h.Register:
 			h.clients[client.ChatID] = append(h.clients[client.ChatID], client)
 		case client := <-h.Unregister:
-			clients := h.clients[client.ChatID]
-			for i, c := range clients {
-				if c == client {
-					clients = append(clients[:i], clients[i+1:]...)
-					break
-				}
-			}
-			h.clients[client.ChatID] = clients
-			close(client.Send)
-		case message := <-h.broadcast:
-			for _, clients := range h.clients {
-				for _, client := range clients {
-					select {
-					case client.Send <- message:
-					default:
-						close(client.Send)
-						h.Unregister <- client
-					}
+			h.removeClient(client)
+		case message := <-h.sendToChat:
+			for _, client := range h.clients[message.ChatID] {
+				select {
+				case client.Send <- message:
+				default:
+					h.removeClient(client)
 				}
 			}
 		}
@@ -59,13 +53,16 @@ func (h *Hub) Run() {
 }
 
 func (h *Hub) SendToChat(chatID uuid.UUID, data []byte) {
-	clients := h.clients[chatID]
-	for _, client := range clients {
-		select {
-		case client.Send <- data:
-		default:
+	h.sendToChat <- OutgoingMessage{ChatID: chatID, Data: data}
+}
+
+func (h *Hub) removeClient(client *Client) {
+	clients := h.clients[client.ChatID]
+	for i, existingClient := range clients {
+		if existingClient == client {
+			h.clients[client.ChatID] = append(clients[:i], clients[i+1:]...)
 			close(client.Send)
-			h.Unregister <- client
+			return
 		}
 	}
 }

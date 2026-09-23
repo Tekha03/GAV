@@ -1,10 +1,10 @@
 package middleware
 
-import "errors"
+import apperrors "shared/app_errors"
 
 var (
-	ErrUnauthorized = errors.New("middleware: unauthorized")
-	ErrForbidden    = errors.New("forbidden: insufficient permissions")
-	ErrNotOwner     = errors.New("forbidden: not owner")
-	ErrInvalidID    = errors.New("middleware: invalid id")
+	ErrUnauthorized = apperrors.New(apperrors.AuthTokenMissing, "unauthorized")
+	ErrForbidden    = apperrors.New(apperrors.AuthForbidden, "insufficient permissions")
+	ErrNotOwner     = apperrors.New(apperrors.PostAccessDenied, "not post owner")
+	ErrInvalidID    = apperrors.New(apperrors.Validation, "invalid id", apperrors.WithDetail("field", "id"))
 )

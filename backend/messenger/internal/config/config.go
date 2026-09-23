@@ -1,11 +1,10 @@
-// internal/config/config.go
 package config
 
 import (
-	"fmt"
 	"net"
 	"net/url"
 	"os"
+	apperrors "shared/app_errors"
 	"strconv"
 	"strings"
 
@@ -25,6 +24,7 @@ type Config struct {
 	KafkaEnabled      bool     `yaml:"kafka_enabled"`
 	KafkaBrokers      []string `yaml:"kafka_brokers"`
 	KafkaTopic        string   `yaml:"kafka_topic"`
+	JWTSecret         string   `yaml:"jwt_secret"`
 }
 
 func Load() (*Config, error) {
@@ -43,10 +43,11 @@ func Load() (*Config, error) {
 		KafkaEnabled:      getEnv("KAFKA_ENABLED", "false") == "true",
 		KafkaBrokers:      strings.Split(getEnv("KAFKA_BROKERS", "localhost:9092"), ","),
 		KafkaTopic:        getEnv("KAFKA_TOPIC", "events"),
+		JWTSecret:         getEnv("JWT_SECRET", ""),
 	}
 
 	if err := cfg.Validate(); err != nil {
-		return nil, fmt.Errorf("config validation failed: %w", err)
+		return nil, err
 	}
 
 	return cfg, nil
@@ -54,10 +55,13 @@ func Load() (*Config, error) {
 
 func (c *Config) Validate() error {
 	if c.PostgresDSN == "" {
-		return fmt.Errorf("POSTGRES_DSN is required")
+		return apperrors.New(apperrors.Validation, "POSTGRES_DSN is required", apperrors.WithDetail("field", "POSTGRES_DSN"))
+	}
+	if c.JWTSecret == "" {
+		return apperrors.New(apperrors.Validation, "JWT_SECRET is required", apperrors.WithDetail("field", "JWT_SECRET"))
 	}
 	if _, err := parseDSN(c.PostgresDSN); err != nil {
-		return fmt.Errorf("invalid POSTGRES_DSN: %w", err)
+		return apperrors.Wrap(apperrors.Validation, "invalid POSTGRES_DSN", err, apperrors.WithDetail("field", "POSTGRES_DSN"))
 	}
 
 	requiredAddrs := []string{c.RedisAddr, c.SocialNetworkAddr, c.GRPCAddr, c.HTTPAddr, c.WSSAddr}
@@ -66,18 +70,18 @@ func (c *Config) Validate() error {
 			continue
 		}
 		if _, err := normalizeAddr(addr); err != nil {
-			return fmt.Errorf("invalid address %s: %w", addr, err)
+			return apperrors.Wrap(apperrors.Validation, "invalid service address", err, apperrors.WithDetail("address", addr))
 		}
 	}
 
 	validEnvs := map[string]bool{"development": true, "production": true, "test": true}
 	if !validEnvs[c.Env] {
-		return fmt.Errorf("invalid ENV: %s, must be 'development', 'production' or 'test'", c.Env)
+		return apperrors.New(apperrors.Validation, "invalid ENV", apperrors.WithDetail("value", c.Env))
 	}
 
 	validLogLevels := map[string]bool{"debug": true, "info": true, "warn": true, "error": true}
 	if !validLogLevels[c.LogLevel] {
-		return fmt.Errorf("invalid LOG_LEVEL: %s, must be 'debug', 'info', 'warn', 'error'", c.LogLevel)
+		return apperrors.New(apperrors.Validation, "invalid LOG_LEVEL", apperrors.WithDetail("value", c.LogLevel))
 	}
 
 	return nil
@@ -93,10 +97,10 @@ func getEnv(key, defaultVal string) string {
 func parseDSN(dsn string) (*url.URL, error) {
 	u, err := url.Parse(dsn)
 	if err != nil {
-		return nil, err
+		return nil, apperrors.Wrap(apperrors.Validation, "invalid DSN", err)
 	}
 	if u.Scheme != "postgres" && !strings.HasPrefix(dsn, "postgresql") {
-		return nil, fmt.Errorf("unsupported DSN scheme")
+		return nil, apperrors.New(apperrors.Validation, "unsupported DSN scheme")
 	}
 	return u, nil
 }
@@ -107,10 +111,10 @@ func normalizeAddr(addr string) (string, error) {
 	}
 	_, port, err := net.SplitHostPort(addr)
 	if err != nil {
-		return "", fmt.Errorf("invalid port")
+		return "", apperrors.Wrap(apperrors.Validation, "invalid port", err)
 	}
 	if p, _ := strconv.Atoi(port); p < 1 || p > 65535 {
-		return "", fmt.Errorf("port out of range")
+		return "", apperrors.New(apperrors.Validation, "port out of range", apperrors.WithDetail("port", port))
 	}
 	return addr, nil
 }

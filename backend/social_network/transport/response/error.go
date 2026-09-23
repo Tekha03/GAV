@@ -1,16 +1,14 @@
 package response
 
+import apperrors "shared/app_errors"
+
 type ErrorResponse struct {
 	Error ErrorBody `json:"error"`
 }
 
 type ErrorBody struct {
-	Code    string `json:"code"`
-	Message string `json:"message"`
-}
-
-type mappedError struct {
-	status  int
-	code    string
-	message string
+	Code     apperrors.Code     `json:"code"`
+	Category apperrors.Category `json:"category"`
+	Message  string             `json:"message"`
+	Details  map[string]any     `json:"details,omitempty"`
 }

@@ -77,6 +77,9 @@ func (s *service) Login(ctx context.Context, email, password string) (*AuthToken
 	}
 
 	refreshStr, err := s.tokenService.CreateRefresh(ctx, authorizedUser.ID)
+	if err != nil {
+		return nil, err
+	}
 
 	return &AuthTokens{
 		AccessToken:  access,
@@ -85,7 +88,10 @@ func (s *service) Login(ctx context.Context, email, password string) (*AuthToken
 }
 
 func (s *service) Refresh(ctx context.Context, refreshToken string) (*AuthTokens, error) {
-	refrTokenID, _, err := s.tokenService.ValidateAndRotate(ctx, refreshToken)
+	refrTokenID, newRefreshStr, err := s.tokenService.ValidateAndRotate(ctx, refreshToken)
+	if err != nil {
+		return nil, err
+	}
 
 	user, err := s.userService.GetByID(ctx, refrTokenID)
 	if err != nil {
@@ -93,11 +99,6 @@ func (s *service) Refresh(ctx context.Context, refreshToken string) (*AuthTokens
 	}
 
 	newAccess, err := GenerateAccessToken(user.ID, user.Role, s.jwtConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	newRefreshStr, err := s.tokenService.CreateRefresh(ctx, user.ID)
 	if err != nil {
 		return nil, err
 	}

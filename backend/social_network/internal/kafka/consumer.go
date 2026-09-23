@@ -3,9 +3,10 @@ package kafka
 import (
 	"context"
 	"log"
+	"shared/events"
+	"time"
 
 	"github.com/IBM/sarama"
-	"github.com/google/uuid"
 )
 
 type Consumer struct {
@@ -14,10 +15,18 @@ type Consumer struct {
 	topics  []string
 }
 
-func NewConsumer(brokers []string, groupID uuid.UUID, handler sarama.ConsumerGroupHandler) (*Consumer, error) {
-	config := sarama.NewConfig()
+func (c *Consumer) Close() error {
+	if c == nil || c.client == nil {
+		return nil
+	}
+	return c.client.Close()
+}
 
-	client, err := sarama.NewConsumerGroup(brokers, groupID.String(), config)
+func NewConsumer(brokers []string, groupID string, handler sarama.ConsumerGroupHandler) (*Consumer, error) {
+	config := sarama.NewConfig()
+	config.Consumer.Offsets.Initial = sarama.OffsetOldest
+
+	client, err := sarama.NewConsumerGroup(brokers, groupID, config)
 	if err != nil {
 		return nil, err
 	}
@@ -26,9 +35,9 @@ func NewConsumer(brokers []string, groupID uuid.UUID, handler sarama.ConsumerGro
 		client:  client,
 		handler: handler,
 		topics: []string{
-			"chat_events",
-			"message_events",
-			"reaction_events",
+			events.ChatTopic,
+			events.MessageTopic,
+			events.ReactionTopic,
 		},
 	}, nil
 }
@@ -41,6 +50,11 @@ func (c *Consumer) Start(ctx context.Context) {
 
 		if err := c.client.Consume(ctx, c.topics, c.handler); err != nil {
 			log.Println("Error consuming messages:", err)
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(time.Second):
+			}
 		}
 	}
 }

@@ -3,7 +3,10 @@ go 1.25.0
 use (
 	./api
 	./messenger
+	./shared/app_errors
 	./shared/events
+	./shared/ratelimit
+	./shared/retry
 	./social_network
 	./docs
 )

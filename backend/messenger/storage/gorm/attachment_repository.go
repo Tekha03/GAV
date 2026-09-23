@@ -5,6 +5,7 @@ import (
 	"errors"
 	"messenger/internal/model"
 	"messenger/internal/repository"
+	apperrors "shared/app_errors"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -19,35 +20,72 @@ func NewAttachmentRepository(repo *Repository) repository.AttachmentRepository {
 }
 
 func (ar *AttachmentRepository) Create(ctx context.Context, attachment *model.Attachment) error {
-	return ar.repo.WithContext(ctx).Create(attachment).Error
+	err := ar.repo.WithContext(ctx).Create(attachment).Error
+	return createError(err, apperrors.AttachmentAlreadyExists, "attachment already exists", "failed to create attachment")
 }
 
-func (ar *AttachmentRepository) GetByID(ctx context.Context, id uuid.UUID) (*model.Attachment, error) {
-	var att model.Attachment
-	err := ar.repo.WithContext(ctx).First(&att, "id = ?", id).Error
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, repository.ErrAttachmentNotFound
-		}
-		return nil, err
+func (ar *AttachmentRepository) CreateBatch(ctx context.Context, attachments []model.Attachment) error {
+	if len(attachments) == 0 {
+		return nil
 	}
-	return &att, nil
+
+	err := ar.repo.WithContext(ctx).Create(&attachments).Error
+	return createError(
+		err,
+		apperrors.AttachmentAlreadyExists,
+		"attachment already exists",
+		"failed to create attachments",
+	)
+}
+
+func (ar *AttachmentRepository) GetByID(
+	ctx context.Context,
+	id uuid.UUID,
+) (*model.Attachment, error) {
+	var attachment model.Attachment
+
+	err := ar.repo.
+		WithContext(ctx).
+		First(&attachment, "id = ?", id).
+		Error
+
+	if err == nil {
+		return &attachment, nil
+	}
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, apperrors.New(
+			apperrors.AttachmentNotFound,
+			"attachment not found",
+		)
+	}
+
+	return nil, apperrors.Wrap(
+		apperrors.Internal,
+		"failed to get attachment by ID",
+		err,
+	)
 }
 
 func (ar *AttachmentRepository) GetByMessage(ctx context.Context, messageID uuid.UUID) ([]*model.Attachment, error) {
 	var attachments []*model.Attachment
-	return attachments, ar.repo.WithContext(ctx).
+	err := ar.repo.WithContext(ctx).
 		Where("message_id = ?", messageID).
 		Find(&attachments).Error
+	if err != nil {
+		return nil, internalError("failed to get attachments by message ID", err)
+	}
+	return attachments, nil
 }
 
 func (ar *AttachmentRepository) Delete(ctx context.Context, id uuid.UUID) error {
-	return ar.repo.WithContext(ctx).
-		Delete(&model.Attachment{}, "id = ?", id).Error
+	result := ar.repo.WithContext(ctx).Delete(&model.Attachment{}, "id = ?", id)
+	return mutationError(result, apperrors.AttachmentNotFound, "attachment not found", "failed to delete attachment")
 }
 
 func (ar *AttachmentRepository) DeleteByMessage(ctx context.Context, messageID uuid.UUID) error {
-	return ar.repo.WithContext(ctx).
+	result := ar.repo.WithContext(ctx).
 		Where("message_id = ?", messageID).
-		Delete(&model.Attachment{}).Error
+		Delete(&model.Attachment{})
+	return internalError("failed to delete attachments by message ID", result.Error)
 }

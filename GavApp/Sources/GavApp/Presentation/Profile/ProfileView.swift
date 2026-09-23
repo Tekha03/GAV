@@ -324,48 +324,53 @@ struct ProfileView: View {
 
     @ViewBuilder
     private func dogDetail(_ dog: AppDog) -> some View {
-        VStack(alignment: .leading, spacing: 16) {
-            AsyncImage(url: dog.photoURL) { phase in
-                switch phase {
-                case .success(let image):
-                    image.resizable().scaledToFill()
-                default:
-                    RoundedRectangle(cornerRadius: 24)
-                        .fill(Color.white.opacity(0.12))
-                        .overlay(Image(systemName: "dog.fill").font(.largeTitle))
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                GeometryReader { geometry in
+                    AsyncImage(url: dog.photoURL) { phase in
+                        switch phase {
+                        case .success(let image):
+                            image.resizable().scaledToFill()
+                        default:
+                            RoundedRectangle(cornerRadius: 24)
+                                .fill(Color.white.opacity(0.12))
+                                .overlay(Image(systemName: "dog.fill").font(.largeTitle))
+                        }
+                    }
+                    .frame(width: geometry.size.width, height: 240)
+                    .clipped()
+                    .clipShape(RoundedRectangle(cornerRadius: 24))
+                }
+                .frame(height: 240)
+
+                Text(dog.name)
+                    .font(.largeTitle.bold())
+
+                Text("\(dog.breed) · \(dog.ageText)")
+                    .foregroundStyle(.secondary)
+
+                Text(dog.notes)
+
+                Text("Характер: \(dog.mood.title)")
+                    .foregroundStyle(dog.mood.color)
+
+                if appViewModel.canEditProfile {
+                    Button {
+                        editingDog = dog
+                        selectedDog = nil
+                    } label: {
+                        Label("Редактировать", systemImage: "pencil")
+                            .font(.headline.weight(.semibold))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(.white.opacity(0.12), in: RoundedRectangle(cornerRadius: 16))
+                    }
+                    .buttonStyle(.plain)
                 }
             }
-            .frame(height: 280)
-            .clipShape(RoundedRectangle(cornerRadius: 24))
-
-            Text(dog.name)
-                .font(.largeTitle.bold())
-
-            Text("\(dog.breed) · \(dog.ageText)")
-                .foregroundStyle(.secondary)
-
-            Text(dog.notes)
-
-            Text("Характер: \(dog.mood.title)")
-                .foregroundStyle(dog.mood.color)
-
-            if appViewModel.canEditProfile {
-                Button {
-                    editingDog = dog
-                    selectedDog = nil
-                } label: {
-                    Label("Редактировать", systemImage: "pencil")
-                        .font(.headline.weight(.semibold))
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(.white.opacity(0.12), in: RoundedRectangle(cornerRadius: 16))
-                }
-                .buttonStyle(.plain)
-            }
-
-            Spacer()
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(20)
         }
-        .padding(20)
         .background(.black)
         .preferredColorScheme(.dark)
     }

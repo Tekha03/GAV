@@ -46,6 +46,14 @@ func (m *MockDeviceRepo) Create(ctx context.Context, t *device.DeviceToken) erro
 	return args.Error(0)
 }
 
+func (m *MockDeviceRepo) SaveForUser(ctx context.Context, userID uuid.UUID, token string) error {
+	return m.Called(ctx, userID, token).Error(0)
+}
+
+func (m *MockDeviceRepo) DeleteForUser(ctx context.Context, userID uuid.UUID, token string) error {
+	return m.Called(ctx, userID, token).Error(0)
+}
+
 func (m *MockDeviceRepo) GetByUser(ctx context.Context, userID uuid.UUID) ([]*device.DeviceToken, error) {
 	args := m.Called(ctx, userID)
 	return args.Get(0).([]*device.DeviceToken), args.Error(1)

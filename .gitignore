@@ -11,6 +11,9 @@
 *.db-shm
 *.db-wal
 uploads/
+backend/secrets/
+GoogleService-Info.plist
+*firebase-service-account*.json
 
 # Xcode
 xcuserdata/
@@ -24,3 +27,4 @@ coverage.out
 
 # VSCode
 .vscode/
+.git 2/

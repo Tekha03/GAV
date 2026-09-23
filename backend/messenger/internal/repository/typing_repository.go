@@ -8,7 +8,7 @@ import (
 )
 
 type TypingRepository interface {
-	SetTyping(ctx context.Context, chatID, userID uuid.UUID)
-	GetTypingUsers(ctx context.Context, chatID uuid.UUID, timeout time.Duration) []uuid.UUID
-	Cleanup(ctx context.Context, timeout time.Duration)
+	SetTyping(ctx context.Context, chatID, userID uuid.UUID) error
+	GetTypingUsers(ctx context.Context, chatID uuid.UUID, timeout time.Duration) ([]uuid.UUID, error)
+	Cleanup(ctx context.Context, timeout time.Duration) error
 }

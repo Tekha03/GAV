@@ -11,6 +11,8 @@ import (
 type UserService interface {
 	Create(ctx context.Context, email, passwordHash string) (*User, error)
 	Update(ctx context.Context, id uuid.UUID, input UpdateUserInput) error
+	ChangePassword(ctx context.Context, id uuid.UUID, input ChangePasswordInput) error
+	ChangeRole(ctx context.Context, actorID, targetID uuid.UUID, input ChangeRoleInput) error
 	Delete(ctx context.Context, id uuid.UUID) error
 
 	GetByID(ctx context.Context, id uuid.UUID) (*User, error)

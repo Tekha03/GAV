@@ -2,11 +2,12 @@ package gateway
 
 import (
 	"encoding/json"
-	"errors"
-	"fmt"
 	"messenger/internal/model"
 	"messenger/internal/service"
+	"messenger/transport/websocket"
 	"net/http"
+	apperrors "shared/app_errors"
+	"shared/ratelimit"
 	"strconv"
 	"time"
 
@@ -68,19 +69,66 @@ type sendMessageRequest struct {
 	Attachments []attachmentDTO `json:"attachments"`
 }
 
-func NewHTTPServer(addr string, chatService service.Service) *http.Server {
+func NewHTTPServer(addr string, chatService service.Service, jwtSecret string, hub *websocket.Hub) *http.Server {
 	r := chi.NewRouter()
 	r.Use(corsMiddleware())
+	r.Use(ratelimit.Middleware(ratelimit.Config{
+		Requests: 300,
+		Window:   time.Minute,
+		Burst:    300,
+		KeyFunc:  ratelimit.IPKey,
+	}))
 
 	r.Route("/api/v1", func(r chi.Router) {
-		r.Post("/chats/private", createPrivateChat(chatService))
-		r.Post("/chats/group", createGroupChat(chatService))
-		r.Get("/users/{user_id}/chats", getUserChats(chatService))
-		r.Get("/chats/{chat_id}", getChat(chatService))
-		r.Get("/chats/{chat_id}/members", getChatMembers(chatService))
-		r.Get("/chats/{chat_id}/messages", getMessages(chatService))
-		r.Post("/chats/{chat_id}/messages", sendMessage(chatService))
-		r.Post("/chats/{chat_id}/read", markAsRead(chatService))
+		r.Use(authMiddleware(jwtSecret))
+
+		userLimiter := ratelimit.Middleware(ratelimit.Config{
+			Requests: 120,
+			Window:   time.Minute,
+			Burst:    120,
+			KeyFunc:  ratelimit.UserIDKey(userIDContextKey),
+		})
+		chatCreateLimiter := ratelimit.Middleware(ratelimit.Config{
+			Requests: 10,
+			Window:   time.Minute,
+			Burst:    10,
+			KeyFunc:  ratelimit.UserIDKey(userIDContextKey),
+		})
+		messageLimiter := ratelimit.Middleware(ratelimit.Config{
+			Requests: 60,
+			Window:   time.Minute,
+			Burst:    60,
+			KeyFunc: func(r *http.Request) string {
+				userKey := ratelimit.UserIDKey(userIDContextKey)(r)
+				return userKey + ":chat:" + chi.URLParam(r, "chat_id")
+			},
+		})
+		wsLimiter := ratelimit.Middleware(ratelimit.Config{
+			Requests: 10,
+			Window:   time.Minute,
+			Burst:    10,
+			KeyFunc:  ratelimit.UserIDKey(userIDContextKey),
+		})
+
+		r.With(chatCreateLimiter).Post("/chats/private", createPrivateChat(chatService))
+		r.With(chatCreateLimiter).Post("/chats/group", createGroupChat(chatService))
+		r.With(userLimiter).Get("/users/{user_id}/chats", getUserChats(chatService))
+		r.With(userLimiter).Get("/chats/{chat_id}", getChat(chatService))
+		r.With(userLimiter).Get("/chats/{chat_id}/members", getChatMembers(chatService))
+		r.With(userLimiter).Get("/chats/{chat_id}/messages", getMessages(chatService))
+		r.With(userLimiter, messageLimiter).Post("/chats/{chat_id}/messages", sendMessage(chatService))
+		r.With(userLimiter).Post("/chats/{chat_id}/read", markAsRead(chatService))
+		r.With(wsLimiter).Get("/ws/chats/{chat_id}", websocket.ChatHandler(
+			hub,
+			chatService,
+			func(r *http.Request) (uuid.UUID, error) {
+				claims, err := parseBearerToken(r.Header.Get("Authorization"), []byte(jwtSecret))
+				if err != nil {
+					return uuid.Nil, err
+				}
+				return claims.UserID, nil
+			},
+		))
 	})
 
 	return &http.Server{Addr: addr, Handler: r}
@@ -90,13 +138,19 @@ func getChatMembers(chatService service.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		chatID, err := parsePathUUID(r, "chat_id")
 		if err != nil {
-			writeError(w, http.StatusBadRequest, err)
+			writeError(w, err)
 			return
 		}
 
-		members, err := chatService.GetChatMembers(r.Context(), chatID)
+		authenticatedUserID, ok := currentUserID(r.Context())
+		if !ok {
+			writeError(w, apperrors.New(apperrors.AuthTokenMissing, "authenticated user is missing"))
+			return
+		}
+
+		members, err := chatService.GetChatMembers(r.Context(), chatID, authenticatedUserID)
 		if err != nil {
-			writeError(w, http.StatusInternalServerError, err)
+			writeError(w, err)
 			return
 		}
 
@@ -113,13 +167,23 @@ func createPrivateChat(chatService service.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req createPrivateChatRequest
 		if err := decodeJSON(r, &req); err != nil {
-			writeError(w, http.StatusBadRequest, err)
+			writeError(w, err)
+			return
+		}
+
+		authenticatedUserID, ok := currentUserID(r.Context())
+		if !ok {
+			writeError(w, apperrors.New(apperrors.AuthTokenMissing, "authenticated user is missing"))
+			return
+		}
+		if req.UserID1 != authenticatedUserID && req.UserID2 != authenticatedUserID {
+			writeError(w, apperrors.New(apperrors.ChatAccessDenied, "chat access denied"))
 			return
 		}
 
 		chat, err := chatService.CreatePrivateChat(r.Context(), req.UserID1, req.UserID2)
 		if err != nil {
-			writeError(w, http.StatusInternalServerError, err)
+			writeError(w, err)
 			return
 		}
 
@@ -131,13 +195,23 @@ func createGroupChat(chatService service.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req createGroupChatRequest
 		if err := decodeJSON(r, &req); err != nil {
-			writeError(w, http.StatusBadRequest, err)
+			writeError(w, err)
+			return
+		}
+
+		authenticatedUserID, ok := currentUserID(r.Context())
+		if !ok {
+			writeError(w, apperrors.New(apperrors.AuthTokenMissing, "authenticated user is missing"))
+			return
+		}
+		if req.CreatorID != authenticatedUserID {
+			writeError(w, apperrors.New(apperrors.ChatAccessDenied, "chat access denied"))
 			return
 		}
 
 		chat, err := chatService.CreateGroupChat(r.Context(), req.Title, req.CreatorID, req.MemberIDs)
 		if err != nil {
-			writeError(w, http.StatusInternalServerError, err)
+			writeError(w, err)
 			return
 		}
 
@@ -149,13 +223,23 @@ func getUserChats(chatService service.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID, err := parsePathUUID(r, "user_id")
 		if err != nil {
-			writeError(w, http.StatusBadRequest, err)
+			writeError(w, err)
+			return
+		}
+
+		authenticatedUserID, ok := currentUserID(r.Context())
+		if !ok {
+			writeError(w, apperrors.New(apperrors.AuthTokenMissing, "authenticated user is missing"))
+			return
+		}
+		if userID != authenticatedUserID {
+			writeError(w, apperrors.New(apperrors.AuthForbidden, "operation is forbidden"))
 			return
 		}
 
 		chats, err := chatService.GetUserChats(r.Context(), userID)
 		if err != nil {
-			writeError(w, http.StatusInternalServerError, err)
+			writeError(w, err)
 			return
 		}
 
@@ -172,13 +256,19 @@ func getChat(chatService service.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		chatID, err := parsePathUUID(r, "chat_id")
 		if err != nil {
-			writeError(w, http.StatusBadRequest, err)
+			writeError(w, err)
 			return
 		}
 
-		chat, err := chatService.GetChatByID(r.Context(), chatID)
+		authenticatedUserID, ok := currentUserID(r.Context())
+		if !ok {
+			writeError(w, apperrors.New(apperrors.AuthTokenMissing, "authenticated user is missing"))
+			return
+		}
+
+		chat, err := chatService.GetChatByID(r.Context(), chatID, authenticatedUserID)
 		if err != nil {
-			writeError(w, http.StatusNotFound, err)
+			writeError(w, err)
 			return
 		}
 
@@ -190,30 +280,39 @@ func getMessages(chatService service.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		chatID, err := parsePathUUID(r, "chat_id")
 		if err != nil {
-			writeError(w, http.StatusBadRequest, err)
+			writeError(w, err)
 			return
 		}
 
 		limit := 50
 		if raw := r.URL.Query().Get("limit"); raw != "" {
-			if parsed, err := strconv.Atoi(raw); err == nil && parsed > 0 {
-				limit = parsed
+			parsed, err := strconv.Atoi(raw)
+			if err != nil || parsed <= 0 {
+				writeError(w, apperrors.New(apperrors.Validation, "invalid limit", apperrors.WithDetail("field", "limit")))
+				return
 			}
+			limit = parsed
 		}
 
 		var cursor *uuid.UUID
 		if raw := r.URL.Query().Get("before"); raw != "" {
 			parsed, err := uuid.Parse(raw)
 			if err != nil {
-				writeError(w, http.StatusBadRequest, err)
+				writeError(w, apperrors.Wrap(apperrors.Validation, "invalid cursor", err, apperrors.WithDetail("field", "before")))
 				return
 			}
 			cursor = &parsed
 		}
 
-		messages, err := chatService.GetMessages(r.Context(), chatID, limit, cursor)
+		authenticatedUserID, ok := currentUserID(r.Context())
+		if !ok {
+			writeError(w, apperrors.New(apperrors.AuthTokenMissing, "authenticated user is missing"))
+			return
+		}
+
+		messages, err := chatService.GetMessages(r.Context(), chatID, authenticatedUserID, limit, cursor)
 		if err != nil {
-			writeError(w, http.StatusInternalServerError, err)
+			writeError(w, err)
 			return
 		}
 
@@ -230,13 +329,23 @@ func sendMessage(chatService service.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		chatID, err := parsePathUUID(r, "chat_id")
 		if err != nil {
-			writeError(w, http.StatusBadRequest, err)
+			writeError(w, err)
 			return
 		}
 
 		var req sendMessageRequest
 		if err := decodeJSON(r, &req); err != nil {
-			writeError(w, http.StatusBadRequest, err)
+			writeError(w, err)
+			return
+		}
+
+		authenticatedUserID, ok := currentUserID(r.Context())
+		if !ok {
+			writeError(w, apperrors.New(apperrors.AuthTokenMissing, "authenticated user is missing"))
+			return
+		}
+		if req.SenderID != authenticatedUserID {
+			writeError(w, apperrors.New(apperrors.ChatAccessDenied, "chat access denied"))
 			return
 		}
 
@@ -250,7 +359,7 @@ func sendMessage(chatService service.Service) http.HandlerFunc {
 			})
 		}
 
-		message, err := chatService.SendMessage(r.Context(), model.SendMessageInput{
+		message, err := chatService.SendMessage(r.Context(), authenticatedUserID, model.SendMessageInput{
 			ChatID:      chatID,
 			SenderID:    req.SenderID,
 			Text:        req.Text,
@@ -258,7 +367,7 @@ func sendMessage(chatService service.Service) http.HandlerFunc {
 			Attachments: attachments,
 		})
 		if err != nil {
-			writeError(w, http.StatusInternalServerError, err)
+			writeError(w, err)
 			return
 		}
 
@@ -272,7 +381,7 @@ func markAsRead(chatService service.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		chatID, err := parsePathUUID(r, "chat_id")
 		if err != nil {
-			writeError(w, http.StatusBadRequest, err)
+			writeError(w, err)
 			return
 		}
 
@@ -281,12 +390,22 @@ func markAsRead(chatService service.Service) http.HandlerFunc {
 		}
 		var req request
 		if err := decodeJSON(r, &req); err != nil {
-			writeError(w, http.StatusBadRequest, err)
+			writeError(w, err)
+			return
+		}
+
+		authenticatedUserID, ok := currentUserID(r.Context())
+		if !ok {
+			writeError(w, apperrors.New(apperrors.AuthTokenMissing, "authenticated user is missing"))
+			return
+		}
+		if req.UserID != authenticatedUserID {
+			writeError(w, apperrors.New(apperrors.ChatAccessDenied, "chat access denied"))
 			return
 		}
 
 		if err := chatService.MarkAsRead(r.Context(), chatID, req.UserID); err != nil {
-			writeError(w, http.StatusInternalServerError, err)
+			writeError(w, err)
 			return
 		}
 
@@ -298,16 +417,21 @@ func parsePathUUID(r *http.Request, key string) (uuid.UUID, error) {
 	raw := chi.URLParam(r, key)
 	id, err := uuid.Parse(raw)
 	if err != nil {
-		return uuid.Nil, fmt.Errorf("invalid %s", key)
+		return uuid.Nil, apperrors.Wrap(apperrors.Validation, "invalid path parameter", err, apperrors.WithDetail("field", key))
 	}
 	return id, nil
 }
 
 func decodeJSON(r *http.Request, dst any) error {
 	if r.Body == nil {
-		return errors.New("empty request body")
+		return apperrors.New(apperrors.Validation, "request body is required")
 	}
-	return json.NewDecoder(r.Body).Decode(dst)
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(dst); err != nil {
+		return apperrors.Wrap(apperrors.Validation, "invalid request body", err)
+	}
+	return nil
 }
 
 func writeJSON(w http.ResponseWriter, status int, value any) {
@@ -316,8 +440,51 @@ func writeJSON(w http.ResponseWriter, status int, value any) {
 	_ = json.NewEncoder(w).Encode(value)
 }
 
-func writeError(w http.ResponseWriter, status int, err error) {
-	writeJSON(w, status, map[string]string{"error": err.Error()})
+func writeError(w http.ResponseWriter, err error) {
+	if err == nil {
+		return
+	}
+	appErr := apperrors.Normalize(err)
+	message := appErr.Message
+	if appErr.Category == apperrors.CategoryInternal {
+		message = "internal server error"
+	}
+
+	writeJSON(w, httpStatus(appErr.Category), ErrorResponse{
+		Error: ErrorBody{
+			Code:     appErr.Code,
+			Category: appErr.Category,
+			Message:  message,
+			Details:  appErr.Details,
+		},
+	})
+}
+
+func httpStatus(category apperrors.Category) int {
+	switch category {
+	case apperrors.CategoryValidation:
+		return http.StatusBadRequest
+	case apperrors.CategoryUnauthenticated:
+		return http.StatusUnauthorized
+	case apperrors.CategoryPermissionDenied:
+		return http.StatusForbidden
+	case apperrors.CategoryNotFound:
+		return http.StatusNotFound
+	case apperrors.CategoryConflict:
+		return http.StatusConflict
+	case apperrors.CategoryRateLimited:
+		return http.StatusTooManyRequests
+	case apperrors.CategoryUnavailable:
+		return http.StatusServiceUnavailable
+	case apperrors.CategoryUnsupported:
+		return http.StatusNotImplemented
+	case apperrors.CategoryCancelled:
+		return 499
+	case apperrors.CategoryInternal:
+		return http.StatusInternalServerError
+	default:
+		return http.StatusInternalServerError
+	}
 }
 
 func toChatDTO(chat *model.Chat) chatDTO {

@@ -1,10 +1,10 @@
 package notification
 
-import "errors"
+import apperrors "shared/app_errors"
 
 var (
-	ErrEmptyHub              = errors.New("notification service: empty hub")
-	ErrFailedToMarshal       = errors.New("failed to marshal into json")
-	ErrNotificationRepoEmpty = errors.New("notifications not found")
-	ErrFirebaseClientEmpty   = errors.New("firebase client is empty")
+	ErrEmptyHub              = apperrors.New(apperrors.Internal, "notification service: empty hub")
+	ErrFailedToMarshal       = apperrors.New(apperrors.Internal, "failed to marshal notification")
+	ErrNotificationRepoEmpty = apperrors.New(apperrors.NotificationNotFound, "notifications not found")
+	ErrFirebaseClientEmpty   = apperrors.New(apperrors.Internal, "firebase client is empty")
 )

@@ -46,6 +46,7 @@ func TestService_Create(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.NotNil(t, v)
+	assert.NotEqual(t, uuid.Nil, v.ID)
 	assert.Equal(t, dogID, v.DogID)
 	assert.Equal(t, input.Name, v.Name)
 

@@ -155,6 +155,7 @@ final class AppViewModel: ObservableObject {
     var userService: UserServiceAPIProtocol
     var followService: FollowServiceAPIProtocol
     var statsService: StatsServiceAPIProtocol
+    var vaccinationService: VaccinationServiceAPIProtocol
     let canEditProfile: Bool
 
     init(
@@ -175,6 +176,7 @@ final class AppViewModel: ObservableObject {
         userService: UserServiceAPIProtocol,
         followService: FollowServiceAPIProtocol,
         statsService: StatsServiceAPIProtocol,
+        vaccinationService: VaccinationServiceAPIProtocol,
         canEditProfile: Bool
     ) {
         self.profile = profile
@@ -194,6 +196,7 @@ final class AppViewModel: ObservableObject {
         self.userService = userService
         self.followService = followService
         self.statsService = statsService
+        self.vaccinationService = vaccinationService
         self.canEditProfile = canEditProfile
     }
 
@@ -221,29 +224,84 @@ final class AppViewModel: ObservableObject {
         vaccinations.filter { $0.dogID == dogID }
     }
 
-    func loadChats() async {
-        do {
-            let userChats = try await chatUseCase.getUserChats(userID: currentUserId)
-            var loadedChats: [AppChat] = []
+    func loadVaccinations(for dogID: UUID) async throws {
+        let models = try await vaccinationService.listByDogID(dogID: dogID)
+        vaccinations.removeAll { $0.dogID == dogID }
+        vaccinations.append(contentsOf: models.map { model in
+            AppVaccination(
+                id: model.id,
+                dogID: model.dogId,
+                name: model.name,
+                vaccinationDate: model.doneAt,
+                reminderAfterDays: Calendar.current.dateComponents(
+                    [.day], from: model.doneAt, to: model.nextDueAt ?? model.doneAt
+                ).day ?? 0,
+                nextDate: model.nextDueAt ?? model.doneAt,
+                notes: model.notes ?? ""
+            )
+        })
+    }
 
-            for chat in userChats {
-                let title = await displayTitle(for: chat)
-                loadedChats.append(
-                    AppChat(
-                        id: chat.id,
-                        title: title,
-                        lastMessage: "Откройте чат",
-                        unreadCount: 0
-                    )
+    func saveVaccination(_ item: AppVaccination, isEditing: Bool) async throws {
+        if isEditing {
+            try await vaccinationService.update(
+                vaccinationID: item.id,
+                dogID: item.dogID,
+                input: UpdateVaccinationInput(
+                    name: item.name,
+                    doneAt: item.vaccinationDate,
+                    nextDueAt: item.nextDate,
+                    notes: item.notes
                 )
+            )
+            if let index = vaccinations.firstIndex(where: { $0.id == item.id }) {
+                vaccinations[index] = item
             }
-
-            chats = loadedChats
-        } catch {
-            if chats.isEmpty {
-                chats = []
-            }
+        } else {
+            let created = try await vaccinationService.create(
+                dogID: item.dogID,
+                input: CreateVaccinationInput(
+                    name: item.name,
+                    doneAt: item.vaccinationDate,
+                    nextDueAt: item.nextDate,
+                    notes: item.notes
+                )
+            )
+            vaccinations.append(AppVaccination(
+                id: created.id,
+                dogID: created.dogId,
+                name: created.name,
+                vaccinationDate: created.doneAt,
+                reminderAfterDays: item.reminderAfterDays,
+                nextDate: created.nextDueAt ?? created.doneAt,
+                notes: created.notes ?? ""
+            ))
         }
+    }
+
+    func deleteVaccination(_ item: AppVaccination) async throws {
+        try await vaccinationService.delete(vaccinationID: item.id)
+        vaccinations.removeAll { $0.id == item.id }
+    }
+
+    func loadChats() async throws {
+        let userChats = try await chatUseCase.getUserChats(userID: currentUserId)
+        var loadedChats: [AppChat] = []
+
+        for chat in userChats {
+            let title = await displayTitle(for: chat)
+
+            loadedChats.append(
+                AppChat(
+                    id: chat.id,
+                    title: title,
+                    lastMessage: "Откройте чат",
+                    unreadCount: 0
+                )
+            )
+        }
+
+        chats = loadedChats
     }
 
     func createPrivateChat(with participantID: UUID) async throws {
@@ -557,15 +615,26 @@ final class AppViewModel: ObservableObject {
         }
     }
 
+    func reloadFeed() async throws {
+        let models = try await feedService.getFeed(
+            userID: currentUserId,
+            before: nil,
+            limit: 50
+        )
+
+        var loadedFeed = models
+            .map { appPost(from: $0) }
+            .sorted { $0.createdAt > $1.createdAt }
+
+        await hydratePostAuthors(&loadedFeed)
+        await hydratePostStats(&loadedFeed)
+
+        feed = loadedFeed
+    }
+
     private func loadFeed() async {
         do {
-            let models = try await feedService.getFeed(userID: currentUserId, before: nil, limit: 50)
-            var loadedFeed = models
-                .map { appPost(from: $0) }
-                .sorted { $0.createdAt > $1.createdAt }
-            await hydratePostAuthors(&loadedFeed)
-            await hydratePostStats(&loadedFeed)
-            feed = loadedFeed
+            try await reloadFeed()
         } catch {
             if feed.isEmpty {
                 feed = posts
@@ -798,7 +867,8 @@ extension AppViewModel {
         feedService: FeedServiceAPIProtocol,
         userService: UserServiceAPIProtocol,
         followService: FollowServiceAPIProtocol,
-        statsService: StatsServiceAPIProtocol
+        statsService: StatsServiceAPIProtocol,
+        vaccinationService: VaccinationServiceAPIProtocol
     ) -> AppViewModel {
         AppViewModel(
             profile: AppProfile(
@@ -825,6 +895,7 @@ extension AppViewModel {
             userService: userService,
             followService: followService,
             statsService: statsService,
+            vaccinationService: vaccinationService,
             canEditProfile: true
         )
     }

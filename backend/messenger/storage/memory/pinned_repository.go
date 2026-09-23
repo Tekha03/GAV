@@ -40,7 +40,7 @@ func (pr *PinnedRepo) Unpin(ctx context.Context, chatID, messageID uuid.UUID) er
 	return nil
 }
 
-func (pr *PinnedRepo) GetByChatID(ctx context.Context, chatID uuid.UUID) []uuid.UUID {
+func (pr *PinnedRepo) GetByChatID(ctx context.Context, chatID uuid.UUID) ([]uuid.UUID, error) {
 	pr.mu.Lock()
 	defer pr.mu.Unlock()
 
@@ -50,5 +50,5 @@ func (pr *PinnedRepo) GetByChatID(ctx context.Context, chatID uuid.UUID) []uuid.
 			ids = append(ids, id)
 		}
 	}
-	return ids
+	return ids, nil
 }

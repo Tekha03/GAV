@@ -99,9 +99,19 @@ extension AppViewModel {
             userService: MockUserServiceAPI(),
             followService: MockFollowServiceAPI(),
             statsService: MockStatsServiceAPI(),
+            vaccinationService: MockVaccinationServiceAPI(),
             canEditProfile: true
         )
     }()
+}
+
+struct MockVaccinationServiceAPI: VaccinationServiceAPIProtocol {
+    func create(dogID: UUID, input: CreateVaccinationInput) async throws -> VaccinationModel {
+        throw APIError.invalidResponse(statusCode: 501)
+    }
+    func listByDogID(dogID: UUID) async throws -> [VaccinationModel] { [] }
+    func update(vaccinationID: UUID, dogID: UUID, input: UpdateVaccinationInput) async throws {}
+    func delete(vaccinationID: UUID) async throws {}
 }
 
 struct MockUserProfileServiceAPI: UserProfileServiceAPIProtocol {

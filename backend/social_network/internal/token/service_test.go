@@ -32,12 +32,17 @@ func TestService_CreateRefresh(t *testing.T) {
 
 	t.Run("success", func(t *testing.T) {
 		repo := new(MockRepository)
-		repo.On("Create", ctx, mock.AnythingOfType("*token.RefreshToken")).Return(nil).Once()
+		var saved *RefreshToken
+		repo.On("Create", ctx, mock.AnythingOfType("*token.RefreshToken")).Run(func(args mock.Arguments) {
+			saved = args.Get(1).(*RefreshToken)
+		}).Return(nil).Once()
 
 		s, _ := NewService(repo)
 		token, err := s.CreateRefresh(ctx, userID)
 		require.NoError(t, err)
 		require.NotEmpty(t, token)
+		require.Equal(t, refreshHash(token), saved.TokenHash)
+		require.True(t, saved.ExpiresAt.After(time.Now().Add(6*24*time.Hour)))
 		repo.AssertExpectations(t)
 	})
 

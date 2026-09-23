@@ -4,6 +4,7 @@ import (
 	"context"
 	"messenger/internal/model"
 	"messenger/internal/repository"
+	apperrors "shared/app_errors"
 	"sync"
 
 	"github.com/google/uuid"
@@ -27,7 +28,7 @@ func (rr *ReactionRepository) Add(ctx context.Context, reaction *model.Reaction)
 	}
 
 	if _, exists := rr.reactions[reaction.MessageID][reaction.UserID]; exists {
-		return repository.ErrReactionExists
+		return apperrors.New(apperrors.ReactionAlreadyExists, "reaction already exists")
 	}
 
 	if reaction.ID == uuid.Nil {
@@ -43,11 +44,11 @@ func (rr *ReactionRepository) Remove(ctx context.Context, messageID, userID uuid
 	defer rr.mu.Unlock()
 
 	if _, ok := rr.reactions[messageID]; !ok {
-		return repository.ErrReactionNotFound
+		return apperrors.New(apperrors.ReactionNotFound, "reaction not found")
 	}
 
 	if _, exists := rr.reactions[messageID][userID]; !exists {
-		return repository.ErrReactionNotFound
+		return apperrors.New(apperrors.ReactionNotFound, "reaction not found")
 	}
 
 	delete(rr.reactions[messageID], userID)

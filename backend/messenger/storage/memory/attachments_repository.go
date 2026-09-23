@@ -2,17 +2,12 @@ package memory
 
 import (
 	"context"
-	"errors"
 	"messenger/internal/model"
 	"messenger/internal/repository"
+	apperrors "shared/app_errors"
 	"sync"
 
 	"github.com/google/uuid"
-)
-
-var (
-	ErrAttachmentNotFound = errors.New("attachment not found")
-	ErrAttachmentExist    = errors.New("attachment exist")
 )
 
 type AttachmentRepository struct {
@@ -30,7 +25,7 @@ func (ar *AttachmentRepository) Create(ctx context.Context, attachment *model.At
 
 	if attachment.ID != uuid.Nil {
 		if _, found := ar.attachments[attachment.ID]; found {
-			return ErrAttachmentExist
+			return apperrors.New(apperrors.AttachmentAlreadyExists, "attachment already exists")
 		}
 	} else {
 		attachment.ID = uuid.New()
@@ -40,13 +35,26 @@ func (ar *AttachmentRepository) Create(ctx context.Context, attachment *model.At
 	return nil
 }
 
+func (ar *AttachmentRepository) CreateBatch(
+	ctx context.Context,
+	attachments []model.Attachment,
+) error {
+	for i := range attachments {
+		if err := ar.Create(ctx, &attachments[i]); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (ar *AttachmentRepository) GetByID(ctx context.Context, id uuid.UUID) (*model.Attachment, error) {
 	ar.mu.RLock()
 	defer ar.mu.RUnlock()
 
 	attachment, ok := ar.attachments[id]
 	if !ok {
-		return nil, ErrAttachmentNotFound
+		return nil, apperrors.New(apperrors.AttachmentNotFound, "attachment not found")
 	}
 
 	return attachment, nil
@@ -71,7 +79,7 @@ func (ar *AttachmentRepository) Delete(ctx context.Context, id uuid.UUID) error 
 	defer ar.mu.Unlock()
 
 	if _, ok := ar.attachments[id]; !ok {
-		return ErrAttachmentNotFound
+		return apperrors.New(apperrors.AttachmentNotFound, "attachment not found")
 	}
 
 	delete(ar.attachments, id)

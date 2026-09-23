@@ -1,10 +1,10 @@
 package memory
 
 import (
-	"bytes"
 	"context"
 	"messenger/internal/model"
 	"messenger/internal/repository"
+	apperrors "shared/app_errors"
 	"sort"
 	"sync"
 	"time"
@@ -27,7 +27,7 @@ func (mr *MessageRepository) Create(ctx context.Context, msg *model.Message) (uu
 
 	if msg.ID != uuid.Nil {
 		if _, found := mr.messages[msg.ID]; found {
-			return msg.ID, repository.ErrMessageExists
+			return msg.ID, apperrors.New(apperrors.MessageAlreadyExists, "message already exists")
 		}
 	} else {
 		msg.ID = uuid.New()
@@ -44,7 +44,7 @@ func (mr *MessageRepository) UpdateText(ctx context.Context, msgID uuid.UUID, ne
 
 	msg, ok := mr.messages[msgID]
 	if !ok {
-		return repository.ErrMessageNotFound
+		return apperrors.New(apperrors.MessageNotFound, "message not found")
 	}
 
 	msg.Text = &newText
@@ -59,7 +59,7 @@ func (mr *MessageRepository) Delete(ctx context.Context, msgID uuid.UUID) error 
 
 	msg, ok := mr.messages[msgID]
 	if !ok {
-		return repository.ErrMessageNotFound
+		return apperrors.New(apperrors.MessageNotFound, "message not found")
 	}
 
 	now := time.Now()
@@ -73,7 +73,7 @@ func (mr *MessageRepository) GetByID(ctx context.Context, msgID uuid.UUID) (*mod
 
 	msg, ok := mr.messages[msgID]
 	if !ok {
-		return nil, repository.ErrMessageNotFound
+		return nil, apperrors.New(apperrors.MessageNotFound, "message not found")
 	}
 
 	return msg, nil
@@ -84,30 +84,93 @@ func (mr *MessageRepository) GetByChatID(ctx context.Context, chatID uuid.UUID, 
 	defer mr.mu.RUnlock()
 
 	var result []*model.Message
+	var cursorMessage *model.Message
+	if cursorID != nil {
+		var ok bool
+		cursorMessage, ok = mr.messages[*cursorID]
+		if !ok || cursorMessage.ChatID != chatID || cursorMessage.DeletedAt != nil {
+			return nil, apperrors.New(apperrors.MessageNotFound, "cursor message not found")
+		}
+	}
+
 	for _, msg := range mr.messages {
 		if msg.ChatID != chatID || msg.DeletedAt != nil {
 			continue
 		}
 
-		if cursorID != nil && msg.ID.String() <= cursorID.String() {
-			continue
+		if cursorMessage != nil {
+			if msg.CreatedAt.After(cursorMessage.CreatedAt) {
+				continue
+			}
+			if msg.CreatedAt.Equal(cursorMessage.CreatedAt) && msg.ID.String() >= cursorMessage.ID.String() {
+				continue
+			}
 		}
 
 		result = append(result, msg)
 	}
 
 	sort.Slice(result, func(i, j int) bool {
-		return bytes.Compare(result[i].ID[:], result[j].ID[:]) > 0
+		if result[i].CreatedAt.Equal(result[j].CreatedAt) {
+			return result[i].ID.String() > result[j].ID.String()
+		}
+		return result[i].CreatedAt.After(result[j].CreatedAt)
 	})
 
-	if len(result) > limit {
+	if limit > 0 && len(result) > limit {
 		result = result[:limit]
 	}
 
 	return result, nil
 }
-func (mr *MessageRepository) UpdateReadAtForChat(ctx context.Context, chatID, userID uuid.UUID, readAt time.Time) error {
-	mr.mu.Lock()
-	defer mr.mu.Unlock()
-	return nil
+
+func (mr *MessageRepository) GetLastMessageIDForChat(ctx context.Context, chatID uuid.UUID) (uuid.UUID, error) {
+	mr.mu.RLock()
+	defer mr.mu.RUnlock()
+
+	var last *model.Message
+	for _, msg := range mr.messages {
+		if msg.ChatID != chatID || msg.DeletedAt != nil {
+			continue
+		}
+		if last == nil ||
+			msg.CreatedAt.After(last.CreatedAt) ||
+			(msg.CreatedAt.Equal(last.CreatedAt) && msg.ID.String() > last.ID.String()) {
+			last = msg
+		}
+	}
+
+	if last == nil {
+		return uuid.Nil, nil
+	}
+
+	return last.ID, nil
+}
+
+func (mr *MessageRepository) CountUnreadForChat(ctx context.Context, chatID, userID, lastReadMessageID uuid.UUID) (int, error) {
+	mr.mu.RLock()
+	defer mr.mu.RUnlock()
+
+	var lastRead *model.Message
+	if lastReadMessageID != uuid.Nil {
+		var ok bool
+		lastRead, ok = mr.messages[lastReadMessageID]
+		if !ok || lastRead.ChatID != chatID || lastRead.DeletedAt != nil {
+			return 0, apperrors.New(apperrors.MessageNotFound, "last read message not found")
+		}
+	}
+
+	count := 0
+	for _, msg := range mr.messages {
+		if msg.ChatID != chatID || msg.DeletedAt != nil || msg.SenderID == userID {
+			continue
+		}
+		if lastRead == nil ||
+			msg.CreatedAt.After(lastRead.CreatedAt) ||
+			(msg.CreatedAt.Equal(lastRead.CreatedAt) && msg.ID.String() > lastRead.ID.String()) {
+			count++
+		}
+	}
+
+	return count, nil
 }

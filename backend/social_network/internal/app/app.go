@@ -29,8 +29,8 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 	if cfg == nil {
 		return nil, ErrConfigNil
 	}
-	if cfg.DB.Path == "" {
-		return nil, ErrDBPathEmpty
+	if cfg.DB.PostgresDSN == "" {
+		return nil, ErrPostgresDSNEmpty
 	}
 	if cfg.JWT.Secret == "" {
 		return nil, ErrJWTSecretEmpty
@@ -39,13 +39,19 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	logger.Info("initializing application")
 
-	db, err := dbserver.InitDB(cfg.DB.Path, logger)
+	db, err := dbserver.InitDB(cfg.DB.PostgresDSN, logger)
 	if err != nil {
 		logger.Error("failed to open database", "error", err)
 		return nil, err
 	}
+	initialized := false
+	defer func() {
+		if !initialized {
+			_ = dbserver.CloseDB(db)
+		}
+	}()
 
-	logger.Info("database opened", "path", cfg.DB.Path)
+	logger.Info("database opened", "driver", "postgres")
 
 	if os.Getenv("ENV") != "production" {
 		if err := dbserver.SeedDatabase(db, logger); err != nil {
@@ -61,10 +67,10 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 		return nil, err
 	}
 
-	sqlDB.SetMaxOpenConns(1)
-	sqlDB.SetMaxIdleConns(1)
+	sqlDB.SetMaxOpenConns(10)
+	sqlDB.SetMaxIdleConns(5)
 
-	logger.Info("database pool configured", "max_open_conns", 1)
+	logger.Info("database pool configured", "driver", "postgres")
 
 	jwtConfig := auth.JWTConfig{
 		Secret: []byte(cfg.JWT.Secret),
@@ -81,9 +87,8 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 	}
 
 	notificationHub := notification.NewHub()
-	go notificationHub.Run()
 
-	services, err := initServices(repos, jwtConfig, mediaStorage, notificationHub)
+	services, err := initServices(ctx, repos, db, jwtConfig, mediaStorage, notificationHub, cfg.Firebase)
 	if err != nil {
 		return nil, err
 	}
@@ -97,6 +102,7 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 		httptransport.Handlers{
 			Auth:        handlers.Auth,
 			User:        handlers.User,
+			Walk:        handlers.Walk,
 			Profile:     handlers.Profile,
 			Post:        handlers.Post,
 			Feed:        handlers.Feed,
@@ -109,6 +115,7 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 			Settings:    handlers.Settings,
 			Upload:      handlers.Upload,
 			WS:          handlers.WSHandler,
+			Device:      handlers.Device,
 		},
 		httptransport.RouterDeps{
 			AuthMW:      middleware.JWTAuth(jwtConfig),
@@ -124,6 +131,8 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 	}
 
 	logger.Info("http server configured", "port", cfg.HTTP.Port)
+	go notificationHub.Run()
+	initialized = true
 
 	return &App{
 		Server:          server,

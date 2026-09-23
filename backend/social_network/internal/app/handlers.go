@@ -8,6 +8,7 @@ import (
 type Handlers struct {
 	Auth        *handlers.AuthHandler
 	User        *handlers.UserHandler
+	Walk        *handlers.WalkHandler
 	Profile     *handlers.ProfileHandler
 	Post        *handlers.PostHandler
 	Feed        *handlers.FeedHandler
@@ -20,6 +21,7 @@ type Handlers struct {
 	Settings    *handlers.SettingsHandler
 	Upload      *handlers.UploadHandler
 	WSHandler   *handlers.NotificationHandler
+	Device      *handlers.DeviceHandler
 }
 
 func initHandlers(services *Services, notificationHub *notification.Hub) (*Handlers, error) {
@@ -34,6 +36,7 @@ func initHandlers(services *Services, notificationHub *notification.Hub) (*Handl
 	if err != nil {
 		return nil, err
 	}
+	h.Walk = handlers.NewWalkHandler(services.Walk)
 	h.Profile, err = handlers.NewProfileHandler(services.Profile)
 	if err != nil {
 		return nil, err
@@ -84,6 +87,7 @@ func initHandlers(services *Services, notificationHub *notification.Hub) (*Handl
 		return nil, err
 	}
 	h.WSHandler, err = handlers.NewNotificationHandler(notificationHub)
+	h.Device = handlers.NewDeviceHandler(services.Device)
 	if err != nil {
 		return nil, err
 	}

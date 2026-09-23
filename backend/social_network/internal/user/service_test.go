@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type testEnv struct {
@@ -151,18 +152,14 @@ func TestService_Update(t *testing.T) {
 	id := uuid.New()
 
 	email := "new@mail.com"
-	password := "newhash"
-	role := "admin"
 
 	t.Run("success", func(t *testing.T) {
 		repo := new(MockRepository)
-		repo.On("Update", ctx, mock.AnythingOfType("*user.User")).Return(nil).Once()
+		repo.On("UpdateEmail", ctx, id, email).Return(nil).Once()
 
 		s, _ := NewService(repo)
 		err := s.Update(ctx, id, UpdateUserInput{
-			Email:    &email,
-			Password: &password,
-			Role:     &role,
+			Email: &email,
 		})
 
 		require.NoError(t, err)
@@ -170,17 +167,116 @@ func TestService_Update(t *testing.T) {
 
 	t.Run("repo error", func(t *testing.T) {
 		repo := new(MockRepository)
-		repo.On("Update", ctx, mock.Anything).Return(ErrFail).Once()
+		repo.On("UpdateEmail", ctx, id, email).Return(ErrFail).Once()
 
 		s, _ := NewService(repo)
 		err := s.Update(ctx, id, UpdateUserInput{
-			Email:    &email,
-			Password: &password,
-			Role:     &role,
+			Email: &email,
 		})
 
 		require.Error(t, err)
 	})
+}
+
+func TestService_UpdateRejectsMissingOrInvalidEmail(t *testing.T) {
+	s, _ := NewService(new(MockRepository))
+	id := uuid.New()
+	require.ErrorIs(t, s.Update(context.Background(), id, UpdateUserInput{}), ErrUpdateEmpty)
+	for _, value := range []string{"", "not-an-email", "Name <name@example.com>"} {
+		require.ErrorIs(t, s.Update(context.Background(), id, UpdateUserInput{Email: &value}), ErrEmailInvalid)
+	}
+}
+
+func TestService_ChangePassword(t *testing.T) {
+	ctx := context.Background()
+	id := uuid.New()
+	oldHash, err := bcrypt.GenerateFromPassword([]byte("old-password"), bcrypt.MinCost)
+	require.NoError(t, err)
+	repo := new(MockRepository)
+	repo.On("GetByID", ctx, id).Return(&User{ID: id, Password: string(oldHash)}, nil)
+	repo.On("UpdatePassword", ctx, id, string(oldHash), mock.MatchedBy(func(hash string) bool {
+		return bcrypt.CompareHashAndPassword([]byte(hash), []byte("new-password")) == nil
+	})).Return(nil).Once()
+	s, _ := NewService(repo)
+	require.ErrorIs(t, s.ChangePassword(ctx, id, ChangePasswordInput{CurrentPassword: "wrong", NewPassword: "new-password"}), ErrCurrentPasswordInvalid)
+	require.ErrorIs(t, s.ChangePassword(ctx, id, ChangePasswordInput{CurrentPassword: "old-password", NewPassword: "short"}), ErrPasswordInvalid)
+	require.NoError(t, s.ChangePassword(ctx, id, ChangePasswordInput{CurrentPassword: "old-password", NewPassword: "new-password"}))
+	repo.AssertExpectations(t)
+}
+
+func TestService_ChangeRoleRequiresAdmin(t *testing.T) {
+	ctx := context.Background()
+	actor, target := uuid.New(), uuid.New()
+	repo := new(MockRepository)
+	repo.On("GetByID", ctx, actor).Return(&User{ID: actor, Role: "user"}, nil).Once()
+	repo.On("GetByID", ctx, actor).Return(&User{ID: actor, Role: "admin"}, nil).Twice()
+	repo.On("UpdateRole", ctx, target, "admin").Return(nil).Once()
+	s, _ := NewService(repo)
+	require.ErrorIs(t, s.ChangeRole(ctx, actor, target, ChangeRoleInput{Role: "admin"}), ErrRoleForbidden)
+	require.ErrorIs(t, s.ChangeRole(ctx, actor, target, ChangeRoleInput{Role: "owner"}), ErrRoleInvalid)
+	require.NoError(t, s.ChangeRole(ctx, actor, target, ChangeRoleInput{Role: "admin"}))
+	repo.AssertExpectations(t)
+}
+
+func TestService_UpdateLocation_UpsertsActiveWalkSession(t *testing.T) {
+	ctx := context.Background()
+	userID := uuid.New()
+	repo := new(MockRepository)
+	repo.On("GetByID", ctx, userID).
+		Return(&User{ID: userID, Email: "walk@gav.app", Password: "hash", Role: "user"}, nil).
+		Once()
+	repo.On("UpsertActiveWalkSession", ctx, mock.MatchedBy(func(session *WalkSession) bool {
+		return session != nil &&
+			session.UserID == userID &&
+			session.Lat == 55.751244 &&
+			session.Lon == 37.618423 &&
+			session.Visibility == VisibilityEveryone
+	})).Return(nil).Once()
+	repo.On("Update", ctx, mock.MatchedBy(func(u *User) bool {
+		return u != nil &&
+			u.ID == userID &&
+			u.LocationStatus == Walking &&
+			u.Visibility == VisibilityEveryone &&
+			u.LocationUpdatedAt == nil
+	})).Return(nil).Once()
+
+	s, _ := NewService(repo)
+	err := s.UpdateLocation(ctx, userID, UpdateLocationInput{
+		Latitude:   55.751244,
+		Longitude:  37.618423,
+		Status:     Walking,
+		Visibility: VisibilityEveryone,
+	})
+
+	require.NoError(t, err)
+	repo.AssertExpectations(t)
+}
+
+func TestService_UpdateLocation_EndsActiveWalkSessionOnClear(t *testing.T) {
+	ctx := context.Background()
+	userID := uuid.New()
+	repo := new(MockRepository)
+	repo.On("GetByID", ctx, userID).
+		Return(&User{ID: userID, Email: "walk@gav.app", Password: "hash", Role: "user"}, nil).
+		Once()
+	repo.On("EndActiveWalkSession", ctx, userID, mock.Anything).Return(nil).Once()
+	repo.On("Update", ctx, mock.MatchedBy(func(u *User) bool {
+		return u != nil &&
+			u.ID == userID &&
+			u.Lat == nil &&
+			u.Lon == nil &&
+			u.LocationUpdatedAt == nil &&
+			u.LocationStatus == Inactive &&
+			u.Visibility == VisibilityNoOne
+	})).Return(nil).Once()
+
+	s, _ := NewService(repo)
+	err := s.UpdateLocation(ctx, userID, UpdateLocationInput{
+		ClearLocation: true,
+	})
+
+	require.NoError(t, err)
+	repo.AssertExpectations(t)
 }
 
 func TestService_Delete(t *testing.T) {
@@ -224,7 +320,7 @@ func TestFindDogsNearby_Success(t *testing.T) {
 		}
 
 		env.repo.
-			On("FindWalkingNearby", ctx, 0.0, 0.0, 1000.0).
+			On("FindWalkingNearby", ctx, 0.0, 0.0, 1000.0, mock.Anything).
 			Return(dogsFromRepo, nil)
 		env.repo.
 			On("GetByID", ctx, otherUserID).
@@ -247,7 +343,7 @@ func TestFindDogsNearby_Success(t *testing.T) {
 		}
 
 		env.repo.
-			On("FindWalkingNearby", ctx, 0.0, 0.0, 1000.0).
+			On("FindWalkingNearby", ctx, 0.0, 0.0, 1000.0, mock.Anything).
 			Return(dogsFromRepo, nil)
 		env.repo.
 			On("GetByID", ctx, userID).
@@ -270,7 +366,7 @@ func TestFindDogsNearby_Success(t *testing.T) {
 		}
 
 		env.repo.
-			On("FindWalkingNearby", ctx, 0.0, 0.0, 1000.0).
+			On("FindWalkingNearby", ctx, 0.0, 0.0, 1000.0, mock.Anything).
 			Return(dogsFromRepo, nil)
 		env.repo.
 			On("GetByID", ctx, otherUserID).
@@ -285,12 +381,30 @@ func TestFindDogsNearby_Success(t *testing.T) {
 	t.Run("repo error", func(t *testing.T) {
 		env := setup(t)
 		env.repo.
-			On("FindWalkingNearby", ctx, 0.0, 0.0, 1000.0).
+			On("FindWalkingNearby", ctx, 0.0, 0.0, 1000.0, mock.Anything).
 			Return(nil, assert.AnError)
 
 		dogs, err := env.service.FindDogsNearby(ctx, userID, 0, 0, 1000)
 
 		require.Error(t, err)
 		assert.Nil(t, dogs)
+	})
+
+	t.Run("invalid coordinates", func(t *testing.T) {
+		env := setup(t)
+
+		dogs, err := env.service.FindDogsNearby(ctx, userID, 91, 0, 1000)
+
+		require.ErrorIs(t, err, ErrInvalidLatitude)
+		require.Nil(t, dogs)
+	})
+
+	t.Run("invalid radius", func(t *testing.T) {
+		env := setup(t)
+
+		dogs, err := env.service.FindDogsNearby(ctx, userID, 0, 0, 49)
+
+		require.ErrorIs(t, err, ErrInvalidRadius)
+		require.Nil(t, dogs)
 	})
 }

@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"time"
 
 	"social_network/internal/dog"
 
@@ -13,6 +14,12 @@ type Repository interface {
 	GetByEmail(ctx context.Context, email string) (*User, error)
 	GetByID(ctx context.Context, id uuid.UUID) (*User, error)
 	Update(ctx context.Context, user *User) error
+	UpdateEmail(ctx context.Context, id uuid.UUID, email string) error
+	UpdatePassword(ctx context.Context, id uuid.UUID, oldHash, newHash string) error
+	UpdateRole(ctx context.Context, id uuid.UUID, role string) error
 	Delete(ctx context.Context, id uuid.UUID) error
-	FindWalkingNearby(ctx context.Context, centerLat, centerLon float64, radiusMeters float64) ([]*dog.Dog, error)
+	FindWalkingNearby(ctx context.Context, centerLat, centerLon float64, radiusMeters float64, activeAfter time.Time) ([]*dog.Dog, error)
+	UpsertActiveWalkSession(ctx context.Context, session *WalkSession) error
+	EndActiveWalkSession(ctx context.Context, userID uuid.UUID, endedAt time.Time) error
+	UpdateActiveWalkVisibility(ctx context.Context, userID uuid.UUID, visibility LocationVisibility) error
 }

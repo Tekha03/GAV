@@ -42,5 +42,5 @@ func realIP(r *http.Request) string {
 }
 
 func Timeout(next http.Handler) http.Handler {
-	return http.TimeoutHandler(next, 30*time.Second, `{"error":"request timeout}`)
+	return http.TimeoutHandler(next, 30*time.Second, `{"error":"request timeout"}`)
 }

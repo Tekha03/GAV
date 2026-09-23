@@ -3,9 +3,11 @@ package service
 import (
 	"context"
 	"encoding/json"
-	"messenger/internal/errors"
 	"messenger/internal/model"
+	apperrors "shared/app_errors"
 	"shared/events"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -13,53 +15,89 @@ import (
 
 func (s *ChatService) CreatePrivateChat(ctx context.Context, userID1, userID2 uuid.UUID) (*model.Chat, error) {
 	if userID1 == userID2 {
-		return nil, errors.ErrChatWithYourSelf
+		return nil, apperrors.New(apperrors.ChatSelfNotAllowed, "cannot create a chat with yourself")
 	}
 
-	existingChatID, err := s.membersRepo.FindPrivateChatBetween(ctx, userID1, userID2)
+	privateKey := privateChatKey(userID1, userID2)
+	var result *model.Chat
+	var createdMembers []*model.ChatMember
+
+	create := func(txCtx context.Context) error {
+		existingChat, err := s.chatRepo.GetByPrivateKey(txCtx, privateKey)
+		if err != nil {
+			return err
+		}
+		if existingChat != nil {
+			result = existingChat
+			return nil
+		}
+
+		// Support private chats created before private_key was introduced.
+		existingChatID, err := s.membersRepo.FindPrivateChatBetween(txCtx, userID1, userID2)
+		if err != nil {
+			return err
+		}
+		if existingChatID != uuid.Nil {
+			result, err = s.chatRepo.GetByID(txCtx, existingChatID)
+			return err
+		}
+
+		chat := &model.Chat{
+			ID:         uuid.New(),
+			IsGroup:    false,
+			PrivateKey: &privateKey,
+			CreatedAt:  time.Now(),
+		}
+		if err := s.chatRepo.Create(txCtx, chat); err != nil {
+			return err
+		}
+
+		members := []*model.ChatMember{
+			{ChatID: chat.ID, UserID: userID1, JoinedAt: time.Now(), Role: model.Member},
+			{ChatID: chat.ID, UserID: userID2, JoinedAt: time.Now(), Role: model.Member},
+		}
+		for _, member := range members {
+			if err := s.membersRepo.AddMember(txCtx, member); err != nil {
+				return err
+			}
+		}
+
+		result = chat
+		createdMembers = members
+		return nil
+	}
+
+	var err error
+	if s.transactionManager != nil {
+		err = s.transactionManager.WithPrivateChatLock(ctx, privateKey, create)
+	} else {
+		err = create(ctx)
+	}
 	if err != nil {
 		return nil, err
 	}
-	if existingChatID != uuid.Nil {
-		return s.chatRepo.GetByID(ctx, existingChatID)
-	}
 
-	chat := &model.Chat{
-		ID:        uuid.New(),
-		IsGroup:   false,
-		CreatedAt: time.Now(),
-	}
-	if err := s.chatRepo.Create(ctx, chat); err != nil {
-		return nil, err
-	}
-
-	members := []*model.ChatMember{
-		{ChatID: chat.ID, UserID: userID1, JoinedAt: time.Now(), Role: model.Member},
-		{ChatID: chat.ID, UserID: userID2, JoinedAt: time.Now(), Role: model.Member},
-	}
-
-	for _, m := range members {
-		if err := s.membersRepo.AddMember(ctx, m); err != nil {
+	if len(createdMembers) > 0 {
+		if err := s.publishChatCreated(result.ID, createdMembers); err != nil {
 			return nil, err
 		}
 	}
 
-	if err := s.publishChatCreated(chat.ID, members); err != nil {
-		return nil, err
-	}
+	return result, nil
+}
 
-	return chat, nil
+func privateChatKey(userID1, userID2 uuid.UUID) string {
+	ids := []string{userID1.String(), userID2.String()}
+	sort.Strings(ids)
+	return strings.Join(ids, ":")
 }
 
 func (s *ChatService) CreateGroupChat(ctx context.Context, title string, creatorID uuid.UUID, membersIDs []uuid.UUID) (*model.Chat, error) {
 	chat := &model.Chat{
 		ID:        uuid.New(),
 		IsGroup:   true,
+		Title:     title,
 		CreatedAt: time.Now(),
-	}
-
-	if err := s.chatRepo.Create(ctx, chat); err != nil {
-		return nil, err
 	}
 
 	seenUsers := map[uuid.UUID]struct{}{creatorID: {}}
@@ -84,8 +122,26 @@ func (s *ChatService) CreateGroupChat(ctx context.Context, title string, creator
 		})
 	}
 
-	for _, member := range members {
-		if err := s.membersRepo.AddMember(ctx, member); err != nil {
+	create := func(txCtx context.Context) error {
+		if err := s.chatRepo.Create(txCtx, chat); err != nil {
+			return err
+		}
+
+		for _, member := range members {
+			if err := s.membersRepo.AddMember(txCtx, member); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	}
+
+	if s.transactionManager != nil {
+		if err := s.transactionManager.WithinTransaction(ctx, create); err != nil {
+			return nil, err
+		}
+	} else {
+		if err := create(ctx); err != nil {
 			return nil, err
 		}
 	}
@@ -97,25 +153,51 @@ func (s *ChatService) CreateGroupChat(ctx context.Context, title string, creator
 	return chat, nil
 }
 
-func (s *ChatService) GetChatByID(ctx context.Context, chatID uuid.UUID) (*model.Chat, error) {
+func (s *ChatService) GetChatByID(ctx context.Context, chatID, requesterID uuid.UUID) (*model.Chat, error) {
 	chat, err := s.chatRepo.GetByID(ctx, chatID)
 	if err != nil {
 		return nil, err
 	}
 
 	if chat == nil {
-		return nil, errors.ErrChatNotFound
+		return nil, apperrors.New(apperrors.ChatNotFound, "chat not found")
+	}
+
+	if err := s.RequireChatMember(ctx, chatID, requesterID); err != nil {
+		return nil, err
 	}
 
 	return chat, nil
 }
 
-func (s *ChatService) AddMember(ctx context.Context, userID, chatID uuid.UUID) error {
+func (s *ChatService) AddMember(ctx context.Context, chatID, userID, requesterID uuid.UUID) error {
+	if err := s.RequireChatMember(ctx, chatID, requesterID); err != nil {
+		return err
+	}
+
+	role, err := s.membersRepo.GetRole(ctx, requesterID, chatID)
+	if err != nil {
+		return err
+	}
+
+	if *role != model.Admin {
+		return apperrors.New(apperrors.ChatAccessDenied, "chat access denied")
+	}
+
+	chat, err := s.chatRepo.GetByID(ctx, chatID)
+	if err != nil {
+		return err
+	}
+
+	if chat.IsGroup != true {
+		return apperrors.New(apperrors.ChatGroupRequired, "operation is available only for group chats")
+	}
+
 	member := &model.ChatMember{
 		ChatID:   chatID,
 		UserID:   userID,
 		JoinedAt: time.Now(),
-		Role:     "member",
+		Role:     model.Member,
 	}
 
 	if err := s.membersRepo.AddMember(ctx, member); err != nil {
@@ -127,7 +209,7 @@ func (s *ChatService) AddMember(ctx context.Context, userID, chatID uuid.UUID) e
 		UserID: userID,
 	})
 	if err != nil {
-		return err
+		return apperrors.Wrap(apperrors.Internal, "failed to encode chat member added event", err)
 	}
 
 	event := events.Event{
@@ -140,7 +222,29 @@ func (s *ChatService) AddMember(ctx context.Context, userID, chatID uuid.UUID) e
 	return s.publishEvent(event)
 }
 
-func (s *ChatService) RemoveMember(ctx context.Context, userID, chatID uuid.UUID) error {
+func (s *ChatService) RemoveMember(ctx context.Context, userID, chatID, requesterID uuid.UUID) error {
+	if err := s.RequireChatMember(ctx, chatID, requesterID); err != nil {
+		return err
+	}
+
+	role, err := s.membersRepo.GetRole(ctx, requesterID, chatID)
+	if err != nil {
+		return err
+	}
+
+	if *role != model.Admin {
+		return apperrors.New(apperrors.ChatAccessDenied, "chat access denied")
+	}
+
+	chat, err := s.chatRepo.GetByID(ctx, chatID)
+	if err != nil {
+		return err
+	}
+
+	if chat.IsGroup != true {
+		return apperrors.New(apperrors.ChatGroupRequired, "operation is available only for group chats")
+	}
+
 	if err := s.membersRepo.RemoveMember(ctx, userID, chatID); err != nil {
 		return err
 	}
@@ -150,7 +254,7 @@ func (s *ChatService) RemoveMember(ctx context.Context, userID, chatID uuid.UUID
 		UserID: userID,
 	})
 	if err != nil {
-		return err
+		return apperrors.Wrap(apperrors.Internal, "failed to encode chat member removed event", err)
 	}
 
 	event := events.Event{
@@ -163,21 +267,26 @@ func (s *ChatService) RemoveMember(ctx context.Context, userID, chatID uuid.UUID
 	return s.publishEvent(event)
 }
 
-func (s *ChatService) GetChatMembers(ctx context.Context, chatID uuid.UUID) ([]*model.ChatMember, error) {
+func (s *ChatService) GetChatMembers(ctx context.Context, chatID, requesterID uuid.UUID) ([]*model.ChatMember, error) {
+	if err := s.RequireChatMember(ctx, chatID, requesterID); err != nil {
+		return nil, err
+	}
+
 	members, err := s.membersRepo.GetMembers(ctx, chatID)
 	if err != nil {
 		return nil, err
 	}
 
-	if members == nil {
-		return nil, errors.ErrNoMembers
-	}
-
 	return members, nil
 }
 
-func (s *ChatService) LeaveChat(ctx context.Context, userID, chatID uuid.UUID) error {
-	err := s.membersRepo.RemoveMember(ctx, userID, chatID)
+func (s *ChatService) LeaveChat(ctx context.Context, chatID, requesterID uuid.UUID) error {
+
+	if err := s.RequireChatMember(ctx, chatID, requesterID); err != nil {
+		return err
+	}
+
+	err := s.membersRepo.RemoveMember(ctx, requesterID, chatID)
 	return err
 }
 
@@ -186,11 +295,7 @@ func (s *ChatService) GetUserChats(ctx context.Context, userID uuid.UUID) ([]*mo
 	if err != nil {
 		return nil, err
 	}
-	if chatIDs == nil {
-		return nil, errors.ErrNoChats
-	}
-
-	var chats []*model.Chat
+	chats := make([]*model.Chat, 0, len(chatIDs))
 	for _, id := range chatIDs {
 		chat, err := s.chatRepo.GetByID(ctx, id)
 		if err != nil {
@@ -202,16 +307,42 @@ func (s *ChatService) GetUserChats(ctx context.Context, userID uuid.UUID) ([]*mo
 	return chats, nil
 }
 
-func (s *ChatService) UpdateChatTitle(ctx context.Context, chatID uuid.UUID, newTitle string) error {
+func (s *ChatService) UpdateChatTitle(ctx context.Context, chatID, requesterID uuid.UUID, newTitle string) error {
+	chat, err := s.chatRepo.GetByID(ctx, chatID)
+	if err != nil {
+		return err
+	}
+
+	if chat.IsGroup != true {
+		return apperrors.New(apperrors.ChatGroupRequired, "operation is available only for group chats")
+	}
+
+	if err := s.RequireChatMember(ctx, chatID, requesterID); err != nil {
+		return err
+	}
+
 	if err := s.chatRepo.UpdateTitle(ctx, chatID, newTitle); err != nil {
-		return errors.ErrTitleUpdate
+		return err
 	}
 	return nil
 }
 
-func (s *ChatService) UpdateChatPhoto(ctx context.Context, chatID uuid.UUID, newPhotoURL string) error {
+func (s *ChatService) UpdateChatPhoto(ctx context.Context, chatID, requesterID uuid.UUID, newPhotoURL string) error {
+	chat, err := s.chatRepo.GetByID(ctx, chatID)
+	if err != nil {
+		return err
+	}
+
+	if chat.IsGroup != true {
+		return apperrors.New(apperrors.ChatGroupRequired, "operation is available only for group chats")
+	}
+
+	if err := s.RequireChatMember(ctx, chatID, requesterID); err != nil {
+		return err
+	}
+
 	if err := s.chatRepo.UpdatePhoto(ctx, chatID, newPhotoURL); err != nil {
-		return errors.ErrPhotoUpdate
+		return err
 	}
 	return nil
 }
@@ -222,7 +353,7 @@ func (s *ChatService) publishChatCreated(chatID uuid.UUID, members []*model.Chat
 		Members: getMemberIDs(members),
 	})
 	if err != nil {
-		return err
+		return apperrors.Wrap(apperrors.Internal, "failed to encode chat created event", err)
 	}
 
 	event := events.Event{
@@ -241,4 +372,15 @@ func getMemberIDs(members []*model.ChatMember) []uuid.UUID {
 		ids = append(ids, member.UserID)
 	}
 	return ids
+}
+
+func (s *ChatService) RequireChatMember(ctx context.Context, chatID, userID uuid.UUID) error {
+	ok, err := s.membersRepo.MemberExists(ctx, userID, chatID)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return apperrors.New(apperrors.ChatAccessDenied, "chat access denied")
+	}
+	return nil
 }

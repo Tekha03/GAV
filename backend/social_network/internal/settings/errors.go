@@ -1,10 +1,10 @@
 package settings
 
-import "errors"
+import apperrors "shared/app_errors"
 
 var (
-	ErrSettingsNotFound = errors.New("settings not found")
-	ErrInvalidUserID    = errors.New("invalid user ID")
+	ErrSettingsNotFound = apperrors.New(apperrors.SettingsNotFound, "settings not found")
+	ErrInvalidUserID    = apperrors.New(apperrors.Validation, "invalid user ID", apperrors.WithDetail("field", "user_id"))
 
-	ErrRepoNil = errors.New("settings service: repo is nil")
+	ErrRepoNil = apperrors.New(apperrors.Internal, "settings service: repo is nil")
 )

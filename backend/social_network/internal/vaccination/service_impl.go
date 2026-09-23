@@ -20,6 +20,7 @@ func NewService(repo Repository) (VaccinationService, error) {
 
 func (s *service) Create(ctx context.Context, dogID uuid.UUID, input CreateVaccinationInput) (*Vaccination, error) {
 	vaccination := Vaccination{
+		ID:        uuid.New(),
 		DogID:     dogID,
 		Name:      input.Name,
 		DoneAt:    input.DoneAt,
