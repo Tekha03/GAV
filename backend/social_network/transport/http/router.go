@@ -5,9 +5,10 @@ import (
 	"net/http"
 	"time"
 
+	"shared/ratelimit"
+
 	"github.com/go-chi/chi/v5"
 	httpSwagger "github.com/swaggo/http-swagger"
-	"shared/ratelimit"
 
 	"social_network/internal/post"
 	"social_network/transport/http/handlers"

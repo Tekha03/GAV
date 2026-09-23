@@ -314,8 +314,8 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Info.plist;
 				GAV_ENVIRONMENT_NAME = Debug;
-				GAV_MESSENGER_BASE_URL = "http://127.0.0.1:8082";
-				GAV_SOCIAL_BASE_URL = "http://127.0.0.1:8080";
+				GAV_MESSENGER_BASE_URL = "http://Viktorias-MacBook-Pro.local:8082";
+				GAV_SOCIAL_BASE_URL = "http://Viktorias-MacBook-Pro.local:8080";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Gav uses your location to show nearby dog walks while you are using the app.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Gav needs microphone access to record voice messages.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;

@@ -39,15 +39,9 @@ private extension Error {
             return false
         }
 
-        let offlineErrorCodes: Set<Int> = [
-            NSURLErrorNotConnectedToInternet,
-            NSURLErrorNetworkConnectionLost,
-            NSURLErrorCannotFindHost,
-            NSURLErrorCannotConnectToHost,
-            NSURLErrorDNSLookupFailed,
-            NSURLErrorTimedOut
-        ]
-
-        return offlineErrorCodes.contains(nsError.code)
+        // A reachable network and a reachable backend are different states.
+        // Host lookup, connection and timeout failures usually mean that the
+        // configured API is unavailable, not that the iPhone is offline.
+        return nsError.code == NSURLErrorNotConnectedToInternet
     }
 }

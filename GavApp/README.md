@@ -7,11 +7,13 @@ cd backend
 docker compose up -d --build
 ```
 
-Debug-сборка обращается к `http://127.0.0.1:8080` (социальный API) и
-`http://127.0.0.1:8082` (мессенджер). Эти адреса подходят для iOS Simulator,
-когда оба сервиса запущены на том же Mac.
+Debug-сборка обращается к серверам на Mac по Bonjour-имени
+`Viktorias-MacBook-Pro.local`. Это работает как в iOS Simulator, так и на физическом
+iPhone в той же Wi-Fi сети. При первом обращении iOS запросит доступ к
+локальной сети. Если Bonjour-имя Mac изменится, обновите
+`GAV_SOCIAL_BASE_URL` и `GAV_MESSENGER_BASE_URL` в Debug Build Settings.
 
-Для физического iPhone в той же Wi-Fi сети укажите IP компьютера при сборке:
+Если mDNS/Bonjour в сети не работает, можно явно указать IP компьютера при сборке:
 
 ```sh
 GAV_LOCAL_IP=192.168.0.10 # замените на IP компьютера
