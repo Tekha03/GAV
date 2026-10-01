@@ -175,6 +175,10 @@ struct MockUploadServiceAPI: UploadServiceAPIProtocol {
     func uploadDogImage(_ imageData: Data, mimeType: String?) async throws -> MediaInfoModel {
         MediaInfoModel(url: "", mimeType: mimeType ?? "image/jpeg")
     }
+
+    func uploadChatAttachment(_ data: Data, fileName: String, mimeType: String?) async throws -> MediaInfoModel {
+        MediaInfoModel(url: "", mimeType: mimeType ?? "application/octet-stream")
+    }
 }
 
 struct MockDogServiceAPI: DogServiceAPIProtocol {
@@ -341,5 +345,6 @@ struct MockChatUseCase: ChatUseCase {
     }
 
     func markAsRead(chatID: UUID, userID: UUID) async throws {}
+    func deleteMessage(messageID: UUID) async throws {}
     func sendTyping(chatID: UUID) async throws {}
 }

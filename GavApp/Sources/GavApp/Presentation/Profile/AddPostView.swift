@@ -13,6 +13,8 @@ struct AddPostView: View {
     @State private var content: String = ""
     @State private var selectedItem: PhotosPickerItem?
     @State private var selectedImageData: Data?
+    @State private var imageCropData: Data?
+    @State private var showingImageCrop = false
     @State private var imagePreview: Image?
     @State private var isLoadingImage = false
     @State private var isPublishing = false
@@ -76,6 +78,20 @@ struct AddPostView: View {
             .task(id: selectedItem) {
                 await loadImage()
             }
+            .sheet(isPresented: $showingImageCrop) {
+                if let imageCropData {
+                    ImageCropEditor(
+                        imageData: imageCropData,
+                        aspectRatio: 3 / 2,
+                        onCancel: { showingImageCrop = false },
+                        onSave: { data in
+                            selectedImageData = data
+                            imagePreview = UIImage(data: data).map(Image.init(uiImage:))
+                            showingImageCrop = false
+                        }
+                    )
+                }
+            }
         }
     }
 
@@ -86,20 +102,8 @@ struct AddPostView: View {
 
         do {
             if let data = try await selectedItem.loadTransferable(type: Data.self) {
-                selectedImageData = data
-                #if os(macOS)
-                if let nsImage = NSImage(data: data) {
-                    imagePreview = Image(nsImage: nsImage)
-                } else {
-                    imagePreview = nil
-                }
-                #else
-                if let uiImage = UIImage(data: data) {
-                    imagePreview = Image(uiImage: uiImage)
-                } else {
-                    imagePreview = nil
-                }
-                #endif
+                imageCropData = data
+                showingImageCrop = true
             }
         } catch {
             selectedImageData = nil
@@ -115,13 +119,14 @@ struct AddPostView: View {
         var rawImageURL: String?
         if let selectedImageData {
             do {
+                let jpegData = try UploadImageProcessor.jpegData(from: selectedImageData)
                 let media = try await uploadService.uploadPostImage(
-                    selectedImageData,
+                    jpegData,
                     mimeType: "image/jpeg"
                 )
                 rawImageURL = media.url
             } catch {
-                errorMessage = "Не удалось загрузить фото поста"
+                errorMessage = error.localizedDescription
                 return
             }
         }

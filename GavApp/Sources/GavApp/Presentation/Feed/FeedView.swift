@@ -87,7 +87,7 @@ struct FeedView: View {
             }
             .frame(maxWidth: 620)
             .frame(maxWidth: .infinity)
-            .padding(.horizontal, 16)
+            .padding(.horizontal, 20)
             .padding(.vertical, 20)
         }
         .refreshable {

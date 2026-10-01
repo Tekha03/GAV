@@ -136,3 +136,34 @@ func (h *UploadHandler) UploadDogImage(w http.ResponseWriter, r *http.Request) {
 
 	response.JSON(w, http.StatusOK, map[string]string{"url": url})
 }
+
+// UploadChatAttachment stores a chat file and returns a public media URL.
+// The messenger service persists this URL in the message attachment.
+func (h *UploadHandler) UploadChatAttachment(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.UserID(r.Context())
+	if !ok {
+		response.Error(w, ErrUnauthorized)
+		return
+	}
+
+	r.Body = http.MaxBytesReader(w, r.Body, (25<<20)+(1<<20))
+	if err := r.ParseMultipartForm(25 << 20); err != nil {
+		response.Error(w, err)
+		return
+	}
+
+	file, header, err := r.FormFile("file")
+	if err != nil {
+		response.Error(w, err)
+		return
+	}
+	defer file.Close()
+
+	url, err := h.MediaService.UploadFile(r.Context(), file, header, "chat/"+userID.String())
+	if err != nil {
+		response.Error(w, err)
+		return
+	}
+
+	response.JSON(w, http.StatusOK, map[string]string{"url": url})
+}

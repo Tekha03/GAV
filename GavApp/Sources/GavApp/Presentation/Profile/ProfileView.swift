@@ -23,7 +23,7 @@ struct ProfileView: View {
                     dogsRow
                     postsSection
                 }
-                .padding(.horizontal, 16)
+                .padding(.horizontal, 20)
                 .padding(.bottom, 24)
             }
             .scrollIndicators(.hidden)
@@ -267,7 +267,11 @@ struct ProfileView: View {
                                 selectedDog = dog
                             } label: {
                                 dogCard(dog)
+                                    .contentShape(
+                                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                    )
                             }
+                            .frame(width: 132, height: 180)
                             .buttonStyle(.plain)
                             .contextMenu {
                                 if appViewModel.canEditProfile {
@@ -286,7 +290,7 @@ struct ProfileView: View {
                             }
                         }
                     }
-                    .padding(.horizontal, 2)
+                    .padding(.horizontal, 6)
                     .padding(.vertical, 8)
                 }
             }

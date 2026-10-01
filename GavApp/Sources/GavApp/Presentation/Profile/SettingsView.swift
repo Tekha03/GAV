@@ -17,6 +17,8 @@ struct ProfileSettingsView: View {
     @State private var showOnMap: Bool = true
     @State private var selectedItem: PhotosPickerItem?
     @State private var selectedAvatarData: Data?
+    @State private var avatarCropData: Data?
+    @State private var showingAvatarCrop = false
     @State private var avatarPreview: Image?
     @State private var isLoadingAvatar = false
     @State private var isSaving = false
@@ -50,6 +52,20 @@ struct ProfileSettingsView: View {
             }
             .task(id: selectedItem) {
                 await loadAvatar()
+            }
+            .sheet(isPresented: $showingAvatarCrop) {
+                if let avatarCropData {
+                    ImageCropEditor(
+                        imageData: avatarCropData,
+                        aspectRatio: 1,
+                        onCancel: { showingAvatarCrop = false },
+                        onSave: { data in
+                            selectedAvatarData = data
+                            avatarPreview = UIImage(data: data).map(Image.init(uiImage:))
+                            showingAvatarCrop = false
+                        }
+                    )
+                }
             }
         }
     }
@@ -178,16 +194,8 @@ struct ProfileSettingsView: View {
 
         do {
             if let data = try await selectedItem.loadTransferable(type: Data.self) {
-                selectedAvatarData = data
-                #if os(macOS)
-                if let nsImage = NSImage(data: data) {
-                    avatarPreview = Image(nsImage: nsImage)
-                }
-                #elseif os(iOS)
-                if let uiImage = UIImage(data: data) {
-                    avatarPreview = Image(uiImage: uiImage)
-                }
-                #endif
+                avatarCropData = data
+                showingAvatarCrop = true
             }
         } catch {
             selectedAvatarData = nil
@@ -244,8 +252,9 @@ struct ProfileSettingsView: View {
         guard let selectedAvatarData else { return nil }
 
         do {
+            let jpegData = try UploadImageProcessor.jpegData(from: selectedAvatarData)
             let media = try await uploadService.uploadAvatar(
-                selectedAvatarData,
+                jpegData,
                 mimeType: "image/jpeg"
             )
             return UploadedMedia(
@@ -253,7 +262,7 @@ struct ProfileSettingsView: View {
                 resolvedURL: MediaURLResolver.resolve(media.url)
             )
         } catch {
-            actionErrorMessage = "Не удалось загрузить аватар"
+            actionErrorMessage = error.localizedDescription
             return nil
         }
     }

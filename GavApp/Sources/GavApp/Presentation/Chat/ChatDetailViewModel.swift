@@ -8,6 +8,7 @@ final class ChatDetailViewModel: ObservableObject {
     @Published var messages: [Message] = []
     @Published var messageText = ""
     @Published var pinnedMessages: [PinnedMessage] = []
+    @Published private(set) var members: [ChatMember] = []
     @Published var isRecordingVoice = false
     @Published var screenState: AppScreenState = .loading(
         message: "Загружаем сообщения..."
@@ -17,20 +18,51 @@ final class ChatDetailViewModel: ObservableObject {
     private let chatID: UUID
     private let currentUserId: UUID
     private let useCase: ChatUseCase
+    private let uploadService: UploadServiceAPIProtocol
 
     private var recorder: AVAudioRecorder?
     private var recordingURL: URL?
 
     var messageRows: [ChatMessageRowModel] {
-        sortedMessages.map { message in
-            ChatMessageRowModel(
+        let orderedMessages = sortedMessages
+        let messageIndices = Dictionary(
+            uniqueKeysWithValues: orderedMessages.enumerated().map { ($1.id, $0) }
+        )
+        let otherMembers = members.filter { $0.userId != currentUserId }
+
+        return orderedMessages.map { message in
+            let messageIndex = messageIndices[message.id]
+            let isRead = !otherMembers.isEmpty && otherMembers.allSatisfy { member in
+                guard
+                    let lastReadID = member.lastReadMessageId,
+                    let lastReadIndex = messageIndices[lastReadID],
+                    let messageIndex
+                else {
+                    return false
+                }
+                return lastReadIndex >= messageIndex
+            }
+
+            return ChatMessageRowModel(
                 id: message.id,
                 message: message,
                 isMine: message.senderId == currentUserId,
                 isPinned: pinnedMessages.contains {
                     $0.messageID == message.id
-                }
+                },
+                isRead: isRead
             )
+        }
+    }
+
+    var messageSections: [ChatDaySection] {
+        let calendar = Calendar.autoupdatingCurrent
+        let grouped = Dictionary(grouping: messageRows) { row in
+            calendar.startOfDay(for: row.message.createdAt)
+        }
+
+        return grouped.keys.sorted().map { date in
+            ChatDaySection(date: date, rows: grouped[date] ?? [])
         }
     }
 
@@ -51,11 +83,13 @@ final class ChatDetailViewModel: ObservableObject {
     init(
         chatID: UUID,
         currentUserId: UUID,
-        useCase: ChatUseCase
+        useCase: ChatUseCase,
+        uploadService: UploadServiceAPIProtocol
     ) {
         self.chatID = chatID
         self.currentUserId = currentUserId
         self.useCase = useCase
+        self.uploadService = uploadService
     }
 
     func loadMessages(showLoading: Bool = true) async {
@@ -74,6 +108,9 @@ final class ChatDetailViewModel: ObservableObject {
             .sorted {
                 $0.createdAt < $1.createdAt
             }
+
+            await markCurrentMessagesAsRead()
+            await refreshMembersSilently()
 
             screenState = .content
         } catch {
@@ -97,6 +134,7 @@ final class ChatDetailViewModel: ObservableObject {
             }
 
             await refreshMessagesSilently()
+            await refreshMembersSilently()
         }
     }
 
@@ -127,22 +165,28 @@ final class ChatDetailViewModel: ObservableObject {
     }
 
     func sendAttachment(
-        url: URL,
+        data: Data,
+        fileName: String,
         type: AttachmentType,
-        fileSize: Int64
+        mimeType: String?
     ) async {
         actionErrorMessage = nil
 
         do {
+            let media = try await uploadService.uploadChatAttachment(
+                data,
+                fileName: fileName,
+                mimeType: mimeType
+            )
             let message = try await useCase.sendMessage(
                 chatID: chatID,
                 text: nil,
                 attachments: [
                     AttachmentInput(
-                        url: url.absoluteString,
+                        url: media.url,
                         type: type,
-                        fileName: url.lastPathComponent,
-                        fileSize: fileSize
+                        fileName: fileName,
+                        fileSize: Int64(data.count)
                     )
                 ],
                 replyToId: nil
@@ -156,16 +200,24 @@ final class ChatDetailViewModel: ObservableObject {
 
     func sendImageData(_ data: Data) async {
         do {
-            let url = try writeTemporaryFile(
-                data: data,
-                fileExtension: "jpg"
-            )
+            let jpegData = try UploadImageProcessor.jpegData(from: data)
 
             await sendAttachment(
-                url: url,
+                data: jpegData,
+                fileName: "photo-\(UUID().uuidString).jpg",
                 type: .image,
-                fileSize: Int64(data.count)
+                mimeType: "image/jpeg"
             )
+        } catch {
+            actionErrorMessage = error.localizedDescription
+        }
+    }
+
+    func deleteMessage(_ messageID: UUID) async {
+        actionErrorMessage = nil
+        do {
+            try await useCase.deleteMessage(messageID: messageID)
+            messages.removeAll { $0.id == messageID }
         } catch {
             actionErrorMessage = error.localizedDescription
         }
@@ -239,16 +291,17 @@ final class ChatDetailViewModel: ObservableObject {
 
         recordingURL = nil
 
-        let fileSize = (
-            try? FileManager.default
-                .attributesOfItem(atPath: url.path)[.size] as? NSNumber
-        )?.int64Value ?? 0
-
-        await sendAttachment(
-            url: url,
-            type: .audio,
-            fileSize: fileSize
-        )
+        do {
+            let data = try Data(contentsOf: url)
+            await sendAttachment(
+                data: data,
+                fileName: url.lastPathComponent,
+                type: .audio,
+                mimeType: "audio/mp4"
+            )
+        } catch {
+            actionErrorMessage = error.localizedDescription
+        }
     }
 
     private func requestRecordPermission(
@@ -265,19 +318,6 @@ final class ChatDetailViewModel: ObservableObject {
                 }
             }
         }
-    }
-
-    private func writeTemporaryFile(
-        data: Data,
-        fileExtension: String
-    ) throws -> URL {
-        let url = FileManager.default.temporaryDirectory
-            .appendingPathComponent(UUID().uuidString)
-            .appendingPathExtension(fileExtension)
-
-        try data.write(to: url, options: .atomic)
-
-        return url
     }
 
     private func makeRecordingURL() throws -> URL {
@@ -318,11 +358,26 @@ final class ChatDetailViewModel: ObservableObject {
                 $0.createdAt < $1.createdAt
             }
 
+            await markCurrentMessagesAsRead()
+
             if screenState != .content {
                 screenState = .content
             }
         } catch {
             // Ошибка polling не скрывает уже загруженные сообщения
+        }
+    }
+
+    private func markCurrentMessagesAsRead() async {
+        guard messages.contains(where: { $0.senderId != currentUserId }) else {
+            return
+        }
+        try? await useCase.markAsRead(chatID: chatID, userID: currentUserId)
+    }
+
+    private func refreshMembersSilently() async {
+        if let loaded = try? await useCase.getChatMembers(chatID: chatID) {
+            members = loaded
         }
     }
 }

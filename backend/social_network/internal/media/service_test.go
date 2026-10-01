@@ -163,3 +163,49 @@ func TestService_Delete(t *testing.T) {
 		require.NoError(t, err)
 	})
 }
+
+func TestService_UploadFile(t *testing.T) {
+	ctx := context.Background()
+	createFile := func(filename string, size int64) (multipart.File, *multipart.FileHeader) {
+		file := &MockFile{bytes.NewReader(make([]byte, min(size, 16)))}
+		return file, &multipart.FileHeader{Filename: filename, Size: size}
+	}
+
+	t.Run("file too large", func(t *testing.T) {
+		service, _ := NewService(new(MockStorage))
+		file, header := createFile("video.mp4", TWENTY_FIVE_MEGABYTES+1)
+		url, err := service.UploadFile(ctx, file, header, "chat")
+		require.ErrorIs(t, err, ErrAttachmentTooLarge)
+		require.Empty(t, url)
+	})
+
+	t.Run("invalid extension", func(t *testing.T) {
+		service, _ := NewService(new(MockStorage))
+		file, header := createFile("payload.exe", 10)
+		url, err := service.UploadFile(ctx, file, header, "chat")
+		require.ErrorIs(t, err, ErrInvalidFileType)
+		require.Empty(t, url)
+	})
+
+	for _, filename := range []string{"photo.HEIC", "voice.m4a", "video.mov", "document.pdf", "archive.zip"} {
+		t.Run("success "+filename, func(t *testing.T) {
+			storage := new(MockStorage)
+			service, _ := NewService(storage)
+			file, header := createFile(filename, 10)
+			storage.On("Upload", ctx, file, header, "chat").Return("/uploads/chat/"+filename, nil).Once()
+			url, err := service.UploadFile(ctx, file, header, "chat")
+			require.NoError(t, err)
+			require.Equal(t, "/uploads/chat/"+filename, url)
+		})
+	}
+
+	t.Run("storage error", func(t *testing.T) {
+		storage := new(MockStorage)
+		service, _ := NewService(storage)
+		file, header := createFile("photo.jpg", 10)
+		storage.On("Upload", ctx, file, header, "chat").Return("", ErrStorageNil).Once()
+		url, err := service.UploadFile(ctx, file, header, "chat")
+		require.ErrorIs(t, err, ErrStorageNil)
+		require.Empty(t, url)
+	})
+}

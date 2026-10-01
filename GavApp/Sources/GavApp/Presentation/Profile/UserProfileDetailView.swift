@@ -109,7 +109,7 @@ struct UserProfileDetailView: View {
                     )
                 }
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, 20)
             .padding(.vertical, 20)
         }
         .refreshable {
@@ -231,6 +231,7 @@ struct UserProfileDetailView: View {
                             dogCard(dog)
                         }
                     }
+                    .padding(.horizontal, 6)
                     .padding(.vertical, 2)
                 }
             }

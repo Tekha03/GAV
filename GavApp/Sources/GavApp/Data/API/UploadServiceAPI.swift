@@ -12,6 +12,12 @@ protocol UploadServiceAPIProtocol: Sendable {
     ) async throws -> MediaInfoModel
 
     func uploadDogImage(_ imageData: Data, mimeType: String?) async throws -> MediaInfoModel
+
+    func uploadChatAttachment(
+        _ data: Data,
+        fileName: String,
+        mimeType: String?
+    ) async throws -> MediaInfoModel
 }
 
 @available(macOS 12.0, *)
@@ -71,5 +77,20 @@ final class UploadServiceAPI: UploadServiceAPIProtocol, @unchecked Sendable {
             fileName: "dog.jpg"
         )
         return try JSONDecoder().decode(MediaInfoModel.self, from: data)
+    }
+
+    func uploadChatAttachment(
+        _ data: Data,
+        fileName: String,
+        mimeType: String?
+    ) async throws -> MediaInfoModel {
+        let response = try await base.upload(
+            "/api/v1/upload/chat-attachment",
+            fileData: data,
+            mimeType: mimeType,
+            fieldName: "file",
+            fileName: fileName
+        )
+        return try JSONDecoder().decode(MediaInfoModel.self, from: response)
     }
 }

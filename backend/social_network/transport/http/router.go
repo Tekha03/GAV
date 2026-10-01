@@ -246,6 +246,7 @@ POST /api/v1/posts           - создать пост
 				r.Post("/avatar", h.Upload.UploadAvatar)
 				r.Post("/post-image", h.Upload.UploadPostImage)
 				r.Post("/dog-image", h.Upload.UploadDogImage)
+				r.Post("/chat-attachment", h.Upload.UploadChatAttachment)
 			})
 
 			r.With(ratelimit.Middleware(ratelimit.Config{

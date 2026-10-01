@@ -7,5 +7,6 @@ import (
 
 type MediaService interface {
 	UploadImage(ctx context.Context, file multipart.File, header *multipart.FileHeader, folder string) (string, error)
+	UploadFile(ctx context.Context, file multipart.File, header *multipart.FileHeader, folder string) (string, error)
 	Delete(ctx context.Context, url string) error
 }

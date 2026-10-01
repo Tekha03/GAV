@@ -17,6 +17,8 @@ struct AddDogView: View {
 
     @State private var selectedPhoto: PhotosPickerItem?
     @State private var selectedImageData: Data?
+    @State private var imageCropData: Data?
+    @State private var showingImageCrop = false
     @State private var isUploading = false
     @State private var uploadError: String?
 
@@ -118,8 +120,22 @@ struct AddDogView: View {
             .onChange(of: selectedPhoto) { _, newValue in
                 Task {
                     if let data = try? await newValue?.loadTransferable(type: Data.self) {
-                        selectedImageData = data
+                        imageCropData = data
+                        showingImageCrop = true
                     }
+                }
+            }
+            .sheet(isPresented: $showingImageCrop) {
+                if let imageCropData {
+                    ImageCropEditor(
+                        imageData: imageCropData,
+                        aspectRatio: 16 / 9,
+                        onCancel: { showingImageCrop = false },
+                        onSave: { data in
+                            selectedImageData = data
+                            showingImageCrop = false
+                        }
+                    )
                 }
             }
         }
@@ -135,8 +151,9 @@ struct AddDogView: View {
 
         if let selectedImageData {
             do {
+                let jpegData = try UploadImageProcessor.jpegData(from: selectedImageData)
                 let media = try await uploadService.uploadDogImage(
-                    selectedImageData,
+                    jpegData,
                     mimeType: "image/jpeg"
                 )
 
@@ -148,7 +165,7 @@ struct AddDogView: View {
                 rawPhotoURL = media.url
                 displayPhotoURL = newURL
             } catch {
-                uploadError = "Не удалось загрузить фото"
+                uploadError = error.localizedDescription
                 return
             }
         }
