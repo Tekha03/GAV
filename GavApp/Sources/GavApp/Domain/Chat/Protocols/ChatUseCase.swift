@@ -30,6 +30,8 @@ public protocol ChatUseCase: Sendable {
         replyToId: UUID?
     ) async throws -> Message
 
+    func deleteMessage(messageID: UUID) async throws
+
     func markAsRead(chatID: UUID, userID: UUID) async throws
 
     func sendTyping(chatID: UUID) async throws

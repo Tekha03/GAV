@@ -338,5 +338,3 @@ cd backend
 docker compose down -v
 docker compose up -d --build
 ```
-
-Команда удаляет все локальные данные проекта в Docker volumes.

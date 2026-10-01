@@ -46,9 +46,51 @@ final class UserServiceAPI: UserServiceAPIProtocol, @unchecked Sendable {
     }
 
     func updateLocation(id: UUID, input: UpdateLocationInput) async throws {
-        let path = "/api/v1/users/\(id.uuidString)/location"
-        let body = try JSONEncoder().encode(input)
-        _ = try await base.request(path, method: "PUT", body: body)
+        guard let latitude = input.lat, let longitude = input.lon else {
+            throw APIError.server(
+                statusCode: 422,
+                body: APIErrorBody(
+                    code: .validation,
+                    category: .validation,
+                    message: "Location coordinates are required",
+                    details: nil
+                )
+            )
+        }
+
+        let updateBody = try JSONEncoder().encode(
+            WalkLocationRequest(latitude: latitude, longitude: longitude)
+        )
+
+        do {
+            _ = try await base.request(
+                "/api/v1/walks/current/location",
+                method: "PATCH",
+                body: updateBody
+            )
+        } catch let error as APIError where error.category == .notFound {
+            let startBody = try JSONEncoder().encode(
+                StartWalkRequest(
+                    latitude: latitude,
+                    longitude: longitude,
+                    visibility: input.visibility.apiValue
+                )
+            )
+
+            do {
+                _ = try await base.request(
+                    "/api/v1/walks/start",
+                    method: "POST",
+                    body: startBody
+                )
+            } catch let startError as APIError where startError.category == .conflict {
+                _ = try await base.request(
+                    "/api/v1/walks/current/location",
+                    method: "PATCH",
+                    body: updateBody
+                )
+            }
+        }
     }
 
     func findDogsNearby(
@@ -64,4 +106,15 @@ final class UserServiceAPI: UserServiceAPIProtocol, @unchecked Sendable {
 
         return try JSONDecoder().decode([DogModel].self, from: data)
     }
+}
+
+private struct WalkLocationRequest: Encodable {
+    let latitude: Double
+    let longitude: Double
+}
+
+private struct StartWalkRequest: Encodable {
+    let latitude: Double
+    let longitude: Double
+    let visibility: Int
 }

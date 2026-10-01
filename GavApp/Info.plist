@@ -10,6 +10,8 @@
     <string>$(GAV_MESSENGER_BASE_URL)</string>
     <key>NSLocalNetworkUsageDescription</key>
     <string>Gav подключается к серверу разработки на этом Mac в локальной сети.</string>
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>Gav использует геолокацию, чтобы показывать собак на прогулке рядом с вами.</string>
     <key>NSAppTransportSecurity</key>
     <dict>
         <key>NSAllowsArbitraryLoads</key>

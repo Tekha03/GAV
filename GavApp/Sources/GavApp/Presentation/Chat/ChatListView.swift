@@ -77,7 +77,8 @@ struct ChatListView: View {
                         ChatDetailView(
                             chat: chat.domainChat,
                             currentUserId: viewModel.currentUserId,
-                            useCase: viewModel.chatUseCase
+                            useCase: viewModel.chatUseCase,
+                            uploadService: viewModel.uploadService
                         )
                     } label: {
                         chatRow(chat)

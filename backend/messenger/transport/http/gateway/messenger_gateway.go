@@ -117,6 +117,7 @@ func NewHTTPServer(addr string, chatService service.Service, jwtSecret string, h
 		r.With(userLimiter).Get("/chats/{chat_id}/members", getChatMembers(chatService))
 		r.With(userLimiter).Get("/chats/{chat_id}/messages", getMessages(chatService))
 		r.With(userLimiter, messageLimiter).Post("/chats/{chat_id}/messages", sendMessage(chatService))
+		r.With(userLimiter).Delete("/messages/{message_id}", deleteMessage(chatService))
 		r.With(userLimiter).Post("/chats/{chat_id}/read", markAsRead(chatService))
 		r.With(wsLimiter).Get("/ws/chats/{chat_id}", websocket.ChatHandler(
 			hub,
@@ -132,6 +133,29 @@ func NewHTTPServer(addr string, chatService service.Service, jwtSecret string, h
 	})
 
 	return &http.Server{Addr: addr, Handler: r}
+}
+
+func deleteMessage(chatService service.Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		messageID, err := parsePathUUID(r, "message_id")
+		if err != nil {
+			writeError(w, err)
+			return
+		}
+
+		authenticatedUserID, ok := currentUserID(r.Context())
+		if !ok {
+			writeError(w, apperrors.New(apperrors.AuthTokenMissing, "authenticated user is missing"))
+			return
+		}
+
+		if err := chatService.DeleteMessage(r.Context(), authenticatedUserID, messageID); err != nil {
+			writeError(w, err)
+			return
+		}
+
+		w.WriteHeader(http.StatusNoContent)
+	}
 }
 
 func getChatMembers(chatService service.Service) http.HandlerFunc {

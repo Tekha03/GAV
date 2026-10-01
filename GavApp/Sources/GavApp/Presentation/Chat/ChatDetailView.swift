@@ -11,11 +11,13 @@ struct ChatDetailView: View {
     @State private var showingPhotoPicker = false
     @State private var showingFileImporter = false
     @State private var selectedPhoto: PhotosPickerItem?
+    @State private var messagePendingDeletion: UUID?
 
     init(
         chat: Chat,
         currentUserId: UUID,
-        useCase: ChatUseCase
+        useCase: ChatUseCase,
+        uploadService: UploadServiceAPIProtocol
     ) {
         self.chat = chat
 
@@ -23,7 +25,8 @@ struct ChatDetailView: View {
             wrappedValue: ChatDetailViewModel(
                 chatID: chat.id,
                 currentUserId: currentUserId,
-                useCase: useCase
+                useCase: useCase,
+                uploadService: uploadService
             )
         )
     }
@@ -198,13 +201,21 @@ struct ChatDetailView: View {
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(spacing: 10) {
-                    ForEach(viewModel.messageRows) { row in
-                        MessageBubbleView(
-                            message: row.message,
-                            isMine: row.isMine,
-                            isPinned: row.isPinned
-                        )
-                        .id(row.id)
+                    ForEach(viewModel.messageSections) { section in
+                        daySeparator(for: section.date)
+
+                        ForEach(section.rows) { row in
+                            MessageBubbleView(
+                                message: row.message,
+                                isMine: row.isMine,
+                                isPinned: row.isPinned,
+                                isRead: row.isRead,
+                                onDelete: row.isMine ? {
+                                    messagePendingDeletion = row.id
+                                } : nil
+                            )
+                            .id(row.id)
+                        }
                     }
                 }
                 .padding(.horizontal, 16)
@@ -228,6 +239,52 @@ struct ChatDetailView: View {
                 }
             }
         }
+        .confirmationDialog(
+            "Удалить сообщение?",
+            isPresented: Binding(
+                get: { messagePendingDeletion != nil },
+                set: { if !$0 { messagePendingDeletion = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button("Удалить", role: .destructive) {
+                guard let messageID = messagePendingDeletion else { return }
+                messagePendingDeletion = nil
+                Task { await viewModel.deleteMessage(messageID) }
+            }
+            Button("Отмена", role: .cancel) {
+                messagePendingDeletion = nil
+            }
+        }
+    }
+
+    private func daySeparator(for date: Date) -> some View {
+        Text(dayTitle(for: date))
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(.white.opacity(0.85))
+            .padding(.horizontal, 12)
+            .padding(.vertical, 5)
+            .background(.black.opacity(0.35), in: Capsule())
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 2)
+    }
+
+    private func dayTitle(for date: Date) -> String {
+        let calendar = Calendar.autoupdatingCurrent
+
+        if calendar.isDateInToday(date) {
+            return "Сегодня"
+        }
+
+        if calendar.isDateInYesterday(date) {
+            return "Вчера"
+        }
+
+        if calendar.component(.year, from: date) == calendar.component(.year, from: .now) {
+            return date.formatted(.dateTime.day().month(.wide))
+        }
+
+        return date.formatted(.dateTime.day().month(.wide).year())
     }
 
     private func actionError(_ message: String) -> some View {
@@ -344,17 +401,20 @@ struct ChatDetailView: View {
                 }
             }
 
-            let fileSize = (
-                try? FileManager.default
-                    .attributesOfItem(atPath: url.path)[.size] as? NSNumber
-            )?.int64Value ?? 0
+            do {
+                let data = try Data(contentsOf: url)
+                let contentType = UTType(filenameExtension: url.pathExtension)
 
-            Task {
-                await viewModel.sendAttachment(
-                    url: url,
-                    type: attachmentType(for: url),
-                    fileSize: fileSize
-                )
+                Task {
+                    await viewModel.sendAttachment(
+                        data: data,
+                        fileName: url.lastPathComponent,
+                        type: attachmentType(for: url),
+                        mimeType: contentType?.preferredMIMEType
+                    )
+                }
+            } catch {
+                viewModel.setActionError(error)
             }
 
         case .failure(let error):

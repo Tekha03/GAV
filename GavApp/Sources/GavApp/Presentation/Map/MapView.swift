@@ -51,6 +51,7 @@ struct MapView: View {
 
                 didCenterOnUser = true
                 centerMap(on: coordinate)
+                Task { await refreshNearby() }
             }
         }
     }
@@ -208,6 +209,10 @@ struct MapView: View {
                 .font(.caption)
                 .foregroundStyle(.white.opacity(0.75))
             }
+
+            Text("На втором устройстве войдите в другой аккаунт и задайте симулятору координаты рядом с телефоном.")
+                .font(.caption2)
+                .foregroundStyle(.white.opacity(0.6))
         }
         .padding(18)
         .background(

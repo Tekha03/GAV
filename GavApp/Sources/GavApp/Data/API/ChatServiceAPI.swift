@@ -110,6 +110,14 @@ final class ChatServiceAPI: ChatUseCase, @unchecked Sendable {
         return try chatDecoder.decode(MessageEnvelope.self, from: data).message.domain
     }
 
+    func deleteMessage(messageID: UUID) async throws {
+        _ = try await base.request(
+            "/api/v1/messages/\(messageID.uuidString)",
+            method: "DELETE",
+            requiresAuth: true
+        )
+    }
+
     func markAsRead(chatID: UUID, userID: UUID) async throws {
         let data = try JSONEncoder().encode(["user_id": userID.uuidString])
         _ = try await base.request(

@@ -89,8 +89,10 @@ final class AppSessionViewModel: ObservableObject {
             try? await appViewModel.loadChats()
             isAuthenticated = true
         } catch {
-            if authManager.currentToken() == nil {
+            if shouldDiscardSavedSession(after: error) {
+                authManager.clearTokens()
                 isAuthenticated = false
+                restoreError = nil
             } else {
                 appViewModel.applySavedSession(userID: authManager.currentUserId() ?? UUID())
                 isAuthenticated = true
@@ -99,6 +101,25 @@ final class AppSessionViewModel: ObservableObject {
         }
 
         isLoading = false
+    }
+
+    private func shouldDiscardSavedSession(after error: Error) -> Bool {
+        if authManager.currentToken() == nil {
+            return true
+        }
+
+        guard let apiError = error as? APIError else {
+            return false
+        }
+
+        switch apiError {
+        case .server(let statusCode, _), .invalidResponse(let statusCode):
+            // A valid token may outlive the database row after the backend
+            // volumes are recreated. Such a session can never be restored.
+            return statusCode == 401 || statusCode == 404
+        default:
+            return false
+        }
     }
 
     private func authenticate(
